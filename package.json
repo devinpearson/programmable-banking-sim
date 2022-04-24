@@ -4,6 +4,7 @@
   "description": "Local Simulation of the api service. for local testing and demo purposes",
   "main": "index.js",
   "scripts": {
+    "start": "npm nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Devin Pearson",
@@ -14,6 +15,7 @@
     "express": "^4.17.3"
   },
   "devDependencies": {
+    "nodemon": "^2.0.15",
     "standard": "^17.0.0"
   }
 }
