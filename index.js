@@ -1,126 +1,140 @@
 const express = require('express')
-const bodyParser = require('body-parser');
-const cors = require('cors');
+const bodyParser = require('body-parser')
+const cors = require('cors')
 const fs = require('fs')
 
 const app = express()
 const port = 3000
 
-app.use(cors());
+app.use(cors())
 
 // Configuring body parser middleware
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
 
 app.get('/za/pb/v1/accounts', (req, res) => {
-  let url = req.protocol + '://' + req.get('host')
-  fs.readFile('data/accounts.json', 'utf8', function(err, data) {
-    if (err) throw err;
-    let dataObj = JSON.parse(data)
-    let accounts = []
+  const url = req.protocol + '://' + req.get('host')
+  fs.readFile('data/accounts.json', 'utf8', function (err, data) {
+    if (err) throw err
+    const dataObj = JSON.parse(data)
+    const accounts = []
     for (let i = 0; i < dataObj.length; i++) {
-      let account = {
+      const account = {
         accountId: dataObj[i].accountId,
         accountNumber: dataObj[i].accountNumber,
         accountName: dataObj[i].accountName,
         referenceName: dataObj[i].referenceName,
-        productName: dataObj[i].productName,
+        productName: dataObj[i].productName
       }
       accounts.push(account)
     }
-    let result = {
-      "data": { 
-        "accounts": accounts,
+    const result = {
+      data: {
+        accounts: accounts
       },
-      "links": {
-        "self": `${url}/za/pb/v1/accounts`
+      links: {
+        self: `${url}/za/pb/v1/accounts`
       },
-      "meta": {
-          "totalPages": 1
+      meta: {
+        totalPages: 1
       }
     }
-    res.send(result) 
+    res.send(result)
   })
-});
+})
 
 app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
-  let url = req.protocol + '://' + req.get('host')
-  const accountId = req.params.accountId;
-  fs.readFile('data/accounts.json', 'utf8', function(err, data) {
-    if (err) throw err;
-    let dataObj = JSON.parse(data)
+  const url = req.protocol + '://' + req.get('host')
+  const accountId = req.params.accountId
+  fs.readFile('data/accounts.json', 'utf8', function (err, data) {
+    if (err) throw err
+    const dataObj = JSON.parse(data)
     for (let i = 0; i < dataObj.length; i++) {
-      if (dataObj[i].accountId == accountId) {
-        let result = {
-          "data": {
-            "accountId": accountId,
-            "currentBalance": dataObj[i].currentBalance,
-            "availableBalance": dataObj[i].availableBalance,
-            "currency": dataObj[i].currency,
+      if (dataObj[i].accountId === accountId) {
+        const result = {
+          data: {
+            accountId: accountId,
+            currentBalance: dataObj[i].currentBalance,
+            availableBalance: dataObj[i].availableBalance,
+            currency: dataObj[i].currency
           },
-          "links": {
-            "self": `${url}/za/pb/v1/accounts/${accountId}/balance`
+          links: {
+            self: `${url}/za/pb/v1/accounts/${accountId}/balance`
           },
-          "meta": {
-              "totalPages": 1
+          meta: {
+            totalPages: 1
           }
         }
-        res.send(result) 
+        res.send(result)
         break
       }
     }
   })
-});
+})
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
-  let url = req.protocol + '://' + req.get('host')
+  const url = req.protocol + '://' + req.get('host')
   const accountId = req.params.accountId
 
-  const fromDate = req.query.fromDate
-  const toDate = req.query.toDate
-  const transactionType = req.query.transactionType
-  
-  fs.readFile('data/accounts.json', 'utf8', function(err, data) {
-    if (err) throw err;
-    let dataObj = JSON.parse(data)
+  const fromDate = req.query.fromDate ?? null // set to 180 in the passed
+  const toDate = req.query.toDate ?? null // set to today
+  const transactionType = req.query.transactionType ?? null
+
+  fs.readFile('data/accounts.json', 'utf8', function (err, data) {
+    if (err) throw err
+    const dataObj = JSON.parse(data)
     for (let i = 0; i < dataObj.length; i++) {
-      if (dataObj[i].accountId == accountId) {
-        let result = {
-          "data": {
-            "transactions": dataObj[i].transactions,
+      if (dataObj[i].accountId === accountId) {
+        const transactions = []
+        for (let j = 0; j < dataObj[i].transactions.length; j++) {
+          if (transactionType !== null && dataObj[i].transactions[j].transactionType !== transactionType) {
+            continue
+          }
+          // compare both dates together 
+          if (fromDate !== null && new Date(dataObj[i].transactions[j].transactionDate) < new Date(fromDate)) {
+            continue
+          }
+          if (toDate !== null && new Date(dataObj[i].transactions[j].transactionDate) > new Date(toDate)) {
+            continue
+          }
+          transactions.push(dataObj[i].transactions[j])
+        }
+        const result = {
+          data: {
+            transactions: transactions
           },
-          "links": {
-            "self": `${url}/za/pb/v1/accounts/${accountId}/transactions`
+          links: {
+            self: `${url}/za/pb/v1/accounts/${accountId}/transactions`
           },
-          "meta": {
-              "totalPages": 1
+          meta: {
+            totalPages: 1
           }
         }
-        res.send(result) 
+        res.send(result)
         break
       }
     }
   })
-});
+})
 
 app.get('/za/v1/cards/countries', (req, res) => {
-  fs.readFile('data/countries.json', 'utf8', function(err, data) {
-    if (err) throw err;
-    res.send(data) 
+  fs.readFile('data/countries.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.send(data)
   })
-});
-	
+})
+
 app.get('/za/v1/cards/currencies', (req, res) => {
-  fs.readFile('data/currencies.json', 'utf8', function(err, data) {
-    if (err) throw err;
-    res.send(data) 
+  fs.readFile('data/currencies.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.send(data)
   })
 })
 
 app.get('/za/v1/cards/merchants', (req, res) => {
-  fs.readFile('data/merchants.json', 'utf8', function(err, data) {
-    if (err) throw err;
-    res.send(data) 
+  fs.readFile('data/merchants.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.send(data)
   })
 })
 
