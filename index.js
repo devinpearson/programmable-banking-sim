@@ -1,7 +1,16 @@
 const express = require('express')
-let fs = require('fs')
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const fs = require('fs')
+
 const app = express()
 const port = 3000
+
+app.use(cors());
+
+// Configuring body parser middleware
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 app.get('/za/pb/v1/accounts', (req, res) => {
   let url = req.protocol + '://' + req.get('host')
@@ -65,7 +74,12 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
   let url = req.protocol + '://' + req.get('host')
-  const accountId = req.params.accountId;
+  const accountId = req.params.accountId
+
+  const fromDate = req.query.fromDate
+  const toDate = req.query.toDate
+  const transactionType = req.query.transactionType
+  
   fs.readFile('data/accounts.json', 'utf8', function(err, data) {
     if (err) throw err;
     let dataObj = JSON.parse(data)
