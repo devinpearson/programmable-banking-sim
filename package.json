@@ -1,0 +1,11 @@
+{
+  "name": "programmable-banking-sim",
+  "version": "1.0.0",
+  "description": "Local Simulation of the api service. for local testing and demo purposes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Devin Pearson",
+  "license": "ISC"
+}
