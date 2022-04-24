@@ -12,6 +12,22 @@ app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
+const accessTokens = new Set()
+
+app.post('/identity/v2/oauth2/token', (req, res) => {
+  const authStr = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString()
+  console.log(Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString())
+  const [clientId, clientSecret] = authStr.split(':')
+  // if (clientId !== 'client_id' || clientSecret !== 'client_secret') {
+  // res.status(400).json({ message: 'Invalid auth token' });
+  // }
+  // Generate a string
+  const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
+  accessTokens.add('Bearer ' + token)
+  res.json({ access_token: token, token_type: 'Bearer', expires_in: 1799, scope: 'accounts' })
+})
+
 app.get('/za/pb/v1/accounts', (req, res) => {
   const url = req.protocol + '://' + req.get('host')
   fs.readFile('data/accounts.json', 'utf8', function (err, data) {
@@ -30,7 +46,7 @@ app.get('/za/pb/v1/accounts', (req, res) => {
     }
     const result = {
       data: {
-        accounts: accounts
+        accounts
       },
       links: {
         self: `${url}/za/pb/v1/accounts`
@@ -53,7 +69,7 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
       if (dataObj[i].accountId === accountId) {
         const result = {
           data: {
-            accountId: accountId,
+            accountId,
             currentBalance: dataObj[i].currentBalance,
             availableBalance: dataObj[i].availableBalance,
             currency: dataObj[i].currency
@@ -90,7 +106,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
           if (transactionType !== null && dataObj[i].transactions[j].transactionType !== transactionType) {
             continue
           }
-          // compare both dates together 
+          // compare both dates together
           if (fromDate !== null && new Date(dataObj[i].transactions[j].transactionDate) < new Date(fromDate)) {
             continue
           }
@@ -101,7 +117,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
         }
         const result = {
           data: {
-            transactions: transactions
+            transactions
           },
           links: {
             self: `${url}/za/pb/v1/accounts/${accountId}/transactions`
@@ -118,6 +134,10 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
 })
 
 app.get('/za/v1/cards/countries', (req, res) => {
+  const authorization = req.get('authorization')
+  if (!accessTokens.has(authorization)) {
+    return res.status(403).json({ message: 'Unauthorized' })
+  }
   fs.readFile('data/countries.json', 'utf8', function (err, data) {
     if (err) throw err
     res.send(data)
@@ -125,6 +145,10 @@ app.get('/za/v1/cards/countries', (req, res) => {
 })
 
 app.get('/za/v1/cards/currencies', (req, res) => {
+  const authorization = req.get('authorization')
+  if (!accessTokens.has(authorization)) {
+    return res.status(403).json({ message: 'Unauthorized' })
+  }
   fs.readFile('data/currencies.json', 'utf8', function (err, data) {
     if (err) throw err
     res.send(data)
@@ -132,6 +156,10 @@ app.get('/za/v1/cards/currencies', (req, res) => {
 })
 
 app.get('/za/v1/cards/merchants', (req, res) => {
+  const authorization = req.get('authorization')
+  if (!accessTokens.has(authorization)) {
+    return res.status(403).json({ message: 'Unauthorized' })
+  }
   fs.readFile('data/merchants.json', 'utf8', function (err, data) {
     if (err) throw err
     res.send(data)
