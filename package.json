@@ -4,7 +4,7 @@
   "description": "Local Simulation of the api service. for local testing and demo purposes",
   "main": "index.js",
   "scripts": {
-    "start": "npm nodemon index.js",
+    "start": "npx nodemon index.js",
     "test": "npx standard"
   },
   "author": "Devin Pearson",
