@@ -1,6 +1,6 @@
 ## Installation
 
-# Investec Programmable Banking Open Simulator
+# Investec Programmable Banking Open API Simulator
 
 A nodejs server to get eveyone building and demoing regardless whether you have an account.
 
@@ -25,3 +25,18 @@ npm start
 ```
 
 This will start the simulator on http://localhost:3000
+
+Supported endpoints
+
+Auth
+- /identity/v2/oauth2/token
+
+Accounts
+- /za/pb/v1/accounts
+- /za/pb/v1/accounts/:accountId/balance
+- /za/pb/v1/accounts/:accountId/transactions
+
+Cards
+- /za/v1/cards/countries
+- /za/v1/cards/currencies
+- /za/v1/cards/merchants
