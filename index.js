@@ -55,7 +55,7 @@ app.get('/za/pb/v1/accounts', (req, res) => {
         totalPages: 1
       }
     }
-    res.send(result)
+    res.json(result)
   })
 })
 
@@ -81,7 +81,7 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
             totalPages: 1
           }
         }
-        res.send(result)
+        res.json(result)
         break
       }
     }
@@ -126,7 +126,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
             totalPages: 1
           }
         }
-        res.send(result)
+        res.json(result)
         break
       }
     }
@@ -140,7 +140,7 @@ app.get('/za/v1/cards/countries', (req, res) => {
   }
   fs.readFile('data/countries.json', 'utf8', function (err, data) {
     if (err) throw err
-    res.send(data)
+    res.json(JSON.parse(data))
   })
 })
 
@@ -151,7 +151,7 @@ app.get('/za/v1/cards/currencies', (req, res) => {
   }
   fs.readFile('data/currencies.json', 'utf8', function (err, data) {
     if (err) throw err
-    res.send(data)
+    res.json(JSON.parse(data))
   })
 })
 
@@ -162,7 +162,7 @@ app.get('/za/v1/cards/merchants', (req, res) => {
   }
   fs.readFile('data/merchants.json', 'utf8', function (err, data) {
     if (err) throw err
-    res.send(data)
+    res.json(JSON.parse(data))
   })
 })
 
