@@ -1,10 +1,12 @@
+require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const fs = require('fs')
 
 const app = express()
-const port = 3000
+const port = process.env.PORT || 3000
+const datafile = process.env.DATAFILE || 'data/accounts.json'
 
 app.use(cors())
 
@@ -14,7 +16,7 @@ app.use(bodyParser.json())
 
 const accessTokens = new Set()
 
-const accounts = JSON.parse(fs.readFileSync('data/accounts.json', 'utf8'))
+const accounts = JSON.parse(fs.readFileSync(datafile, 'utf8'))
 
 app.post('/identity/v2/oauth2/token', (req, res) => {
   const authStr = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString()
@@ -27,7 +29,7 @@ app.post('/identity/v2/oauth2/token', (req, res) => {
   const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
   accessTokens.add('Bearer ' + token)
-  res.json({ access_token: token, token_type: 'Bearer', expires_in: 1799, scope: 'accounts' })
+  return res.json({ access_token: token, token_type: 'Bearer', expires_in: 1799, scope: 'accounts' })
 })
 
 app.get('/za/pb/v1/accounts', (req, res) => {
@@ -43,7 +45,7 @@ app.get('/za/pb/v1/accounts', (req, res) => {
     returnAccounts.push(account)
   }
   const data = { accounts: returnAccounts }
-  formatResponse(data, req, res)
+  return formatResponse(data, req, res)
 })
 
 app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
@@ -56,11 +58,10 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
         availableBalance: accounts[i].availableBalance,
         currency: accounts[i].currency
       }
-      formatResponse(data, req, res)
-      break
+      return formatResponse(data, req, res)
     }
   }
-  return res.status(404).json()
+  return res.status(404).json() // no account was found
 })
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
@@ -87,11 +88,10 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
         transactions.push(accounts[i].transactions[j])
       }
       const data = { transactions }
-      formatResponse(data, req, res)
-      break
+      return formatResponse(data, req, res)
     }
   }
-  return res.status(404).json()
+  return res.status(404).json() // no account was found
 })
 
 app.get('/za/v1/cards/countries', (req, res) => {
@@ -128,7 +128,7 @@ app.get('/za/v1/cards/merchants', (req, res) => {
 })
 
 const formatResponse = (data, req, res) => {
-  res.json({
+  return res.json({
     data,
     links: {
       self: req.protocol + '://' + req.get('host') + req.originalUrl
