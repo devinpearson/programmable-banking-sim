@@ -80,8 +80,6 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
   if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
     return res.status(401).json()
   }
-  const currentDay = dayjs().startOf('day').subtract(180, 'day')
-  console.log(currentDay.format())
   const accountId = req.params.accountId
 
   const toDate = req.query.toDate ?? dayjs().format('YYYY-MM-DD') // set to today
