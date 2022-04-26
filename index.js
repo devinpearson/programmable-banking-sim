@@ -33,6 +33,11 @@ app.post('/identity/v2/oauth2/token', (req, res) => {
 })
 
 app.get('/za/pb/v1/accounts', (req, res) => {
+  const authorization = req.get('authorization')
+  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+    return res.status(401).json()
+  }
+
   const returnAccounts = []
   for (let i = 0; i < accounts.length; i++) {
     const account = {
@@ -49,6 +54,11 @@ app.get('/za/pb/v1/accounts', (req, res) => {
 })
 
 app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
+  const authorization = req.get('authorization')
+  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+    return res.status(401).json()
+  }
+
   const accountId = req.params.accountId
   for (let i = 0; i < accounts.length; i++) {
     if (accounts[i].accountId === accountId) {
@@ -65,6 +75,11 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
 })
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
+  const authorization = req.get('authorization')
+  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+    return res.status(401).json()
+  }
+
   const accountId = req.params.accountId
 
   const fromDate = req.query.fromDate ?? null // set to 180 in the passed
@@ -96,7 +111,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
 
 app.get('/za/v1/cards/countries', (req, res) => {
   const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization)) {
+  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
     return res.status(401).json()
   }
   fs.readFile('data/countries.json', 'utf8', function (err, data) {
@@ -107,7 +122,7 @@ app.get('/za/v1/cards/countries', (req, res) => {
 
 app.get('/za/v1/cards/currencies', (req, res) => {
   const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization)) {
+  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
     return res.status(401).json()
   }
   fs.readFile('data/currencies.json', 'utf8', function (err, data) {
@@ -118,7 +133,7 @@ app.get('/za/v1/cards/currencies', (req, res) => {
 
 app.get('/za/v1/cards/merchants', (req, res) => {
   const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization)) {
+  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
     return res.status(401).json()
   }
   fs.readFile('data/merchants.json', 'utf8', function (err, data) {
