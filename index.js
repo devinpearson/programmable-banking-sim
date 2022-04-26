@@ -3,6 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const fs = require('fs')
+const dayjs = require('dayjs')
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -79,11 +80,12 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
   if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
     return res.status(401).json()
   }
-
+  const currentDay = dayjs().startOf('day').subtract(180, 'day')
+  console.log(currentDay.format())
   const accountId = req.params.accountId
 
-  const fromDate = req.query.fromDate ?? null // set to 180 in the passed
-  const toDate = req.query.toDate ?? null // set to today
+  const toDate = req.query.toDate ?? dayjs().format('YYYY-MM-DD') // set to today
+  const fromDate = req.query.fromDate ?? dayjs().subtract(180, 'day').format('YYYY-MM-DD') // set to 180 in the passed
   const transactionType = req.query.transactionType ?? null
 
   for (let i = 0; i < accounts.length; i++) {
@@ -93,11 +95,12 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
         if (transactionType !== null && accounts[i].transactions[j].transactionType !== transactionType) {
           continue
         }
+        const transactionDate = dayjs(accounts[i].transactions[j].transactionDate)
         // compare both dates together
-        if (fromDate !== null && new Date(accounts[i].transactions[j].transactionDate) < new Date(fromDate)) {
+        if (transactionDate.isBefore(fromDate, 'day')) {
           continue
         }
-        if (toDate !== null && new Date(accounts[i].transactions[j].transactionDate) > new Date(toDate)) {
+        if (transactionDate.isAfter(toDate, 'day')) {
           continue
         }
         transactions.push(accounts[i].transactions[j])
