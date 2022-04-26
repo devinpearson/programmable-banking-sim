@@ -40,3 +40,5 @@ Cards
 - /za/v1/cards/countries
 - /za/v1/cards/currencies
 - /za/v1/cards/merchants
+
+Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
