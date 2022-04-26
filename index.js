@@ -23,9 +23,14 @@ app.post('/identity/v2/oauth2/token', (req, res) => {
   const authStr = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString()
   console.log(Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString())
   const [clientId, clientSecret] = authStr.split(':')
-  // if (clientId !== 'client_id' || clientSecret !== 'client_secret') {
-  // res.status(400).json({ message: 'Invalid auth token' });
-  // }
+  // add expiry time to access Tokens set
+  // add token expiry time to env
+  // check on each call if the token is still valid
+  if (process.env.CLIENT_ID !== '' && process.env.CLIENT_SECRET !== '') {
+    if (clientId !== process.env.CLIENT_ID || clientSecret !== process.env.CLIENT_SECRET) {
+      return res.status(401).json()
+    }
+  }
   // Generate a string
   const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
