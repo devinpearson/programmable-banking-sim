@@ -15,32 +15,40 @@ app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-const accessTokens = new Set()
+const accessTokens = {}
 
 const accounts = JSON.parse(fs.readFileSync(datafile, 'utf8'))
 
 app.post('/identity/v2/oauth2/token', (req, res) => {
   const authStr = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString()
-  console.log(Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString())
   const [clientId, clientSecret] = authStr.split(':')
-  // add expiry time to access Tokens set
-  // add token expiry time to env
-  // check on each call if the token is still valid
+
   if (process.env.CLIENT_ID !== '' && process.env.CLIENT_SECRET !== '') {
     if (clientId !== process.env.CLIENT_ID || clientSecret !== process.env.CLIENT_SECRET) {
       return res.status(401).json()
     }
   }
-  // Generate a string
+  // Generate a token string
   const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-
-  accessTokens.add('Bearer ' + token)
-  return res.json({ access_token: token, token_type: 'Bearer', expires_in: 1799, scope: 'accounts' })
+  const expiryDate = dayjs().add(process.env.TOKEN_EXPIRY, 'seconds').format()
+  accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
+  return res.json({ access_token: token, token_type: 'Bearer', expires_in: process.env.TOKEN_EXPIRY, scope: 'accounts' })
 })
 
+const isValidToken = (req) => {
+  if (process.env.AUTH !== 'true') {
+    return true
+  }
+  const authorization = req.get('authorization').split(' ')[1]
+  if (accessTokens[authorization] && dayjs().isBefore(accessTokens[authorization].expires_at)) {
+    return true
+  }
+
+  return false
+}
+
 app.get('/za/pb/v1/accounts', (req, res) => {
-  const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+  if (!isValidToken(req)) {
     return res.status(401).json()
   }
 
@@ -60,8 +68,7 @@ app.get('/za/pb/v1/accounts', (req, res) => {
 })
 
 app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
-  const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+  if (!isValidToken(req)) {
     return res.status(401).json()
   }
 
@@ -81,8 +88,7 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
 })
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
-  const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+  if (!isValidToken(req)) {
     return res.status(401).json()
   }
   const accountId = req.params.accountId
@@ -116,8 +122,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
 })
 
 app.get('/za/v1/cards/countries', (req, res) => {
-  const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+  if (!isValidToken(req)) {
     return res.status(401).json()
   }
   fs.readFile('data/countries.json', 'utf8', function (err, data) {
@@ -127,8 +132,7 @@ app.get('/za/v1/cards/countries', (req, res) => {
 })
 
 app.get('/za/v1/cards/currencies', (req, res) => {
-  const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+  if (!isValidToken(req)) {
     return res.status(401).json()
   }
   fs.readFile('data/currencies.json', 'utf8', function (err, data) {
@@ -138,8 +142,7 @@ app.get('/za/v1/cards/currencies', (req, res) => {
 })
 
 app.get('/za/v1/cards/merchants', (req, res) => {
-  const authorization = req.get('authorization')
-  if (!accessTokens.has(authorization) && process.env.AUTH === 'true') {
+  if (!isValidToken(req)) {
     return res.status(401).json()
   }
   fs.readFile('data/merchants.json', 'utf8', function (err, data) {
