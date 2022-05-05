@@ -1,0 +1,36 @@
+[
+  {
+    "CardKey": "1611980",
+    "CardNumber": "402167XXXXXX9999",
+    "IsProgrammable": true,
+    "Status": "Active",
+    "CardTypeCode": "VGC",
+    "AccountNumber": "10012000003",
+    "AccountId": "4675778129910189603000003",
+    "variables": {
+      "variables": {
+        "test1": "value11",
+        "test2": "value22"
+      },
+      "createdAt": "2022-05-01T20:03:17.984Z",
+      "updatedAt": "2022-05-01T20:03:17.984Z",
+      "error": null
+    },
+    "saved": {
+      "codeId": "2D73122B-8BEB-4FAA-8256-0228EC811F72",
+      "code": "// This function runs during the card transaction authorization flow.\n// It has a limited execution time, so keep any code short-running.\nconst beforeTransaction = async (authorization) => {\n    console.log(authorization);\n    return true;\n};\n\n// This function runs after a transaction.\nconst afterTransaction = async (transaction) => {\n    console.log(transaction)\n};\n\n// This function runs after a transaction.\nconst afterDecline = async (transaction) => {\n    console.log(transaction)\n};",
+      "createdAt": "2022-04-22T15:35:37.572Z",
+      "updatedAt": "2022-04-22T15:35:37.572Z",
+      "publishedAt": "2022-04-22T15:38:05.432Z",
+      "error": null
+    },
+    "published": {
+      "codeId": "2D73122B-8BEB-4FAA-8256-0228EC811F72",
+      "code": "// This function runs during the card transaction authorization flow.\n// It has a limited execution time, so keep any code short-running.\nconst beforeTransaction = async (authorization) => {\n    console.log(authorization);\n    return true;\n};\n\n// This function runs after a transaction.\nconst afterTransaction = async (transaction) => {\n    console.log(transaction)\n};\n\n// This function runs after a transaction.\nconst afterDecline = async (transaction) => {\n    console.log(transaction)\n};",
+      "createdAt": "2022-04-22T15:35:37.572Z",
+      "updatedAt": "2022-04-22T15:35:37.572Z",
+      "publishedAt": "2022-04-22T15:38:05.432Z",
+      "error": null
+    }
+  }
+]
