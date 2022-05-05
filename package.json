@@ -2,6 +2,7 @@
   "name": "programmable-banking-sim",
   "version": "1.0.0",
   "description": "Local Simulation of the api service. for local testing and demo purposes",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "npx nodemon index.js",
