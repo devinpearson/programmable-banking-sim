@@ -1,9 +1,16 @@
-require('dotenv').config()
-const express = require('express')
-const bodyParser = require('body-parser')
-const cors = require('cors')
-const fs = require('fs')
-const dayjs = require('dayjs')
+
+import 'dotenv/config'
+import express from 'express'
+import cards from './data/cards.json'
+import cors from 'cors'
+import dayjs from 'dayjs'
+import { readFile } from 'fs/promises';
+import countries from './data/countries.json'
+import currencies from './data/currencies.json'
+import merchants from './data/merchants.json'
+import accounts from './data/accounts.json'
+
+const json = JSON.parse(await readFile(new URL('../../package.json', import.meta.url)));
 
 const app = express()
 const port = process.env.PORT || 3000

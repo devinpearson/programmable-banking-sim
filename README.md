@@ -7,6 +7,7 @@ A nodejs server to get eveyone building and demoing regardless whether you have 
 ![GitHub](https://img.shields.io/github/license/devinpearson/programmable-banking-sim)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=round-square)](https://github.com/devinpearson/programmable-banking-sim/pulls)
 
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/devinpearson/programmable-banking-sim/tree/main)
 ### Installation
 Before installing, [download and install Node.js](https://nodejs.org/en/download/).
 
