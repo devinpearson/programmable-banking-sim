@@ -1,6 +1,7 @@
 {
   "name": "programmable-banking-sim",
   "version": "1.0.0",
+  "type": "module",
   "description": "Local Simulation of the api service. for local testing and demo purposes",
   "main": "index.js",
   "scripts": {
@@ -10,6 +11,7 @@
   "author": "Devin Pearson",
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^8.1.0",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.1",
