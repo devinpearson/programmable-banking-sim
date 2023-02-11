@@ -1,10 +1,9 @@
-import 'dotenv/config'
-import express from 'express'
-import cors from 'cors'
-import dayjs from 'dayjs'
-import Database from 'better-sqlite3'
+require('dotenv').config()
+const express = require('express')
+const cors = require('cors')
+const dayjs = require('dayjs')
+const db = require('better-sqlite3')('foobar.db')
 
-const db = new Database('foobar.db')
 db.pragma('journal_mode = WAL')
 
 const prepareDB = () => {

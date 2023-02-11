@@ -1,11 +1,11 @@
 {
   "name": "programmable-banking-sim",
   "version": "1.0.0",
-  "type": "module",
   "description": "Local Simulation of the api service. for local testing and demo purposes",
   "main": "index.js",
   "scripts": {
     "start": "npx nodemon index.js",
+    "build": "pkg index.js --output dist/pbsim --targets node16-linux-x64,node16-macos-x64,node16-win-x64",
     "test": "npx standard"
   },
   "author": "Devin Pearson",
