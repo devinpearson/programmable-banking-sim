@@ -5,8 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "npx nodemon index.js",
-    "build": "pkg index.js --output dist/pbsim --targets node16-linux-x64,node16-macos-x64,node16-win-x64",
+    "build": "npx pkg . -t macos --out-path dist --build",
     "test": "npx standard"
+  },
+  "bin": {
+    "pbsim": "index.js"
   },
   "author": "Devin Pearson",
   "license": "MIT",
@@ -16,9 +19,11 @@
     "cors": "^2.8.5",
     "dayjs": "^1.11.1",
     "dotenv": "^16.0.0",
-    "express": "^4.17.3"
+    "express": "^4.17.3",
+    "pkg": "^5.8.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
     "nodemon": "^2.0.15",
     "standard": "^17.0.0"
   }
