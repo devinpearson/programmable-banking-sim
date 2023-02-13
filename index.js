@@ -5,14 +5,14 @@ const envClientSecret = process.env.CLIENT_SECRET
 const envTokenExpiry = process.env.TOKEN_EXPIRY
 const envAuth = process.env.AUTH
 const dbFile = process.env.DB_FILE || 'investec.db'
-const overdraft = process.env.OVERDRAFT || 5000
+// const overdraft = process.env.OVERDRAFT || 5000
 
 const express = require('express')
 const cors = require('cors')
 const dayjs = require('dayjs')
-const { faker } = require('@faker-js/faker')
 const db = require('better-sqlite3')(dbFile)
 const database = require('./database')
+const generator = require('./generate')
 db.pragma('journal_mode = WAL')
 
 // database.prepareDB(db)
@@ -71,7 +71,6 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
-  console.log(faker.finance.transactionDescription())
   const accountId = req.params.accountId
 
   if (!database.isValidAccount(db, accountId)) {
@@ -137,26 +136,15 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
 
 // function to create transactions for an account
 app.post('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
-  const transaction = {
-    accountId: req.params.accountId,
-    type: req.body.type || faker.helpers.arrayElement(['DEBIT', 'CREDIT']),
-    transactionType: req.body.transactionType || faker.helpers.arrayElement(['CardPurchases', 'OnlineBankingPayments', 'FasterPay', 'DebitOrders', 'FeesAndInterest']),
-    status: req.body.status || 'POSTED',
-    description: req.body.description || faker.helpers.arrayElement(['HTTP://WWW.UBEREATS.CO PARKTOWN NOR ZA', 'MONTHLY SERVICE CHARGE', 'DEBIT INTEREST', 'FASTER PAYMENT FEE', 'INVESTECPB 40756003 09375003', 'VIRGIN ACT400396003 178003']),
-    cardNumber: req.body.cardNumber || '402167xxxxxx9999',
-    postingDate: req.body.postingDate || dayjs().format('YYYY-MM-DD'),
-    valueDate: req.body.valueDate || dayjs().format('YYYY-MM-DD'),
-    actionDate: req.body.actionDate || dayjs().add(30, 'day').format('YYYY-MM-DD'),
-    transactionDate: req.body.transactionDate || dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
-    amount: req.body.amount || faker.finance.amount(5, 1000)
-  }
+  let transaction = generator.randomTransaction(req.params.accountId)
+  transaction = { ...transaction, ...req.body }
   // check that the account exists
-  if (database.isValidAccount(db, transaction.accountId)) {
+  if (!database.isValidAccount(db, transaction.accountId)) {
     return res.status(404).json() // no account was found
   }
   // insert the transaction
   database.insertTransaction(db, transaction)
-  return res.status(201).json()
+  return formatResponse(transaction, req, res)
 })
 
 app.get('/za/v1/cards/countries', (req, res) => {
