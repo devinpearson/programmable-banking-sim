@@ -147,6 +147,44 @@ app.post('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
   return formatResponse(transaction, req, res)
 })
 
+app.delete('/za/pb/v1/accounts/:accountId/transactions/:postingDate', (req, res) => {
+  const accountId = req.params.accountId
+  const postingDate = req.params.postingDate
+  // check that the account exists
+  if (!database.isValidAccount(db, accountId)) {
+    return res.status(404).json() // no account was found
+  }
+  // insert the transaction
+  database.deleteTransaction(db, accountId, postingDate)
+  return res.status(200).json()
+})
+
+// function to create an account
+app.post('/za/pb/v1/accounts', (req, res) => {
+  let account = generator.randomAccount()
+  account = { ...account, ...req.body }
+  // check that the account exists
+  if (database.isValidAccount(db, account.accountId)) {
+    return res.status(404).json() // account already exists
+  }
+  // insert the transaction
+  database.insertAccount(db, account)
+  return formatResponse(account, req, res)
+})
+
+// function to delete an account
+app.delete('/za/pb/v1/accounts/:accountId', (req, res) => {
+  const accountId = req.params.accountId
+  // check that the account exists
+  if (!database.isValidAccount(db, accountId)) {
+    return res.status(404).json() // account already exists
+  }
+  // remove the transactions
+  database.removeTransactions(db, accountId)
+  database.removeAccount(db, accountId)
+  return res.status(200).json()
+})
+
 app.get('/za/v1/cards/countries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()

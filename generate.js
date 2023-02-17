@@ -117,4 +117,16 @@ function randomTransaction (accountId) {
   return transaction
 }
 
-module.exports = { randomType, randomCompany, randomArea, randomDescription, randomTransaction, randomTransactionType }
+function randomAccount () {
+  const randomNumber = faker.datatype.number(99)
+  const account = {
+    accountId: '46757781299101896000000' + randomNumber,
+    accountNumber: '100124200' + randomNumber,
+    accountName: faker.name.fullName(),
+    referenceName: faker.name.fullName(),
+    productName: 'Private Bank Account'
+  }
+  return account
+}
+
+module.exports = { randomType, randomCompany, randomArea, randomDescription, randomTransaction, randomTransactionType, randomAccount }

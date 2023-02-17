@@ -46,3 +46,6 @@ Mock API only endpoints
 - POST /za/pb/v1/accounts/:accountId/transactions - Creates and inserts a transaction into the history
 
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
+
+
+https://sqlitebrowser.org/

@@ -615,6 +615,11 @@ function prepareAccounts (db) {
   ])
 }
 
+function insertAccount (db, account) {
+  const insertAccount = db.prepare('INSERT INTO accounts (accountId, accountNumber, accountName, referenceName, productName) VALUES (@accountId, @accountNumber, @accountName, @referenceName, @productName)')
+  insertAccount.run(account)
+}
+
 function prepareTransactions (db) {
   const insertTransaction = db.prepare('INSERT INTO transactions (accountId, type, transactionType, status, description, cardNumber, postedOrder, postingDate, valueDate, actionDate, transactionDate, amount, runningBalance) VALUES (@accountId, @type, @transactionType, @status, @description, @cardNumber, @postedOrder, @postingDate, @valueDate, @actionDate, @transactionDate, @amount, @runningBalance)')
 
@@ -642,11 +647,24 @@ function prepareTransactions (db) {
 
 function insertTransaction (db, transaction) {
   const insertTransaction = db.prepare('INSERT INTO transactions (accountId, type, transactionType, status, description, cardNumber, postedOrder, postingDate, valueDate, actionDate, transactionDate, amount, runningBalance) VALUES (@accountId, @type, @transactionType, @status, @description, @cardNumber, @postedOrder, @postingDate, @valueDate, @actionDate, @transactionDate, @amount, @runningBalance)')
-  db.transaction(() => {
-    transaction.postedOrder = 0
-    transaction.runningBalance = 0
-    insertTransaction.run(transaction)
-  })
+  transaction.postedOrder = 0
+  transaction.runningBalance = 0
+  insertTransaction.run(transaction)
+}
+// unfinished. transactions will need to be retrieved to find the one that needs to be deleted
+function deleteTransaction (db, accountId, postingDate) {
+  const deleteTransaction = db.prepare('DELETE FROM transactions WHERE postingDate = @postingDate AND accountId = @accountId')
+  deleteTransaction.run({ postingDate, accountId })
+}
+
+function removeTransactions (db, accountId) {
+  const deleteTransaction = db.prepare('DELETE FROM transactions WHERE accountId = @accountId')
+  deleteTransaction.run({ accountId })
+}
+
+function removeAccount (db, accountId) {
+  const removeAccount = db.prepare('DELETE FROM accounts WHERE accountId = @accountId')
+  removeAccount.run({ accountId })
 }
 
 function accountBalance (db, accountId) {
@@ -659,7 +677,7 @@ function accountBalance (db, accountId) {
       runningBalance -= transactionsArr[j].amount
     }
   }
-  console.log(runningBalance)
+
   return runningBalance.toFixed(2)
 }
 
@@ -695,6 +713,10 @@ module.exports = {
   prepareCurrencies,
   prepareMerchants,
   insertTransaction,
+  deleteTransaction,
+  removeTransactions,
+  removeAccount,
+  insertAccount,
   transactions,
   countries,
   currencies,
