@@ -44,6 +44,9 @@ Cards
 
 Mock API only endpoints
 - POST /za/pb/v1/accounts/:accountId/transactions - Creates and inserts a transaction into the history
+- DELETE /za/pb/v1/accounts/:accountId/transactions/2023-01-22 - Deletes transactions from account for a particular postingDate
+- POST /za/pb/v1/accounts - Create a new account
+- DELETE /za/pb/v1/accounts/:accountId - Deletes the account and its transactions
 
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
 
