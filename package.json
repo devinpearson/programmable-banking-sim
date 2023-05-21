@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx nodemon index.js",
-    "build": "npx pkg . -t macos --out-path dist --build",
+    "build": "npx pkg . --out-path dist --build",
     "test": "npx standard"
   },
   "bin": {
