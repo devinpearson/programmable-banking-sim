@@ -1,53 +1,49 @@
-require('dotenv').config()
-const port = process.env.PORT || 3000
-const envClientId = process.env.CLIENT_ID
-const envClientSecret = process.env.CLIENT_SECRET
-const envTokenExpiry = process.env.TOKEN_EXPIRY
-const envAuth = process.env.AUTH
-const dbFile = process.env.DB_FILE || 'investec.db'
-// const overdraft = process.env.OVERDRAFT || 5000
 
-const express = require('express')
-const cors = require('cors')
-const dayjs = require('dayjs')
-const db = require('better-sqlite3')(dbFile)
-const database = require('./database')
-const generator = require('./generate')
-db.pragma('journal_mode = WAL')
+import 'dotenv/config'
+import express from 'express'
+import cards from './data/cards.json'
+import cors from 'cors'
+import dayjs from 'dayjs'
+import { readFile } from 'fs/promises';
+import countries from './data/countries.json'
+import currencies from './data/currencies.json'
+import merchants from './data/merchants.json'
+import accounts from './data/accounts.json'
 
-// database.prepareDB(db)
-// database.prepareAccounts(db)
-// database.prepareTransactions(db)
-// database.prepareCountries(db)
-// database.prepareCurrencies(db)
-// database.prepareMerchants(db)
+const json = JSON.parse(await readFile(new URL('../../package.json', import.meta.url)));
 
 const app = express()
+const port = process.env.PORT || 3000
+const datafile = process.env.DATAFILE || 'data/accounts.json'
+
 app.use(cors())
+
 // Configuring body parser middleware
-app.use(express.urlencoded({ extended: false }))
-app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
 
 const accessTokens = {}
+
+const accounts = JSON.parse(fs.readFileSync(datafile, 'utf8'))
 
 app.post('/identity/v2/oauth2/token', (req, res) => {
   const authStr = Buffer.from(req.headers.authorization.split(' ')[1], 'base64').toString()
   const [clientId, clientSecret] = authStr.split(':')
 
-  if (envClientId !== '' && envClientSecret !== '') {
-    if (clientId !== envClientId || clientSecret !== envClientSecret) {
+  if (process.env.CLIENT_ID !== '' && process.env.CLIENT_SECRET !== '') {
+    if (clientId !== process.env.CLIENT_ID || clientSecret !== process.env.CLIENT_SECRET) {
       return res.status(401).json()
     }
   }
   // Generate a token string
   const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-  const expiryDate = dayjs().add(envTokenExpiry, 'seconds').format()
+  const expiryDate = dayjs().add(process.env.TOKEN_EXPIRY, 'seconds').format()
   accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
-  return res.json({ access_token: token, token_type: 'Bearer', expires_in: envTokenExpiry, scope: 'accounts' })
+  return res.json({ access_token: token, token_type: 'Bearer', expires_in: process.env.TOKEN_EXPIRY, scope: 'accounts' })
 })
 
-function isValidToken (req) {
-  if (envAuth !== 'true') {
+const isValidToken = (req) => {
+  if (process.env.AUTH !== 'true') {
     return true
   }
   const authorization = req.get('authorization').split(' ')[1]
@@ -62,8 +58,19 @@ app.get('/za/pb/v1/accounts', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
-  const accounts = db.prepare('SELECT * FROM accounts').all()
-  const data = { accounts }
+
+  const returnAccounts = []
+  for (let i = 0; i < accounts.length; i++) {
+    const account = {
+      accountId: accounts[i].accountId,
+      accountNumber: accounts[i].accountNumber,
+      accountName: accounts[i].accountName,
+      referenceName: accounts[i].referenceName,
+      productName: accounts[i].productName
+    }
+    returnAccounts.push(account)
+  }
+  const data = { accounts: returnAccounts }
   return formatResponse(data, req, res)
 })
 
@@ -71,22 +78,20 @@ app.get('/za/pb/v1/accounts/:accountId/balance', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
+
   const accountId = req.params.accountId
-
-  if (!database.isValidAccount(db, accountId)) {
-    return res.status(404).json() // no account was found
+  for (let i = 0; i < accounts.length; i++) {
+    if (accounts[i].accountId === accountId) {
+      const data = {
+        accountId,
+        currentBalance: accounts[i].currentBalance,
+        availableBalance: accounts[i].availableBalance,
+        currency: accounts[i].currency
+      }
+      return formatResponse(data, req, res)
+    }
   }
-  const balance = database.accountBalance(db, accountId)
-
-  // overdraft - balance // workout over
-  // fetch the currentBalance and availableBalance from the transactions table
-  const data = {
-    accountId,
-    currentBalance: +balance,
-    availableBalance: 0,
-    currency: 'ZAR'
-  }
-  return formatResponse(data, req, res)
+  return res.status(404).json() // no account was found
 })
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
@@ -94,122 +99,63 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
     return res.status(401).json()
   }
   const accountId = req.params.accountId
-  // check that the account exists
-  if (!database.isValidAccount(db, accountId)) {
-    return res.status(404).json() // no account was found
-  }
 
-  const transactionsArr = database.transactions(db, accountId)
-  // console.log(transactionsArr)
   const toDate = req.query.toDate ?? dayjs().format('YYYY-MM-DD') // set to today
   const fromDate = req.query.fromDate ?? dayjs().subtract(180, 'day').format('YYYY-MM-DD') // set to 180 in the passed
   const transactionType = req.query.transactionType ?? null
 
-  let postedOrder = 0
-  let runningBalance = 0
-  const transactions = []
-  for (let j = 0; j < transactionsArr.length; j++) {
-    postedOrder++
-    if (transactionsArr[j].type === 'CREDIT') {
-      runningBalance += transactionsArr[j].amount
-    } else {
-      runningBalance -= transactionsArr[j].amount
+  for (let i = 0; i < accounts.length; i++) {
+    if (accounts[i].accountId === accountId) {
+      const transactions = []
+      for (let j = 0; j < accounts[i].transactions.length; j++) {
+        if (transactionType !== null && accounts[i].transactions[j].transactionType !== transactionType) {
+          continue
+        }
+        const transactionDate = dayjs(accounts[i].transactions[j].transactionDate)
+        // compare both dates together
+        if (transactionDate.isBefore(fromDate, 'day')) {
+          continue
+        }
+        if (transactionDate.isAfter(toDate, 'day')) {
+          continue
+        }
+        transactions.push(accounts[i].transactions[j])
+      }
+      const data = { transactions }
+      return formatResponse(data, req, res)
     }
-    if (transactionType !== null && transactionsArr[j].transactionType !== transactionType) {
-      continue
-    }
-    const transactionDate = dayjs(transactionsArr[j].postingDate)
-    // compare both dates together
-    if (transactionDate.isBefore(fromDate, 'day')) {
-      continue
-    }
-    if (transactionDate.isAfter(toDate, 'day')) {
-      continue
-    }
-    transactionsArr[j].postedOrder = postedOrder
-    transactionsArr[j].runningBalance = +runningBalance.toFixed(2)
-    transactions.push(transactionsArr[j])
   }
-  const data = { transactions }
-  return formatResponse(data, req, res)
-})
-
-// function to create transactions for an account
-app.post('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
-  let transaction = generator.randomTransaction(req.params.accountId)
-  transaction = { ...transaction, ...req.body }
-  // check that the account exists
-  if (!database.isValidAccount(db, transaction.accountId)) {
-    return res.status(404).json() // no account was found
-  }
-  // insert the transaction
-  database.insertTransaction(db, transaction)
-  return formatResponse(transaction, req, res)
-})
-
-app.delete('/za/pb/v1/accounts/:accountId/transactions/:postingDate', (req, res) => {
-  const accountId = req.params.accountId
-  const postingDate = req.params.postingDate
-  // check that the account exists
-  if (!database.isValidAccount(db, accountId)) {
-    return res.status(404).json() // no account was found
-  }
-  // insert the transaction
-  database.deleteTransaction(db, accountId, postingDate)
-  return res.status(200).json()
-})
-
-// function to create an account
-app.post('/za/pb/v1/accounts', (req, res) => {
-  let account = generator.randomAccount()
-  account = { ...account, ...req.body }
-  // check that the account exists
-  if (database.isValidAccount(db, account.accountId)) {
-    return res.status(404).json() // account already exists
-  }
-  // insert the transaction
-  database.insertAccount(db, account)
-  return formatResponse(account, req, res)
-})
-
-// function to delete an account
-app.delete('/za/pb/v1/accounts/:accountId', (req, res) => {
-  const accountId = req.params.accountId
-  // check that the account exists
-  if (!database.isValidAccount(db, accountId)) {
-    return res.status(404).json() // account already exists
-  }
-  // remove the transactions
-  database.removeTransactions(db, accountId)
-  database.removeAccount(db, accountId)
-  return res.status(200).json()
+  return res.status(404).json() // no account was found
 })
 
 app.get('/za/v1/cards/countries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
-  const result = database.countries(db)
-  const data = { result }
-  return formatResponse(data, req, res)
+  fs.readFile('data/countries.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.json(JSON.parse(data))
+  })
 })
 
 app.get('/za/v1/cards/currencies', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
-  const result = database.currencies(db)
-  const data = { result }
-  return formatResponse(data, req, res)
+  fs.readFile('data/currencies.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.json(JSON.parse(data))
+  })
 })
 
 app.get('/za/v1/cards/merchants', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
-  const result = database.merchants(db)
-  const data = { result }
-  return formatResponse(data, req, res)
+  fs.readFile('data/merchants.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.json(JSON.parse(data))
+  })
 })
 
 const formatResponse = (data, req, res) => {

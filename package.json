@@ -8,22 +8,16 @@
     "build": "npx pkg . --out-path dist --build",
     "test": "npx standard"
   },
-  "bin": {
-    "pbsim": "index.js"
-  },
   "author": "Devin Pearson",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^8.1.0",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.1",
     "dotenv": "^16.0.0",
-    "express": "^4.17.3",
-    "pkg": "^5.8.0"
+    "express": "^4.17.3"
   },
   "devDependencies": {
-    "@faker-js/faker": "^7.6.0",
     "nodemon": "^2.0.15",
     "standard": "^17.0.0"
   }
