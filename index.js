@@ -128,6 +128,16 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
   return res.status(404).json() // no account was found
 })
 
+pp.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
+  if (!isValidToken(req)) {
+    return res.status(401).json()
+  }
+  fs.readFile('data/beneficiaries.json', 'utf8', function (err, data) {
+    if (err) throw err
+    res.json(JSON.parse(data))
+  })
+})
+
 app.get('/za/v1/cards/countries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
