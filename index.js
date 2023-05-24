@@ -195,6 +195,19 @@ app.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
   return formatResponse(data, req, res)
 })
 
+// function to create an account
+app.post('/za/pb/v1/accounts/beneficiaries', (req, res) => {
+  let beneficiary = generator.randomBeneficiary()
+  beneficiary = { ...beneficiary, ...req.body }
+  // check that the account exists
+  if (database.isValidAccount(db, beneficiary.accountId)) {
+    return res.status(404).json() // account already exists
+  }
+  // insert the transaction
+  database.insertBeneficiary(db, beneficiary)
+  return formatResponse(beneficiary, req, res)
+})
+
 app.get('/za/v1/cards/countries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()

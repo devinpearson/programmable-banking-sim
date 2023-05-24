@@ -100,6 +100,11 @@ function randomTransactionType () {
   return transactionType
 }
 
+function randomBank () {
+  const bank = faker.helpers.arrayElement([{ name: 'FIRST NATIONAL BANK', code: '250655' }, { name: 'ABSA', code: '632005' }, { name: 'NEDBANK', code: '198765' }, { name: 'CAPITEC', code: '470010' }, { name: 'STANDARD BANK', code: '051001' }])
+  return bank
+}
+
 function randomTransaction (accountId) {
   const transaction = {
     accountId,
@@ -129,4 +134,25 @@ function randomAccount () {
   return account
 }
 
-module.exports = { randomType, randomCompany, randomArea, randomDescription, randomTransaction, randomTransactionType, randomAccount }
+function randomBeneficiary () {
+  const bank = randomBank()
+  const beneficiary = {
+    beneficiaryId: '46757781299101896000000' + faker.datatype.number(99),
+    accountNumber: '100124200' + faker.datatype.number(99),
+    code: bank.code,
+    bank: bank.name,
+    beneficiaryName: faker.name.fullName(),
+    lastPaymentAmount: faker.finance.amount(5, 1000),
+    lastPaymentDate: dayjs().format('YYYY-MM-DD'),
+    cellNo: null,
+    emailAddress: null,
+    name: faker.name.fullName(),
+    referenceAccountNumber: '100124200' + faker.datatype.number(99),
+    referenceName: faker.name.fullName(),
+    categoryId: '10189603223001',
+    profileId: '10189603223'
+  }
+  return beneficiary
+}
+
+module.exports = { randomType, randomCompany, randomArea, randomDescription, randomTransaction, randomTransactionType, randomAccount, randomBeneficiary }
