@@ -15,13 +15,23 @@ const database = require('./database')
 const generator = require('./generate')
 db.pragma('journal_mode = WAL')
 
-database.prepareDB(db)
+// database.prepareDB(db)
 // database.prepareAccounts(db)
 // database.prepareTransactions(db)
 // database.prepareCountries(db)
 // database.prepareCurrencies(db)
 // database.prepareMerchants(db)
-database.prepareBeneficiaries(db)
+// database.prepareBeneficiaries(db)
+
+// for (let i = 0; i < 100; i++) {
+//   const account = generator.randomBeneficiary()
+//   database.insertBeneficiary(db, account)
+// }
+
+// for (let i = 0; i < 900; i++) {
+//   const account = generator.randomTransaction('4675778129910189600000003')
+//   database.insertTransaction(db, account)
+// }
 
 const app = express()
 app.use(cors())

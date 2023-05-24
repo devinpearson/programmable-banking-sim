@@ -137,8 +137,8 @@ function randomAccount () {
 function randomBeneficiary () {
   const bank = randomBank()
   const beneficiary = {
-    beneficiaryId: '46757781299101896000000' + faker.datatype.number(99),
-    accountNumber: '100124200' + faker.datatype.number(99),
+    beneficiaryId: 'MTAxOTA2OTI5Nz' + faker.datatype.number(99) + 'MjM=',
+    accountNumber: '10012420003', // + faker.datatype.number(99),
     code: bank.code,
     bank: bank.name,
     beneficiaryName: faker.name.fullName(),
