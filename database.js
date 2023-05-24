@@ -719,6 +719,10 @@ function merchants (db) {
   return db.prepare('SELECT code as Code, name as Name FROM merchants').all()
 }
 
+function beneficiaries (db) {
+  return db.prepare('SELECT * FROM beneficiaries').all()
+}
+
 function isValidAccount (db, accountId) {
   const accountsArr = db.prepare('SELECT * FROM accounts WHERE accountId = ? LIMIT 1').get(accountId)
   if (accountsArr === undefined) {
@@ -745,6 +749,7 @@ module.exports = {
   countries,
   currencies,
   merchants,
+  beneficiaries,
   isValidAccount,
   accountBalance
 }

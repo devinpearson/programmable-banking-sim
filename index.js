@@ -190,7 +190,7 @@ app.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
-  const result = database.countries(db)
+  const result = database.beneficiaries(db)
   const data = { result }
   return formatResponse(data, req, res)
 })
