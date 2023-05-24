@@ -15,12 +15,13 @@ const database = require('./database')
 const generator = require('./generate')
 db.pragma('journal_mode = WAL')
 
-// database.prepareDB(db)
+database.prepareDB(db)
 // database.prepareAccounts(db)
 // database.prepareTransactions(db)
 // database.prepareCountries(db)
 // database.prepareCurrencies(db)
 // database.prepareMerchants(db)
+database.prepareBeneficiaries(db)
 
 const app = express()
 app.use(cors())
@@ -183,6 +184,15 @@ app.delete('/za/pb/v1/accounts/:accountId', (req, res) => {
   database.removeTransactions(db, accountId)
   database.removeAccount(db, accountId)
   return res.status(200).json()
+})
+
+app.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
+  if (!isValidToken(req)) {
+    return res.status(401).json()
+  }
+  const result = database.countries(db)
+  const data = { result }
+  return formatResponse(data, req, res)
 })
 
 app.get('/za/v1/cards/countries', (req, res) => {

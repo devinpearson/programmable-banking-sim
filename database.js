@@ -9,6 +9,8 @@ function prepareDB (db) {
   db.exec('CREATE TABLE IF NOT EXISTS currencies (code TEXT,name TEXT)')
   // Create the merchants table
   db.exec('CREATE TABLE IF NOT EXISTS merchants (code TEXT,name TEXT)')
+  // Create the beneficiaries table
+  db.exec('CREATE TABLE IF NOT EXISTS beneficiaries (beneficiaryId TEXT, accountNumber TEXT, code TEXT, bank TEXT, beneficiaryName TEXT, lastPaymentAmount TEXT, lastPaymentDate TEXT, cellNo TEXT, emailAddress TEXT, name TEXT, referenceAccountNumber TEXT, referenceName TEXT, categoryId TEXT, profileId TEXT)')
 }
 
 function prepareCountries (db) {
@@ -651,6 +653,26 @@ function insertTransaction (db, transaction) {
   transaction.runningBalance = 0
   insertTransaction.run(transaction)
 }
+
+function prepareBeneficiaries (db) {
+  const insertBeneficiary = db.prepare('INSERT INTO beneficiaries (beneficiaryId, accountNumber, code, bank, beneficiaryName, lastPaymentAmount, lastPaymentDate, cellNo, emailAddress, name, referenceAccountNumber, referenceName, categoryId, profileId) VALUES (@beneficiaryId, @accountNumber, @code, @bank, @beneficiaryName, @lastPaymentAmount, @lastPaymentDate, @cellNo, @emailAddress, @name, @referenceAccountNumber, @referenceName, @categoryId, @profileId)')
+
+  const insertManyBeneficiaries = db.transaction((beneficiaries2) => {
+    for (const beneficiary of beneficiaries2) insertBeneficiary.run(beneficiary)
+  })
+
+  insertManyBeneficiaries([
+    { beneficiaryId: 'MTAxOTA2OTI5Nzc0Mjz=', accountNumber: '10012420003', code: '679000', bank: 'DISCOVERY BANK', beneficiaryName: 'Discovery CC', lastPaymentAmount: '2,000.00', lastPaymentDate: '25/04/2023', cellNo: null, emailAddress: null, name: 'Discovery CC', referenceAccountNumber: 'CC', referenceName: 'CC', categoryId: '10189603223001', profileId: '10189603223001' },
+    { beneficiaryId: 'MTAxOTA2OTI5Nzc0Mjk=', accountNumber: '10012420003', code: '470010', bank: 'CAPITEC BANK LIMITED', beneficiaryName: 'S Jones', lastPaymentAmount: '1,400.00', lastPaymentDate: '12/05/2023', cellNo: null, emailAddress: null, name: 'S Jones', referenceAccountNumber: 'money', referenceName: 'money', categoryId: '10189603223001', profileId: '10189603223001' },
+    { beneficiaryId: 'MTAxOTA2OTI5Nzc0MzU=', accountNumber: '10012420003', code: '580105', bank: 'INVESTEC BANK LIMITED', beneficiaryName: 'easy equities', lastPaymentAmount: '2,500.00', lastPaymentDate: '15/05/2023', cellNo: null, emailAddress: null, name: 'easy equities', referenceAccountNumber: 'EE-8848555', referenceName: 'EE-8848555', categoryId: '10189603223001', profileId: '10189603223001' }
+  ])
+}
+
+function insertBeneficiary (db, beneficiary) {
+  const insertBeneficiary = db.prepare('INSERT INTO beneficiaries (beneficiaryId, accountNumber, code, bank, beneficiaryName, lastPaymentAmount, lastPaymentDate, cellNo, emailAddress, name, referenceAccountNumber, referenceName, categoryId, profileId) VALUES (@beneficiaryId, @accountNumber, @code, @bank, @beneficiaryName, @lastPaymentAmount, @lastPaymentDate, @cellNo, @emailAddress, @name, @referenceAccountNumber, @referenceName, @categoryId, @profileId)')
+  insertBeneficiary.run(beneficiary)
+}
+
 // unfinished. transactions will need to be retrieved to find the one that needs to be deleted
 function deleteTransaction (db, accountId, postingDate) {
   const deleteTransaction = db.prepare('DELETE FROM transactions WHERE postingDate = @postingDate AND accountId = @accountId')
@@ -712,11 +734,13 @@ module.exports = {
   prepareCountries,
   prepareCurrencies,
   prepareMerchants,
+  prepareBeneficiaries,
   insertTransaction,
   deleteTransaction,
   removeTransactions,
   removeAccount,
   insertAccount,
+  insertBeneficiary,
   transactions,
   countries,
   currencies,
