@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Local Simulation of the api service. for local testing and demo purposes",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "npx nodemon index.js",
     "build": "npx pkg . --out-path dist --build",

@@ -1,16 +1,12 @@
-
 import 'dotenv/config'
 import express from 'express'
-import cards from './data/cards.json'
 import cors from 'cors'
 import dayjs from 'dayjs'
-import { readFile } from 'fs/promises';
-import countries from './data/countries.json'
-import currencies from './data/currencies.json'
-import merchants from './data/merchants.json'
-import accounts from './data/accounts.json'
+import bodyParser from 'body-parser'
+import fs from 'fs'
+// import accounts from './data/accounts.json'
 
-const json = JSON.parse(await readFile(new URL('../../package.json', import.meta.url)));
+// const json = JSON.parse(await readFile(new URL('../../package.json', import.meta.url)))
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -128,7 +124,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', (req, res) => {
   return res.status(404).json() // no account was found
 })
 
-pp.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
+app.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
   }
