@@ -1,0 +1,16 @@
+{
+    "data": {
+      "result": {
+        "variables": {},
+        "createdAt": "2021-10-12T09:12:06.742Z",
+        "updatedAt": "2021-10-12T09:12:06.742Z",
+        "error": null
+      }
+    },
+    "links": {
+      "self": null
+    },
+    "meta": {
+      "totalPages": 1
+    }
+  }

@@ -1,0 +1,18 @@
+{
+    "data": {
+      "result": {
+        "codeId": "3BB77753-R2D2-4U2B-1A2B-4C213E7D0AC3",
+        "code": "// This function runs during the card transaction authorization flow.\n// It has a limited execution time, so keep any code short-running.\nconst beforeTransaction = async (authorization) => {\n    console.log(authorization);\n    return true;\n};\n\n// This function runs after a transaction.\nconst afterTransaction = async (transaction) => {\n    console.log(transaction)\n};\n\n// This function runs after a transaction.\nconst afterDecline = async (transaction) => {\n    console.log(transaction)\n};",
+        "createdAt": "2021-10-12T09:12:06.695Z",
+        "updatedAt": "2021-10-12T09:12:06.695Z",
+        "publishedAt": "2021-10-12T09:12:16.557Z",
+        "error": null
+      }
+    },
+    "links": {
+      "self": null
+    },
+    "meta": {
+      "totalPages": 1
+    }
+}

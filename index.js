@@ -144,6 +144,68 @@ app.get('/za/pb/v1/accounts/beneficiarycategories', (req, res) => {
     })
   })
 
+app.get('/za/v1/cards', (req, res) => {
+    if (!isValidToken(req)) {
+        return res.status(401).json()
+    }
+    fs.readFile('data/cards.json', 'utf8', function (err, data) {
+        if (err) throw err
+        res.json(JSON.parse(data))
+    })
+})
+
+app.get('/za/v1/cards/:cardKey/code', (req, res) => {
+    if (!isValidToken(req)) {
+        return res.status(401).json()
+    }
+
+    const cardKey = req.params.cardKey
+
+    fs.readFile('data/fetch_code.json', 'utf8', function (err, data) {
+        if (err) throw err
+        res.json(JSON.parse(data))
+    })
+})
+
+app.get('/za/v1/cards/:cardKey/publishedcode', (req, res) => {
+    if (!isValidToken(req)) {
+        return res.status(401).json()
+    }
+
+    const cardKey = req.params.cardKey
+
+    fs.readFile('data/fetch_code.json', 'utf8', function (err, data) {
+        if (err) throw err
+        res.json(JSON.parse(data))
+    })
+})
+
+app.get('/za/v1/cards/:cardKey/code/executions', (req, res) => {
+    if (!isValidToken(req)) {
+        return res.status(401).json()
+    }
+
+    const cardKey = req.params.cardKey
+
+    fs.readFile('data/get_executions.json', 'utf8', function (err, data) {
+        if (err) throw err
+        res.json(JSON.parse(data))
+    })
+})
+
+app.get('/za/v1/cards/:cardKey/environmentvariables', (req, res) => {
+    if (!isValidToken(req)) {
+        return res.status(401).json()
+    }
+
+    const cardKey = req.params.cardKey
+
+    fs.readFile('data/environmentvariables.json', 'utf8', function (err, data) {
+        if (err) throw err
+        res.json(JSON.parse(data))
+    })
+})
+
 app.get('/za/v1/cards/countries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()

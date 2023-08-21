@@ -1,0 +1,56 @@
+{
+    "data": {
+      "result": [
+        {
+          "executionId": "ABB8854D-B3A4-4450-BB9D-915206E8D156",
+          "rootCodeFunctionId": "96A88E6A-E343-4051-9674-7C58B4CC1A58",
+          "sandbox": true,
+          "type": "before_transaction",
+          "authorizationApproved": true,
+          "logs": [
+            {
+              "createdAt": "2021-10-15T03:48:14.771Z",
+              "level": "info",
+              "content": "{\"accountNumber\":\"10011001100\",\"dateTime\":\"2021-10-15T03:48:13.147Z\",\"centsAmount\":10100,\"currencyCode\":\"zar\",\"type\":\"card\",\"reference\":\"simulation\",\"card\":{\"id\":\"1010101\"},\"merchant\":{\"category\":{\"code\":\"7996\",\"key\":\"amusement_parks_carnivals\",\"name\":\"Amusement Parks/Carnivals\"},\"name\":\"uShaka MarineÂ World\",\"city\":\"Durban\",\"country\":{\"code\":\"ZA\",\"alpha3\":\"ZAF\",\"name\":\"South Africa\"}}}"
+            }
+          ],
+          "smsCount": 0,
+          "emailCount": 0,
+          "pushNotificationCount": 0,
+          "createdAt": "2021-10-15T03:48:14.184Z",
+          "startedAt": "2021-10-15T03:48:14.183Z",
+          "completedAt": "2021-10-15T03:48:14.899Z",
+          "updatedAt": "2021-10-15T03:48:14.184Z",
+          "Error": null
+        },
+        {
+          "executionId": "688357B2-1F2B-49F7-A739-3D9DAF87CD84",
+          "rootCodeFunctionId": "96A88E6A-E343-4051-9674-7C58B4CC1A58",
+          "sandbox": true,
+          "type": "after_transaction",
+          "authorizationApproved": null,
+          "logs": [
+            {
+              "createdAt": "2021-10-15T03:48:15.712Z",
+              "level": "info",
+              "content": "{\"accountNumber\":\"10011001100\",\"dateTime\":\"2021-10-15T03:48:14.920Z\",\"centsAmount\":10100,\"currencyCode\":\"zar\",\"type\":\"card\",\"reference\":\"simulation\",\"card\":{\"id\":\"1010101\"},\"merchant\":{\"category\":{\"code\":\"7996\",\"key\":\"amusement_parks_carnivals\",\"name\":\"Amusement Parks/Carnivals\"},\"name\":\"uShaka MarineÂ World\",\"city\":\"Durban\",\"country\":{\"code\":\"ZA\",\"alpha3\":\"ZAF\",\"name\":\"South Africa\"}}}"
+            }
+          ],
+          "smsCount": 0,
+          "emailCount": 0,
+          "pushNotificationCount": 0,
+          "createdAt": "2021-10-15T03:48:15.082Z",
+          "startedAt": "2021-10-15T03:48:15.082Z",
+          "completedAt": "2021-10-15T03:48:15.826Z",
+          "updatedAt": "2021-10-15T03:48:15.082Z",
+          "Error": null
+        }
+      ]
+    },
+    "links": {
+      "self": null
+    },
+    "meta": {
+      "totalPages": 1
+    }
+  }

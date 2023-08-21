@@ -1,0 +1,39 @@
+{
+    "data": {
+      "cards": [
+        {
+          "CardKey": "1010101",
+          "CardNumber": "402167XXXXXX1111",
+          "IsProgrammable": true,
+          "Status": "Active",
+          "CardTypeCode": "VGC",
+          "AccountNumber": "10011001100",
+          "AccountId": "177778438355553632224"
+        },
+        {
+          "CardKey": "1020202",
+          "CardNumber": "402167XXXXXX2222",
+          "IsProgrammable": true,
+          "Status": "Active",
+          "CardTypeCode": "VGC",
+          "AccountNumber": "10011001100",
+          "AccountId": "177778438355553632224"
+        },
+        {
+          "CardKey": "1030303",
+          "CardNumber": "402167XXXXXX3333",
+          "IsProgrammable": true,
+          "Status": "Active",
+          "CardTypeCode": "VGC",
+          "AccountNumber": "10011001100",
+          "AccountId": "177778438355553632224"
+        }
+      ]
+    },
+    "links": {
+      "self": null
+    },
+    "meta": {
+      "totalPages": 1
+    }
+  }
