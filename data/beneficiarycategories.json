@@ -1,0 +1,15 @@
+{
+    "data": [
+        {
+            "id": "10164601247279",
+            "isDefault": "true",
+            "name": "Not Categorised"
+        }
+    ],
+    "links": {
+        "self": "https://openapi.investec.com/za/pb/v1/accounts/beneficiarycategories"
+    },
+    "meta": {
+        "totalPages": 1
+    }
+}

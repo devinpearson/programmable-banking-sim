@@ -134,6 +134,16 @@ app.get('/za/pb/v1/accounts/beneficiaries', (req, res) => {
   })
 })
 
+app.get('/za/pb/v1/accounts/beneficiarycategories', (req, res) => {
+    if (!isValidToken(req)) {
+      return res.status(401).json()
+    }
+    fs.readFile('data/beneficiarycategories.json', 'utf8', function (err, data) {
+      if (err) throw err
+      res.json(JSON.parse(data))
+    })
+  })
+
 app.get('/za/v1/cards/countries', (req, res) => {
   if (!isValidToken(req)) {
     return res.status(401).json()
