@@ -2,7 +2,7 @@
     "data": {
       "result": {
         "codeId": "3BB77753-R2D2-4U2B-1A2B-4C213E7D0AC3",
-        "code": "// This function runs during the card transaction authorization flow.\n// It has a limited execution time, so keep any code short-running.\nconst beforeTransaction = async (authorization) => {\n    console.log(authorization);\n    return true;\n};\n\n// This function runs after a transaction.\nconst afterTransaction = async (transaction) => {\n    console.log(transaction)\n};\n\n// This function runs after a transaction.\nconst afterDecline = async (transaction) => {\n    console.log(transaction)\n};",
+        "code": "// Merchant codes for Techtopia Digital Mastery Quest\n// 4816 : \"Computer Network Services\"\n// 7372 : \"Computer Programming\"\n// 7379 : \"Computer Repair\"\n// 5734 : \"Computer Software Stores\"\nconst techtopiaCodes = [\"4816\", \"7372\", \"7379\", \"5734\"];\nconst MysteryCode = \"4816\";\n\nconst beforeTransaction = async (authorization) => {\n    console.log(authorization);\n    if (techtopiaCodes.indexOf(authorization.merchant.category.code) > -1) {\n        // Detecting the presence of MysteryCode\n        if (authorization.merchant.category.code === MysteryCode) {\n            console.log(\"Central Node MysteryCode detected!\");\n        }\n        return true;\n    }\n    return false;\n};\n \n// This function runs after a transaction.\nconst afterTransaction = async (transaction) => {\n    console.log(transaction);\n};\n \nconst afterDecline = async (transaction) => {\n    console.log(transaction);\n};",
         "createdAt": "2021-10-12T09:12:06.695Z",
         "updatedAt": "2021-10-12T09:12:06.695Z",
         "publishedAt": "2021-10-12T09:12:16.557Z",

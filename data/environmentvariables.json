@@ -1,7 +1,15 @@
 {
     "data": {
       "result": {
-        "variables": {},
+        "variables": {
+            "TECHNO_PRIMARY_CURRENCY": "usd",
+            "TECHNO_SECONDARY_CURRENCY": "eur",
+            "SECRET_KEY": "R45gTe8921s",
+            "NETWORK_NODE": "CentralTechHub",
+            "ENVIRONMENT_ECHO": "jpy",
+            "DATABASE_URL": "jdbc:techno-db://localhost:5432/techtopia",
+            "DEBUG_MODE": "false"
+        },
         "createdAt": "2021-10-12T09:12:06.742Z",
         "updatedAt": "2021-10-12T09:12:06.742Z",
         "error": null
