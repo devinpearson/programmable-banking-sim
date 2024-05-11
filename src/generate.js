@@ -1,5 +1,5 @@
-const { faker } = require('@faker-js/faker')
-const dayjs = require('dayjs')
+import { faker } from '@faker-js/faker'
+import * as dayjs from 'dayjs'
 
 const companies = [
   'ENGEN',

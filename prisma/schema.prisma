@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Account {
+    accountId String @id
+    accountNumber String
+    accountName String
+    referenceName String
+    productName String
+}
+
+model Transaction {
+    transactionId Int @id @default(autoincrement())
+    accountId String
+    type String
+    transactionType String
+    status String
+    description String
+    cardNumber String
+    postedOrder Decimal
+    postingDate String
+    valueDate String
+    actionDate String
+    transactionDate String
+    amount Decimal
+    runningBalance Decimal
+}
+
+model Country { 
+    code String @id
+    name String
+}
+
+model Currency { 
+    code String @id
+    name String
+}
+
+model Merchant { 
+    code String @id
+    name String
+}
+
+model Beneficiary {
+    beneficiaryId String @id
+    accountNumber String
+    code String
+    bank String
+    beneficiaryName String
+    lastPaymentAmount String
+    lastPaymentDate String
+    cellNo String?
+    emailAddress String?
+    name String
+    referenceAccountNumber String
+    referenceName String
+    categoryId String
+    profileId String
+}
