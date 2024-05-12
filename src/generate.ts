@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 
 const companies = [
   'ENGEN',
@@ -96,16 +96,28 @@ function randomType () {
 }
 
 function randomTransactionType () {
-  const transactionType = faker.helpers.arrayElement(['CardPurchases', 'OnlineBankingPayments', 'FasterPay', 'DebitOrders', 'FeesAndInterest'])
+  const transactionType = faker.helpers.arrayElement([
+    'CardPurchases', 
+    'OnlineBankingPayments', 
+    'FasterPay', 
+    'DebitOrders', 
+    'FeesAndInterest'
+  ])
   return transactionType
 }
 
 function randomBank () {
-  const bank = faker.helpers.arrayElement([{ name: 'FIRST NATIONAL BANK', code: '250655' }, { name: 'ABSA', code: '632005' }, { name: 'NEDBANK', code: '198765' }, { name: 'CAPITEC', code: '470010' }, { name: 'STANDARD BANK', code: '051001' }])
+  const bank = faker.helpers.arrayElement([
+    { name: 'FIRST NATIONAL BANK', code: '250655' }, 
+    { name: 'ABSA', code: '632005' }, 
+    { name: 'NEDBANK', code: '198765' }, 
+    { name: 'CAPITEC', code: '470010' }, 
+    { name: 'STANDARD BANK', code: '051001' }
+  ])
   return bank
 }
 
-function randomTransaction (accountId) {
+function randomTransaction (accountId: Number) {
   const transaction = {
     accountId,
     type: randomType(),
