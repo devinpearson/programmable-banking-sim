@@ -75,27 +75,27 @@ const areas = [
   'RANDBURG'
 ]
 
-function randomCompany () {
+export function randomCompany () {
   const company = faker.helpers.arrayElement(companies)
   return company
 }
 
-function randomArea () {
+export function randomArea () {
   const area = faker.helpers.arrayElement(areas)
   return area
 }
 
-function randomDescription () {
+export function randomDescription () {
   const description = randomCompany() + ' ' + randomArea() + ' ZA'
   return description
 }
 
-function randomType () {
+export function randomType () {
   const type = faker.helpers.arrayElement(['DEBIT', 'CREDIT'])
   return type
 }
 
-function randomTransactionType () {
+export function randomTransactionType () {
   const transactionType = faker.helpers.arrayElement([
     'CardPurchases', 
     'OnlineBankingPayments', 
@@ -106,7 +106,7 @@ function randomTransactionType () {
   return transactionType
 }
 
-function randomBank () {
+export function randomBank () {
   const bank = faker.helpers.arrayElement([
     { name: 'FIRST NATIONAL BANK', code: '250655' }, 
     { name: 'ABSA', code: '632005' }, 
@@ -117,7 +117,7 @@ function randomBank () {
   return bank
 }
 
-function randomTransaction (accountId: Number) {
+export function randomTransaction (accountId: Number) {
   const transaction = {
     accountId,
     type: randomType(),
@@ -134,7 +134,7 @@ function randomTransaction (accountId: Number) {
   return transaction
 }
 
-function randomAccount () {
+export function randomAccount () {
   const randomNumber = faker.datatype.number(99)
   const account = {
     accountId: '46757781299101896000000' + randomNumber,
@@ -146,7 +146,7 @@ function randomAccount () {
   return account
 }
 
-function randomBeneficiary () {
+export function randomBeneficiary () {
   const bank = randomBank()
   const beneficiary = {
     beneficiaryId: 'MTAxOTA2OTI5Nz' + faker.datatype.number(99) + 'MjM=',
@@ -166,5 +166,3 @@ function randomBeneficiary () {
   }
   return beneficiary
 }
-
-module.exports = { randomType, randomCompany, randomArea, randomDescription, randomTransaction, randomTransactionType, randomAccount, randomBeneficiary }

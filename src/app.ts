@@ -102,9 +102,15 @@ app.get('/za/pb/v1/accounts/:accountId/balance', async (req: Request, res: Respo
   }
   const accountId = req.params.accountId
 
-//   if (!database.isValidAccount(db, accountId)) {
-//     return res.status(404).json() // no account was found
-//   }
+  const account = await prisma.account.findFirst({
+    where: {
+      accountId: accountId
+    }
+  })
+  if (!account) {
+    return res.status(404).json() // no account was found
+  }
+
 const transactionsArr = await prisma.transaction.findMany({
     where: {
       accountId: accountId
@@ -139,9 +145,15 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: 
   }
   const accountId = req.params.accountId
   // check that the account exists
-//   if (!database.isValidAccount(db, accountId)) {
-//     return res.status(404).json() // no account was found
-//   }
+  const account = await prisma.account.findFirst({
+    where: {
+      accountId: accountId
+    }
+  })
+  if (!account) {
+    console.log('no account found')
+    return res.status(404).json() // no account was found
+  }
   const transactionsArr = await prisma.transaction.findMany({
     where: {
       accountId: accountId
@@ -199,11 +211,20 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: 
 // function to create transactions for an account
 app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
   let randomTransaction = generator.randomTransaction(req.params.accountId)
+  randomTransaction.runningBalance = 0
   randomTransaction = { ...randomTransaction, ...req.body }
+
+  const accountId = req.params.accountId
   // check that the account exists
-//   if (!database.isValidAccount(db, transaction.accountId)) {
-//     return res.status(404).json() // no account was found
-//   }
+  const account = await prisma.account.findFirst({
+    where: {
+      accountId: accountId
+    }
+  })
+  if (!account) {
+    console.log('no account found')
+    return res.status(404).json() // no account was found
+  }
   // insert the transaction
   const transaction = await prisma.transaction.create({
     data: randomTransaction
@@ -234,9 +255,15 @@ app.post('/za/pb/v1/accounts', async (req: Request, res: Response) => {
   let account = generator.randomAccount()
   account = { ...account, ...req.body }
   // check that the account exists
-//   if (database.isValidAccount(db, account.accountId)) {
-//     return res.status(404).json() // account already exists
-//   }
+  const accountcheck = await prisma.account.findFirst({
+    where: {
+      accountId: account.accountId
+    }
+  })
+  if (accountcheck) {
+    console.log('account found')
+    return res.status(409).json() // account was found
+  }
   // insert the transaction
   await prisma.account.create({
     data: account
@@ -249,9 +276,15 @@ app.post('/za/pb/v1/accounts', async (req: Request, res: Response) => {
 app.delete('/za/pb/v1/accounts/:accountId', async (req: Request, res: Response) => {
   const accountId = req.params.accountId
   // check that the account exists
-//   if (!database.isValidAccount(db, accountId)) {
-//     return res.status(404).json() // account already exists
-//   }
+  const account = await prisma.account.findFirst({
+    where: {
+      accountId: accountId
+    }
+  })
+  if (!account) {
+    console.log('no account found')
+    return res.status(404).json() // no account was found
+  }
   // remove the transactions
   await prisma.transaction.deleteMany({
     where: {
@@ -281,9 +314,15 @@ app.post('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response)
   let beneficiary = generator.randomBeneficiary()
   beneficiary = { ...beneficiary, ...req.body }
   // check that the account exists
-//   if (database.isValidAccount(db, beneficiary.accountId)) {
-//     return res.status(404).json() // account already exists
-//   }
+  const account = await prisma.account.findFirst({
+    where: {
+      accountId: beneficiary.accountId
+    }
+  })
+  if (!account) {
+    console.log('no account found')
+    return res.status(404).json() // no account was found
+  }
   // insert the transaction
   await prisma.beneficiary.create({
     data: beneficiary

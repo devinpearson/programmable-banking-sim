@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npx nodemon index.js",
     "dev": "tsx watch --tsconfig ./tsconfig.json ./src/index.ts",
-    "build": "npx pkg . --out-path dist --build",
+    "build": "npx tsc",
     "test": "jest"
   },
   "bin": {
