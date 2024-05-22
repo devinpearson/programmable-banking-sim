@@ -208,6 +208,126 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: 
   return formatResponse(data, req, res)
 })
 
+// transfer multiple transactions
+app.post('/za/pb/v1/accounts/:accountId/transfermultiple', async (req: Request, res: Response) => {
+    const accountId = req.params.accountId
+    // check that the account exists
+    const account = await prisma.account.findFirst({
+      where: {
+        accountId: accountId
+      }
+    })
+    if (!account) {
+      console.log('no account found')
+      return res.status(404).json() // no account was found
+    }
+    let transfers = req.body.transferList
+    console.log(transfers)
+    for (let i = 0; i < transfers.length; i++) {
+        const beneficiary = await prisma.account.findFirst({
+            where: {
+              accountId: transfers[i].beneficiaryAccountId
+            }
+          })
+          if (!beneficiary) {
+            console.log('no beneficiary account found')
+            return res.status(404).json() // no account was found
+          }
+          let transactionOut =
+            {
+                accountId: accountId,
+                type: 'DEBIT',
+                transactionType: 'Transfer',
+                status: 'POSTED',
+                description: transfers[i].myReference,
+                cardNumber: '',
+                postedOrder: 0,
+                postingDate: dayjs().format('YYYY-MM-DD'),
+                valueDate: dayjs().format('YYYY-MM-DD'),
+                actionDate: dayjs().format('YYYY-MM-DD'),
+                transactionDate: dayjs().format('YYYY-MM-DD'),
+                amount: transfers[i].amount,
+                runningBalance: 0
+            }
+        // insert the transaction
+        const transaction = await prisma.transaction.create({
+          data: transactionOut
+        })
+
+        let transactionIn =
+            {
+                accountId: transfers[i].beneficiaryAccountId,
+                type: 'CREDIT',
+                transactionType: 'Transfer',
+                status: 'POSTED',
+                description: transfers[i].theirReference,
+                cardNumber: '',
+                postedOrder: 0,
+                postingDate: dayjs().format('YYYY-MM-DD'),
+                valueDate: dayjs().format('YYYY-MM-DD'),
+                actionDate: dayjs().format('YYYY-MM-DD'),
+                transactionDate: dayjs().format('YYYY-MM-DD'),
+                amount: transfers[i].amount,
+                runningBalance: 0
+            }
+        // insert the transaction
+        const transaction2 = await prisma.transaction.create({
+          data: transactionIn
+        })
+    }
+
+    return formatResponse(transfers, req, res)
+  })
+
+  // beneficiary payment
+app.post('/za/pb/v1/accounts/:accountId/paymultiple', async (req: Request, res: Response) => {
+    const accountId = req.params.accountId
+    // check that the account exists
+    const account = await prisma.account.findFirst({
+      where: {
+        accountId: accountId
+      }
+    })
+    if (!account) {
+      console.log('no account found')
+      return res.status(404).json() // no account was found
+    }
+    let transfers = req.body.paymentList
+    // console.log(transfers)
+    for (let i = 0; i < transfers.length; i++) {
+        const beneficiary = await prisma.beneficiary.findFirst({
+            where: {
+              beneficiaryId: transfers[i].beneficiaryId
+            }
+          })
+          if (!beneficiary) {
+            console.log('no beneficiary account found')
+            return res.status(404).json() // no account was found
+          }
+          let transactionOut =
+            {
+                accountId: accountId,
+                type: 'DEBIT',
+                transactionType: 'Transfer',
+                status: 'POSTED',
+                description: transfers[i].myReference,
+                cardNumber: '',
+                postedOrder: 0,
+                postingDate: dayjs().format('YYYY-MM-DD'),
+                valueDate: dayjs().format('YYYY-MM-DD'),
+                actionDate: dayjs().format('YYYY-MM-DD'),
+                transactionDate: dayjs().format('YYYY-MM-DD'),
+                amount: transfers[i].amount,
+                runningBalance: 0
+            }
+        // insert the transaction
+        const transaction = await prisma.transaction.create({
+          data: transactionOut
+        })
+    }
+
+    return formatResponse(transfers, req, res)
+  })
 // function to create transactions for an account
 app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
   let randomTransaction = generator.randomTransaction(req.params.accountId)
@@ -232,14 +352,43 @@ app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res:
   return formatResponse(transaction, req, res)
 })
 
+app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
+    let randomTransaction = generator.randomTransaction(req.params.accountId)
+    randomTransaction.runningBalance = 0
+    randomTransaction = { ...randomTransaction, ...req.body }
+  
+    const accountId = req.params.accountId
+    // check that the account exists
+    const account = await prisma.account.findFirst({
+      where: {
+        accountId: accountId
+      }
+    })
+    if (!account) {
+      console.log('no account found')
+      return res.status(404).json() // no account was found
+    }
+    // insert the transaction
+    const transaction = await prisma.transaction.create({
+      data: randomTransaction
+    })
+    return formatResponse(transaction, req, res)
+  })
+
 app.delete('/za/pb/v1/accounts/:accountId/transactions/:postingDate', async (req: Request, res: Response) => {
   const accountId = req.params.accountId
   const postingDate = req.params.postingDate
   // check that the account exists
-//   if (!database.isValidAccount(db, accountId)) {
-//     return res.status(404).json() // no account was found
-//   }
-  // insert the transaction
+  const account = await prisma.account.findFirst({
+    where: {
+      accountId: accountId
+    }
+  })
+  if (!account) {
+    console.log('no account found')
+    return res.status(404).json() // no account was found
+  }
+  // delete the transactions
   const transactionsArr = await prisma.transaction.deleteMany({
     where: {
       accountId: accountId,

@@ -7,7 +7,6 @@ COPY package.json ./
 COPY package-lock.json ./
 COPY investec.db ./
 COPY prisma ./prisma/ 
-COPY .env.sample ./.env
 # Install deps
 RUN npm install
 
