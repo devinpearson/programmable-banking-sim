@@ -1,0 +1,1568 @@
+{
+	"info": {
+		"_postman_id": "8eb886d1-0de1-4146-9794-31915644f358",
+		"name": "Hackerthon Sandbox",
+		"description": "# 🚀 Get started here\n\nThis postman collection has been setup for the Hackerthon Stateful Sandbox. It is meant to closely match the live environments as possible.\n\nThe authorization requests are set to be optional for the hackerthon to foster quicker development, this feature can be enforced if its needed.\n\ncurrently this Sandbox is setup to serve a single \"profile\" and each team will get their own environment.\n\nRefer to the main [Investec API documentation](https://developer.investec.com/za/home) for more details.\n\nIf you have an API-related question, you can also discuss in the developer [community slack](https://i.imgur.com/aejg9QK.png).\n\n### Auth\n\n**Authentication** - Authentication example, can be skipped with this current config.\n\n### Accounts\n\n**Get Accounts** - Fetches a list of available accounts in the profile.\n\n**Get Account Balance** - Fetches an accounts balance.\n\n**Get Account transactions** - Fetch a list of an accounts transactions.\n\n**Transfer Multiple** - Make inter-account transfers.\n\n### Beneficiaries\n\n**Beneficiaries** - List associated beneficiaries .\n\n**Beneficiary Payment** - Make a payment to a beneficiary.\n\n### Admin Control\n\nThese helper functions do not exist in the api and have been created to manage the sandbox.\n\n**Create Account** - Create a new account under the current profile.\n\n**Create Beneficiary** - Create a new beneficiary for external payments.\n\n**Create Transactions** - This allows the injection of transactions with any date and amount.\n\n**Delete Transactions** - Allows you to remove transactions based on a postingDate",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "4766",
+		"_collection_link": "https://relinedigital.postman.co/workspace/investec-stateful-sandbox~a7550865-dcf5-4758-9b4a-51d7a955b7d9/collection/4766-8eb886d1-0de1-4146-9794-31915644f358?action=share&source=collection_link&creator=4766"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Authentication",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = JSON.parse(responseBody);",
+									"postman.setEnvironmentVariable(\"token\", jsonData.access_token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "password",
+									"value": "{{client_secret}}",
+									"type": "string"
+								},
+								{
+									"key": "username",
+									"value": "{{client_id}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{api_key}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{host}}/identity/v2/oauth2/token",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"identity",
+								"v2",
+								"oauth2",
+								"token"
+							]
+						},
+						"description": "Investec Programmable Banking uses a modified version of the OAuth 2.0 standard by requiring an additional API Key to be added to authentication requests.\n\nCurrently the token from the Authentication Request needs to be copied into the environmental variables under token.\n\nTokens are valid for 30 mins."
+					},
+					"response": [
+						{
+							"name": "200 - OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{api_key}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "grant_type",
+											"value": "client_credentials",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{host}}/identity/v2/oauth2/token",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"identity",
+										"v2",
+										"oauth2",
+										"token"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 12 Jan 2023 08:16:55 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "106"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "x-fapi-interaction-id",
+									"value": "rrt-04c8298398bf8c924-b-eu-19149-4699827-1"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=31536000; includeSubDomains"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"access_token\": \"uA49zeEuguvDJIjit0FdsjAGLQ64\",\n    \"token_type\": \"Bearer\",\n    \"expires_in\": 1799,\n    \"scope\": \"accounts\"\n}"
+						},
+						{
+							"name": "400 - Bad Request",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{api_key}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "grant_type",
+											"value": "client_credentials",
+											"type": "text",
+											"disabled": true
+										}
+									]
+								},
+								"url": {
+									"raw": "{{host}}/identity/v2/oauth2/token",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"identity",
+										"v2",
+										"oauth2",
+										"token"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 12 Jan 2023 08:17:36 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "0"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						},
+						{
+							"name": "401 - Unauthorized",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{api_key}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "grant_type",
+											"value": "client_credentials",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{host}}/identity/v2/oauth2/token",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"identity",
+										"v2",
+										"oauth2",
+										"token"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 12 Jan 2023 08:13:44 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "0"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			],
+			"auth": {
+				"type": "noauth"
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Accounts",
+			"item": [
+				{
+					"name": "Get Accounts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "",
+								"value": "",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts"
+							]
+						},
+						"description": "Obtain a list of accounts in associated profile."
+					},
+					"response": [
+						{
+							"name": "Get Accounts",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:28:25 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1895"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"accounts\": [\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"accountNumber\": \"10011425044\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Main\",\n                \"productName\": \"Private Bank Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710166878182963\",\n                \"accountNumber\": \"1100470321500\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710189969910439\",\n                \"accountNumber\": \"1100470321503\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Money Fund\",\n                \"productName\": \"MoneyFund Tracker\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710163191281913\",\n                \"accountNumber\": \"1100470321540\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Cash\",\n                \"productName\": \"Cash Management Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"2111047871310183964720792\",\n                \"accountNumber\": \"10012024052\",\n                \"accountName\": \"Mrs Little Smith\",\n                \"referenceName\": \"Mrs Little Smith Youth\",\n                \"productName\": \"Investec Youth Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10183964720789\"\n            },\n            {\n                \"accountId\": \"2111047871310183964825897\",\n                \"accountNumber\": \"1100581439500\",\n                \"accountName\": \"Mrs Little Smith\",\n                \"referenceName\": \"Mrs Little Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10183964720789\"\n            },\n            {\n                \"accountId\": \"3882638263210182035050683\",\n                \"accountNumber\": \"10011948799\",\n                \"accountName\": \"Mr Little Smith\",\n                \"referenceName\": \"Mr Little Smith Youth\",\n                \"productName\": \"Investec Youth Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10182035050680\"\n            },\n            {\n                \"accountId\": \"3882638263210182035137740\",\n                \"accountNumber\": \"1100579911500\",\n                \"accountName\": \"Mr Little Smith\",\n                \"referenceName\": \"Mr Little Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10182035050680\"\n            }\n        ]\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Account Balance",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/:accountId/balance",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								":accountId",
+								"balance"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}",
+									"description": "(Required) Your bank account id"
+								}
+							]
+						},
+						"description": "Obtain a specified account's balance."
+					},
+					"response": [
+						{
+							"name": "Get Account Balance",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts/:accountId/balance",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts",
+										":accountId",
+										"balance"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "",
+											"disabled": true
+										}
+									],
+									"variable": [
+										{
+											"key": "accountId",
+											"value": "3353431574710163189587446",
+											"description": "(Required) Your bank account id"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:31:58 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "252"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"accountId\": \"3353431574710163189587446\",\n        \"currentBalance\": 33607.16,\n        \"availableBalance\": 33607.16,\n        \"currency\": \"ZAR\"\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts/3353431574710163189587446/balance\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Account Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/:accountId/transactions",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								":accountId",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "fromDate",
+									"value": "2022-11-01",
+									"description": "Refers to the date range filter's start date. Will default to today's date, minus 180 days, if not specified. postingDate is used.",
+									"disabled": true
+								},
+								{
+									"key": "toDate",
+									"value": "2023-02-10",
+									"description": "Refers to the date range filter's end date. Will default to today's date if not specified. postingDate is used for filtering.",
+									"disabled": true
+								},
+								{
+									"key": "transactionType",
+									"value": "CardPurchases",
+									"description": "Refers to the transaction type filter's value.",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}"
+								}
+							]
+						},
+						"description": "Obtain a specified account's transactions.\n\nFiltering is done using the postingDate\n\npostingDate is the date at which the transaction affects your balance.\n\ntransactionDate is the date at which the transaction took place. The day the card was physically swiped.\n\nCard transactions that are currently pending will not show in the transaction list.\n\nThere is no limits on the returned results"
+					},
+					"response": [
+						{
+							"name": "Get Account Transactions",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts/:accountId/transactions",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts",
+										":accountId",
+										"transactions"
+									],
+									"query": [
+										{
+											"key": "fromDate",
+											"value": "2023-03-10",
+											"description": "Refers to the date range filter's start date. Will default to today's date, minus 180 days, if not specified. postingDate is used.",
+											"disabled": true
+										},
+										{
+											"key": "toDate",
+											"value": "2023-03-10",
+											"description": "Refers to the date range filter's end date. Will default to today's date if not specified. postingDate is used for filtering.",
+											"disabled": true
+										},
+										{
+											"key": "transactionType",
+											"value": "CardPurchases",
+											"description": "Refers to the transaction type filter's value.",
+											"disabled": true
+										}
+									],
+									"variable": [
+										{
+											"key": "accountId",
+											"value": "•••••••",
+											"description": "(Required) Your bank account id"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:33:46 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "91595"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"transactions\": [\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"KURUMAN FRESH PRODUCE H KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0011\",\n                \"postedOrder\": 11049,\n                \"postingDate\": \"2023-04-13\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-11\",\n                \"amount\": 53.6,\n                \"runningBalance\": 34679.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"YOCO   *ARUKAH HEALTH KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0018\",\n                \"postedOrder\": 11050,\n                \"postingDate\": \"2023-04-13\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 374,\n                \"runningBalance\": 34305.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"24 CENTRAL            ENT joeNESBURG ZA\",\n                \"cardNumber\": \"402261xxxxxx0011\",\n                \"postedOrder\": 11053,\n                \"postingDate\": \"2023-04-14\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 10,\n                \"runningBalance\": 34295.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"SUPERSPAR KURUMAN KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0018\",\n                \"postedOrder\": 11054,\n                \"postingDate\": \"2023-04-14\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 688.5,\n                \"runningBalance\": 33607.16\n            }\n        ]\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts/3353431574710163189587446/transactions\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Transfer Multiple",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": " {\n     \"transferList\": [\n     {\n       \"beneficiaryAccountId\": \"4675778129910189600000004\", //account where the funds will transfer to\n       \"amount\": \"10\",\n       \"myReference\": \"API transfer\",\n       \"theirReference\": \"API transfer\"\n     }\n   ] \n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/:accountId/transfermultiple",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								":accountId",
+								"transfermultiple"
+							],
+							"variable": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}",
+									"description": "Your bank account id where the funds will transfer from"
+								}
+							]
+						},
+						"description": "Obtain a list of accounts in associated profile."
+					},
+					"response": [
+						{
+							"name": "200 OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": " {\n     \"transferList\": [\n     {\n       \"beneficiaryAccountId\": \"4675778129910189603230088\", //account where the funds will transfer to\n       \"amount\": \"10\",\n       \"myReference\": \"API transfer\",\n       \"theirReference\": \"API transfer\"\n     }\n   ] \n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/za/pb/v1/accounts/:accountId/transfermultiple",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts",
+										":accountId",
+										"transfermultiple"
+									],
+									"variable": [
+										{
+											"key": "accountId",
+											"value": "{{accountId}}",
+											"description": "Your bank account id where the funds will transfer from"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 26 Apr 2023 11:37:50 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "425"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"TransferResponses\": [\n            {\n                \"PaymentReferenceNumber\": \"UBP0126806416\",\n                \"PaymentDate\": \"26/04/2023\",\n                \"Status\": \"- Payment/Transfer effective date 26/04/2023\",\n                \"BeneficiaryName\": \"API transfer\",\n                \"BeneficiaryAccountId\": \"4675778129910189603230088\",\n                \"AuthorisationRequired\": false\n            }\n        ],\n        \"ErrorMessage\": null\n    },\n    \"links\": {\n        \"self\": \"https://openapi.investec.com/za/pb/v1/accounts/4675778129910189603223578/transfermultiple\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						},
+						{
+							"name": "400 Bad Request",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": " {\n     \"transferList\": [\n     {\n       \"beneficiaryAccountId\": \"4675778129910189603230087\", //account where the funds will transfer to\n       \"amount\": \"10\",\n       \"myReference\": \"API transfer\",\n       \"theirReference\": \"API transfer ref\"\n     }\n   ] \n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{host}}/za/pb/v1/accounts/:accountId/transfermultiple",
+									"host": [
+										"{{host}}"
+									],
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts",
+										":accountId",
+										"transfermultiple"
+									],
+									"variable": [
+										{
+											"key": "accountId",
+											"value": "{{accountId}}",
+											"description": "Your bank account id where the funds will transfer from"
+										}
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Tue, 01 Aug 2023 08:33:11 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Strict-Transport-Security",
+									"value": "max-age=15552000; includeSubDomains"
+								},
+								{
+									"key": "api-supported-versions",
+									"value": "2"
+								},
+								{
+									"key": "CF-Cache-Status",
+									"value": "DYNAMIC"
+								},
+								{
+									"key": "CF-RAY",
+									"value": "7efcbc1d8a1e1b88-DUB"
+								},
+								{
+									"key": "alt-svc",
+									"value": "h3=\":443\"; ma=86400"
+								}
+							],
+							"cookie": [],
+							"body": "\"The specified account is invalid. (Parameter 'accountId')\""
+						}
+					]
+				}
+			],
+			"description": "The Account Information API allows Investec SA Private Banking clients to access their account and transactional information (read-only) via an API.\n\nIt can be used to retrieve account information such as:\n\n- Account details\n- Balances\n- Account transactions\n\nThere are many possible use cases for the Account Information API: from extracting the data to aggregate it with financial data from other banking institutions to personal money management tools."
+		},
+		{
+			"name": "Beneficiaries",
+			"item": [
+				{
+					"name": "Beneficiaries",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/beneficiaries",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								"beneficiaries"
+							]
+						},
+						"description": "List of beneficiaries linked to the profile\n\nPayment notifications will go out to beneficiaries emailAddress and cellNo fields. If these are null no notification will be sent out to that notification channel."
+					},
+					"response": []
+				},
+				{
+					"name": "Beneficiary Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"paymentList\": [\n     {\n       \"beneficiaryId\": \"{{beneficiaryId}}\", // beneficiary id from the beneficiaries list\n       \"amount\": \"10\", // amount to be paid in ZAR\n       \"myReference\": \"API demo\", // reference displayed on your transaction decription\n       \"theirReference\": \"API demo2\" // reference displayed on your recipients statement\n     }\n   ]}"
+						},
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/:accountId/paymultiple",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								":accountId",
+								"paymultiple"
+							],
+							"variable": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}",
+									"description": "(Required) Your bank account id where the funds will transfer from"
+								}
+							]
+						},
+						"description": "Make a payment to a beneficiary.\n\nBeneficiaries need to be created online and a payment made via online before payments can be made via the API.\n\nBeneficiary payments are limited to R20 000."
+					},
+					"response": []
+				}
+			],
+			"description": "Beneficiaries are third parties that can receive payment from your account. These could be the municipality, your internet service provider or any entity you would like to pay regularly.\n\nThe Beneficiaries api allows you to get a list of your available beneficiaries, view the beneficiaries categories and make payments to those beneficiaries.\n\nBeneficiaries will need to be created via the online banking portal before they will reflect in the list.\n\nFor additional security you will only be able to pay a beneficiary via the api after a payment has been made via online banking."
+		},
+		{
+			"name": "Control",
+			"item": [
+				{
+					"name": "Create Transactions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"accountId\": \"4675778129910189600000003\",\n    \"type\": \"DEBIT\",\n    \"transactionType\": \"CardPurchases\",\n    \"status\": \"POSTED\",\n    \"description\": \"HTTP://WWW.UBEREATS.CO PARKTOWN NOR ZA\",\n    \"cardNumber\": \"402167xxxxxx9999\",\n    \"postedOrder\": \"1\",\n    \"postingDate\": \"2023-01-22\",\n    \"valueDate\": \"2022-05-15\",\n    \"actionDate\": \"2022-04-24\",\n    \"transactionDate\": \"2022-04-21\",\n    \"amount\": \"40.99\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/:accountId/transactions",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								":accountId",
+								"transactions"
+							],
+							"variable": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}"
+								}
+							]
+						},
+						"description": "Obtain a specified account's transactions.\n\nFiltering is done using the postingDate\n\npostingDate is the date at which the transaction affects your balance.\n\ntransactionDate is the date at which the transaction took place. The day the card was physically swiped.\n\nCard transactions that are currently pending will not show in the transaction list.\n\nThere is no limits on the returned results"
+					},
+					"response": [
+						{
+							"name": "Get Account Transactions",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts/:accountId/transactions",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts",
+										":accountId",
+										"transactions"
+									],
+									"query": [
+										{
+											"key": "fromDate",
+											"value": "2023-03-10",
+											"description": "Refers to the date range filter's start date. Will default to today's date, minus 180 days, if not specified. postingDate is used.",
+											"disabled": true
+										},
+										{
+											"key": "toDate",
+											"value": "2023-03-10",
+											"description": "Refers to the date range filter's end date. Will default to today's date if not specified. postingDate is used for filtering.",
+											"disabled": true
+										},
+										{
+											"key": "transactionType",
+											"value": "CardPurchases",
+											"description": "Refers to the transaction type filter's value.",
+											"disabled": true
+										}
+									],
+									"variable": [
+										{
+											"key": "accountId",
+											"value": "•••••••",
+											"description": "(Required) Your bank account id"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:33:46 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "91595"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"transactions\": [\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"KURUMAN FRESH PRODUCE H KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0011\",\n                \"postedOrder\": 11049,\n                \"postingDate\": \"2023-04-13\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-11\",\n                \"amount\": 53.6,\n                \"runningBalance\": 34679.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"YOCO   *ARUKAH HEALTH KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0018\",\n                \"postedOrder\": 11050,\n                \"postingDate\": \"2023-04-13\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 374,\n                \"runningBalance\": 34305.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"24 CENTRAL            ENT joeNESBURG ZA\",\n                \"cardNumber\": \"402261xxxxxx0011\",\n                \"postedOrder\": 11053,\n                \"postingDate\": \"2023-04-14\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 10,\n                \"runningBalance\": 34295.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"SUPERSPAR KURUMAN KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0018\",\n                \"postedOrder\": 11054,\n                \"postingDate\": \"2023-04-14\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 688.5,\n                \"runningBalance\": 33607.16\n            }\n        ]\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts/3353431574710163189587446/transactions\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Transactions",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"accountId\": \"4675778129910189600000003\",\n    \"type\": \"DEBIT\",\n    \"transactionType\": \"CardPurchases\",\n    \"status\": \"POSTED\",\n    \"description\": \"HTTP://WWW.UBEREATS.CO PARKTOWN NOR ZA\",\n    \"cardNumber\": \"402167xxxxxx9999\",\n    \"postedOrder\": \"1\",\n    \"postingDate\": \"2023-01-22\",\n    \"valueDate\": \"2022-05-15\",\n    \"actionDate\": \"2022-04-24\",\n    \"transactionDate\": \"2022-04-21\",\n    \"amount\": \"40.99\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/:accountId/transactions/:postingDate",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								":accountId",
+								"transactions",
+								":postingDate"
+							],
+							"variable": [
+								{
+									"key": "accountId",
+									"value": "{{accountId}}"
+								},
+								{
+									"key": "postingDate",
+									"value": "2024-05-21"
+								}
+							]
+						},
+						"description": "Obtain a specified account's transactions.\n\nFiltering is done using the postingDate\n\npostingDate is the date at which the transaction affects your balance.\n\ntransactionDate is the date at which the transaction took place. The day the card was physically swiped.\n\nCard transactions that are currently pending will not show in the transaction list.\n\nThere is no limits on the returned results"
+					},
+					"response": [
+						{
+							"name": "Get Account Transactions",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts/:accountId/transactions",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts",
+										":accountId",
+										"transactions"
+									],
+									"query": [
+										{
+											"key": "fromDate",
+											"value": "2023-03-10",
+											"description": "Refers to the date range filter's start date. Will default to today's date, minus 180 days, if not specified. postingDate is used.",
+											"disabled": true
+										},
+										{
+											"key": "toDate",
+											"value": "2023-03-10",
+											"description": "Refers to the date range filter's end date. Will default to today's date if not specified. postingDate is used for filtering.",
+											"disabled": true
+										},
+										{
+											"key": "transactionType",
+											"value": "CardPurchases",
+											"description": "Refers to the transaction type filter's value.",
+											"disabled": true
+										}
+									],
+									"variable": [
+										{
+											"key": "accountId",
+											"value": "•••••••",
+											"description": "(Required) Your bank account id"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:33:46 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "91595"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"transactions\": [\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"KURUMAN FRESH PRODUCE H KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0011\",\n                \"postedOrder\": 11049,\n                \"postingDate\": \"2023-04-13\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-11\",\n                \"amount\": 53.6,\n                \"runningBalance\": 34679.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"YOCO   *ARUKAH HEALTH KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0018\",\n                \"postedOrder\": 11050,\n                \"postingDate\": \"2023-04-13\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 374,\n                \"runningBalance\": 34305.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"24 CENTRAL            ENT joeNESBURG ZA\",\n                \"cardNumber\": \"402261xxxxxx0011\",\n                \"postedOrder\": 11053,\n                \"postingDate\": \"2023-04-14\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 10,\n                \"runningBalance\": 34295.66\n            },\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"type\": \"DEBIT\",\n                \"transactionType\": \"CardPurchases\",\n                \"status\": \"POSTED\",\n                \"description\": \"SUPERSPAR KURUMAN KURUMAN ZA\",\n                \"cardNumber\": \"402261xxxxxx0018\",\n                \"postedOrder\": 11054,\n                \"postingDate\": \"2023-04-14\",\n                \"valueDate\": \"2023-04-30\",\n                \"actionDate\": \"2023-04-12\",\n                \"transactionDate\": \"2023-04-12\",\n                \"amount\": 688.5,\n                \"runningBalance\": 33607.16\n            }\n        ]\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts/3353431574710163189587446/transactions\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Create Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "",
+								"value": "",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"accountId\": \"4675778129910189600000055\",\n    \"accountNumber\": \"10012420055\",\n    \"accountName\": \"Mr Test\",\n    \"referenceName\": \"Mr Test\",\n    \"productName\": \"Private Bank Account\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts"
+							]
+						},
+						"description": "Obtain a list of accounts in associated profile."
+					},
+					"response": [
+						{
+							"name": "Get Accounts",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:28:25 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1895"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"accounts\": [\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"accountNumber\": \"10011425044\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Main\",\n                \"productName\": \"Private Bank Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710166878182963\",\n                \"accountNumber\": \"1100470321500\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710189969910439\",\n                \"accountNumber\": \"1100470321503\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Money Fund\",\n                \"productName\": \"MoneyFund Tracker\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710163191281913\",\n                \"accountNumber\": \"1100470321540\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Cash\",\n                \"productName\": \"Cash Management Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"2111047871310183964720792\",\n                \"accountNumber\": \"10012024052\",\n                \"accountName\": \"Mrs Little Smith\",\n                \"referenceName\": \"Mrs Little Smith Youth\",\n                \"productName\": \"Investec Youth Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10183964720789\"\n            },\n            {\n                \"accountId\": \"2111047871310183964825897\",\n                \"accountNumber\": \"1100581439500\",\n                \"accountName\": \"Mrs Little Smith\",\n                \"referenceName\": \"Mrs Little Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10183964720789\"\n            },\n            {\n                \"accountId\": \"3882638263210182035050683\",\n                \"accountNumber\": \"10011948799\",\n                \"accountName\": \"Mr Little Smith\",\n                \"referenceName\": \"Mr Little Smith Youth\",\n                \"productName\": \"Investec Youth Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10182035050680\"\n            },\n            {\n                \"accountId\": \"3882638263210182035137740\",\n                \"accountNumber\": \"1100579911500\",\n                \"accountName\": \"Mr Little Smith\",\n                \"referenceName\": \"Mr Little Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10182035050680\"\n            }\n        ]\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Create Beneficiary",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "",
+								"value": "",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/za/pb/v1/accounts/beneficiaries",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"za",
+								"pb",
+								"v1",
+								"accounts",
+								"beneficiaries"
+							]
+						},
+						"description": "Obtain a list of accounts in associated profile."
+					},
+					"response": [
+						{
+							"name": "Get Accounts",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Accept",
+										"value": "application/json",
+										"type": "default"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "localhost:3000/za/pb/v1/accounts",
+									"host": [
+										"localhost"
+									],
+									"port": "3000",
+									"path": [
+										"za",
+										"pb",
+										"v1",
+										"accounts"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 12 Apr 2023 10:28:25 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1895"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache, no-store"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "origin, x-requested-with, accept, content-type, authorization"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"data\": {\n        \"accounts\": [\n            {\n                \"accountId\": \"3353431574710163189587446\",\n                \"accountNumber\": \"10011425044\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Main\",\n                \"productName\": \"Private Bank Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710166878182963\",\n                \"accountNumber\": \"1100470321500\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710189969910439\",\n                \"accountNumber\": \"1100470321503\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Money Fund\",\n                \"productName\": \"MoneyFund Tracker\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"3353431574710163191281913\",\n                \"accountNumber\": \"1100470321540\",\n                \"accountName\": \"Mr Smith\",\n                \"referenceName\": \"Mr Smith Cash\",\n                \"productName\": \"Cash Management Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10163189587444\"\n            },\n            {\n                \"accountId\": \"2111047871310183964720792\",\n                \"accountNumber\": \"10012024052\",\n                \"accountName\": \"Mrs Little Smith\",\n                \"referenceName\": \"Mrs Little Smith Youth\",\n                \"productName\": \"Investec Youth Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10183964720789\"\n            },\n            {\n                \"accountId\": \"2111047871310183964825897\",\n                \"accountNumber\": \"1100581439500\",\n                \"accountName\": \"Mrs Little Smith\",\n                \"referenceName\": \"Mrs Little Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10183964720789\"\n            },\n            {\n                \"accountId\": \"3882638263210182035050683\",\n                \"accountNumber\": \"10011948799\",\n                \"accountName\": \"Mr Little Smith\",\n                \"referenceName\": \"Mr Little Smith Youth\",\n                \"productName\": \"Investec Youth Account\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10182035050680\"\n            },\n            {\n                \"accountId\": \"3882638263210182035137740\",\n                \"accountNumber\": \"1100579911500\",\n                \"accountName\": \"Mr Little Smith\",\n                \"referenceName\": \"Mr Little Smith Prime\",\n                \"productName\": \"PrimeSaver\",\n                \"kycCompliant\": true,\n                \"profileId\": \"10182035050680\"\n            }\n        ]\n    },\n    \"links\": {\n        \"self\": \"https://openapisandbox.investec.com/za/pb/v1/accounts\"\n    },\n    \"meta\": {\n        \"totalPages\": 1\n    }\n}"
+						}
+					]
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "host",
+			"value": "https://openapi.investec.com",
+			"type": "default",
+			"disabled": true
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string",
+			"disabled": true
+		},
+		{
+			"key": "client_id",
+			"value": "",
+			"type": "default",
+			"disabled": true
+		},
+		{
+			"key": "client_secret",
+			"value": "",
+			"type": "default",
+			"disabled": true
+		},
+		{
+			"key": "api_key",
+			"value": "",
+			"type": "string",
+			"disabled": true
+		}
+	]
+}
