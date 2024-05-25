@@ -332,6 +332,7 @@ app.post('/za/pb/v1/accounts/:accountId/paymultiple', async (req: Request, res: 
 app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
   let randomTransaction = generator.randomTransaction(req.params.accountId)
   randomTransaction.runningBalance = 0
+  randomTransaction.postedOrder = 0
   randomTransaction = { ...randomTransaction, ...req.body }
 
   const accountId = req.params.accountId
@@ -463,15 +464,15 @@ app.post('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response)
   let beneficiary = generator.randomBeneficiary()
   beneficiary = { ...beneficiary, ...req.body }
   // check that the account exists
-  const account = await prisma.account.findFirst({
-    where: {
-      accountId: beneficiary.accountId
-    }
-  })
-  if (!account) {
-    console.log('no account found')
-    return res.status(404).json() // no account was found
-  }
+//   const account = await prisma.account.findFirst({
+//     where: {
+//       accountId: beneficiary.accountId
+//     }
+//   })
+//   if (!account) {
+//     console.log('no account found')
+//     return res.status(404).json() // no account was found
+//   }
   // insert the transaction
   await prisma.beneficiary.create({
     data: beneficiary
