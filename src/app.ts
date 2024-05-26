@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import morgan from 'morgan';
 import cors from 'cors';
 import dayjs from 'dayjs';
 import dotenv from 'dotenv'
@@ -33,6 +34,7 @@ const generator = require('./generate')
 app.use(cors())
 // Configuring body parser middleware
 app.use(express.urlencoded({ extended: false }))
+app.use(morgan('combined'));
 app.use(express.json())
 
 // enum scopes {
@@ -117,7 +119,7 @@ const transactionsArr = await prisma.transaction.findMany({
     }
   })
     let runningBalance = 0
-    
+
     for (let j = 0; j < transactionsArr.length; j++) {
         let amount = transactionsArr[j].amount.toNumber()
         if (transactionsArr[j].type === 'CREDIT') {
@@ -357,7 +359,7 @@ app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res:
     let randomTransaction = generator.randomTransaction(req.params.accountId)
     randomTransaction.runningBalance = 0
     randomTransaction = { ...randomTransaction, ...req.body }
-  
+
     const accountId = req.params.accountId
     // check that the account exists
     const account = await prisma.account.findFirst({
@@ -396,7 +398,7 @@ app.delete('/za/pb/v1/accounts/:accountId/transactions/:postingDate', async (req
       postingDate: postingDate
     }
   })
-  
+
   return res.status(200).json()
 })
 
