@@ -2,10 +2,10 @@
   "name": "programmable-banking-sim",
   "version": "1.0.0",
   "description": "Local Simulation of the api service. for local testing and demo purposes",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "npx nodemon index.js",
-    "dev": "tsx watch --tsconfig ./tsconfig.json ./src/index.ts",
+    "dev": "tsx --watch ./src/index.ts --tsconfig ./tsconfig.json",
     "build": "npx tsc",
     "test": "jest"
   },
