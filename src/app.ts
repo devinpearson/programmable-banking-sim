@@ -4,6 +4,10 @@ import cors from 'cors';
 import dayjs from 'dayjs';
 import dotenv from 'dotenv'
 import { Prisma, PrismaClient } from '@prisma/client'
+import { Server } from "socket.io"
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import { createServer } from 'node:http';
 
 dotenv.config()
 
@@ -17,17 +21,19 @@ const dbFile = process.env.DB_FILE || 'investec.db'
 // const overdraft = process.env.OVERDRAFT || 5000
 const prisma = new PrismaClient()
 export const app = express()
+export const server = createServer(app);
+const io = new Server(server);
 
-const generator = require('./generate')
+import { randomBeneficiary, randomTransaction, randomAccount } from './generate.js'
 
 
 // for (let i = 0; i < 100; i++) {
-//   const account = generator.randomBeneficiary()
+//   const account = randomBeneficiary()
 //   database.insertBeneficiary(db, account)
 // }
 
 // for (let i = 0; i < 900; i++) {
-//   const account = generator.randomTransaction('4675778129910189600000003')
+//   const account = randomTransaction('4675778129910189600000003')
 //   database.insertTransaction(db, account)
 // }
 
@@ -51,6 +57,24 @@ interface AccessToken {
 
 let accessTokens = {} as Record<string, AccessToken>
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+io.on('connection', (socket) => {
+    socket.broadcast.emit('hi');
+    socket.on('chat message', (msg) => {
+        console.log('message: ' + msg);
+        io.emit('chat message', msg);
+      });
+    console.log('a user connected');
+    socket.on('disconnect', () => {
+        console.log('user disconnected');
+      });
+  });
+
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
+});
+
 app.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
     try {
         const authStr = Buffer.from((req.headers.authorization ?? '').split(' ')[1], 'base64').toString()
@@ -58,11 +82,11 @@ app.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
 
         if (envClientId !== '' && envClientSecret !== '') {
             if (clientId !== envClientId || clientSecret !== envClientSecret) {
-                return res.status(401).json()
+                return formatErrorResponse(req, res, 401)
             }
         }
         if (envApiKey !== '' && req.headers['x-api-key'] !== envApiKey) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         // Generate a token string
         const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
@@ -71,7 +95,7 @@ app.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
         return res.json({ access_token: token, token_type: 'Bearer', expires_in: envTokenExpiry, scope: 'accounts' })
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
@@ -96,7 +120,7 @@ function isValidToken (req: Request) {
 app.get('/za/pb/v1/accounts', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
 
         const accounts = await prisma.account.findMany()
@@ -104,14 +128,14 @@ app.get('/za/pb/v1/accounts', async (req: Request, res: Response) => {
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.get('/za/pb/v1/accounts/:accountId/balance', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         const accountId = req.params.accountId
 
@@ -121,7 +145,7 @@ app.get('/za/pb/v1/accounts/:accountId/balance', async (req: Request, res: Respo
             }
         })
         if (!account) {
-            return res.status(404).json() // no account was found
+            return formatErrorResponse(req, res, 404) // no account was found
         }
 
         const transactionsArr = await prisma.transaction.findMany({
@@ -152,14 +176,14 @@ app.get('/za/pb/v1/accounts/:accountId/balance', async (req: Request, res: Respo
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         const accountId = req.params.accountId
         // check that the account exists
@@ -170,7 +194,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: 
         })
         if (!account) {
             console.log('no account found')
-            return res.status(404).json() // no account was found
+            return formatErrorResponse(req, res, 404) // no account was found
         }
         const transactionsArr = await prisma.transaction.findMany({
             where: {
@@ -226,7 +250,7 @@ app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: 
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
@@ -242,7 +266,7 @@ app.post('/za/pb/v1/accounts/:accountId/transfermultiple', async (req: Request, 
         })
         if (!account) {
         console.log('no account found')
-        return res.status(404).json() // no account was found
+        return formatErrorResponse(req, res, 404) // no account was found
         }
         let transfers = req.body.transferList
         console.log(transfers)
@@ -254,7 +278,7 @@ app.post('/za/pb/v1/accounts/:accountId/transfermultiple', async (req: Request, 
             })
             if (!beneficiary) {
                 console.log('no beneficiary account found')
-                return res.status(404).json() // no account was found
+                return formatErrorResponse(req, res, 404) // no account was found
             }
             let transactionOut =
                 {
@@ -302,7 +326,7 @@ app.post('/za/pb/v1/accounts/:accountId/transfermultiple', async (req: Request, 
         return formatResponse(transfers, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
@@ -318,7 +342,7 @@ app.post('/za/pb/v1/accounts/:accountId/paymultiple', async (req: Request, res: 
         })
         if (!account) {
         console.log('no account found')
-        return res.status(404).json() // no account was found
+        return formatErrorResponse(req, res, 404) // no account was found
         }
         let transfers = req.body.paymentList
         // console.log(transfers)
@@ -330,7 +354,7 @@ app.post('/za/pb/v1/accounts/:accountId/paymultiple', async (req: Request, res: 
             })
             if (!beneficiary) {
                 console.log('no beneficiary account found')
-                return res.status(404).json() // no account was found
+                return formatErrorResponse(req, res, 404) // no account was found
             }
             let transactionOut =
                 {
@@ -357,44 +381,42 @@ app.post('/za/pb/v1/accounts/:accountId/paymultiple', async (req: Request, res: 
         return formatResponse(transfers, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 // function to create transactions for an account
 app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
     try {
-        let randomTransaction = generator.randomTransaction(req.params.accountId)
-        randomTransaction.runningBalance = 0
-        randomTransaction.postedOrder = 0
-        randomTransaction = { ...randomTransaction, ...req.body }
+        let randomTx = randomTransaction(req.params.accountId)
+        randomTx = { ...randomTx, ...req.body }
 
         const accountId = req.params.accountId
         // check that the account exists
         const account = await prisma.account.findFirst({
             where: {
-            accountId: accountId
+                accountId: accountId
             }
         })
         if (!account) {
             console.log('no account found')
-            return res.status(404).json() // no account was found
+            return formatErrorResponse(req, res, 404) // no account was found
         }
         // insert the transaction
         const transaction = await prisma.transaction.create({
-            data: randomTransaction
+            data: randomTx
         })
         return formatResponse(transaction, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
     try {
-        let randomTransaction = generator.randomTransaction(req.params.accountId)
-        randomTransaction.runningBalance = 0
-        randomTransaction = { ...randomTransaction, ...req.body }
+        let randomTx = randomTransaction(req.params.accountId)
+        randomTx.runningBalance = 0
+        randomTx = { ...randomTx, ...req.body }
 
         const accountId = req.params.accountId
         // check that the account exists
@@ -405,16 +427,16 @@ app.post('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res:
         })
         if (!account) {
         console.log('no account found')
-        return res.status(404).json() // no account was found
+        return formatErrorResponse(req, res, 404) // no account was found
         }
         // insert the transaction
         const transaction = await prisma.transaction.create({
-        data: randomTransaction
+        data: randomTx
         })
         return formatResponse(transaction, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
@@ -430,7 +452,7 @@ app.delete('/za/pb/v1/accounts/:accountId/transactions/:postingDate', async (req
         })
         if (!account) {
             console.log('no account found')
-            return res.status(404).json() // no account was found
+            return formatErrorResponse(req, res, 404) // no account was found
         }
         // delete the transactions
         const transactionsArr = await prisma.transaction.deleteMany({
@@ -443,14 +465,14 @@ app.delete('/za/pb/v1/accounts/:accountId/transactions/:postingDate', async (req
         return res.status(200).json()
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 // function to create an account
 app.post('/za/pb/v1/accounts', async (req: Request, res: Response) => {
   try {
-        let account = generator.randomAccount()
+        let account = randomAccount()
         account = { ...account, ...req.body }
         // check that the account exists
         const accountcheck = await prisma.account.findFirst({
@@ -460,7 +482,7 @@ app.post('/za/pb/v1/accounts', async (req: Request, res: Response) => {
         })
         if (accountcheck) {
             console.log('account found')
-            return res.status(409).json() // account was found
+            return formatErrorResponse(req, res, 409) // account was found
         }
         // insert the transaction
         await prisma.account.create({
@@ -470,7 +492,7 @@ app.post('/za/pb/v1/accounts', async (req: Request, res: Response) => {
         return formatResponse(account, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
@@ -486,7 +508,7 @@ app.delete('/za/pb/v1/accounts/:accountId', async (req: Request, res: Response) 
         })
         if (!account) {
             console.log('no account found')
-            return res.status(404).json() // no account was found
+            return formatErrorResponse(req, res, 404) // no account was found
         }
         // remove the transactions
         await prisma.transaction.deleteMany({
@@ -503,28 +525,28 @@ app.delete('/za/pb/v1/accounts/:accountId', async (req: Request, res: Response) 
         return res.status(200).json()
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.get('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         const result = await prisma.beneficiary.findMany()
         const data = { result }
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 // function to create an account
 app.post('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response) => {
     try {
-        let beneficiary = generator.randomBeneficiary()
+        let beneficiary = randomBeneficiary()
         beneficiary = { ...beneficiary, ...req.body }
         
         // insert the beneficiary
@@ -535,53 +557,55 @@ app.post('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response)
         return formatResponse(beneficiary, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.get('/za/v1/cards/countries', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         const result = await prisma.country.findMany()
         const data = { result }
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.get('/za/v1/cards/currencies', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         const result = await prisma.currency.findMany()
         const data = { result }
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 app.get('/za/v1/cards/merchants', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
-            return res.status(401).json()
+            return formatErrorResponse(req, res, 401)
         }
         const result = await prisma.merchant.findMany()
         const data = { result }
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
-    return res.status(500).json()
+    return formatErrorResponse(req, res, 500)
     }
 })
 
 const formatResponse = (data: any, req: Request, res: Response) => {
+    let date = new Date()
+  io.sockets.emit('chat message', date.toUTCString() + ' ' + req.method + ' ' + req.url + ' HTTP/' + req.httpVersion + ' ' + res.statusCode);
   return res.json({
     data,
     links: {
@@ -591,4 +615,9 @@ const formatResponse = (data: any, req: Request, res: Response) => {
       totalPages: 1
     }
   })
+}
+function formatErrorResponse (req: Request, res: Response, code: number) {
+    let date = new Date()
+    io.sockets.emit('chat message', date.toUTCString() + ' ' + req.method + ' ' + req.url + ' HTTP/' + req.httpVersion + ' ' + code);
+    return res.status(code).json()
 }
