@@ -23,9 +23,34 @@ const prisma = new PrismaClient()
 export const app = express()
 export const server = createServer(app);
 const io = new Server(server);
+let settings = {} as Settings
+const dbSettings = await prisma.setting.findMany()
+for (let i = 0; i < dbSettings.length; i++) {
+    const setting = dbSettings[i]
+    switch (setting.name) {
+        case 'client_id':
+            settings.client_id = setting.value
+            break
+        case 'client_secret':
+            settings.client_secret = setting.value
+            break
+        case 'api_key':
+            settings.api_key = setting.value
+            break
+        case 'token_expiry':
+            settings.token_expiry = setting.value as unknown as number
+            break
+        case 'auth':
+            if (setting.value === 'true') {
+                settings.auth = true
+            } else {
+                settings.auth = false
+            }
+            break
+    }
+}
 
 import { randomBeneficiary, randomTransaction, randomAccount } from './generate.js'
-
 
 // for (let i = 0; i < 100; i++) {
 //   const account = randomBeneficiary()
@@ -55,6 +80,14 @@ interface AccessToken {
     scope: string
 }
 
+interface Settings {
+    client_id: string
+    client_secret: string
+    api_key: string
+    token_expiry: number
+    auth: boolean
+}
+
 let accessTokens = {} as Record<string, AccessToken>
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -75,24 +108,57 @@ app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
 });
 
+app.get('/output.css', (req, res) => {
+    res.sendFile(join(__dirname, 'output.css'));
+  });
+
+app.post('/envs', async (req: Request, res: Response) => {
+    await prisma.setting.update({
+        where: {name:'client_id'},
+        data: {value: req.body.client_id}
+    })
+    await prisma.setting.update({
+        where: {name:'client_secret'},
+        data: {value: req.body.client_secret}
+    })
+    await prisma.setting.update({
+        where: {name:'api_key'},
+        data: {value: req.body.api_key}
+    })
+    await prisma.setting.update({
+        where: {name:'token_expiry'},
+        data: {value: req.body.token_expiry as unknown as string}
+    })
+    let auth = 'false'
+    if (req.body.auth === true) {
+        auth = 'true'
+    }
+    await prisma.setting.update({
+        where: {name:'auth'},
+        data: {value: auth}
+    })
+    settings = req.body
+    return res.json(settings)
+});
+
 app.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
     try {
         const authStr = Buffer.from((req.headers.authorization ?? '').split(' ')[1], 'base64').toString()
         const [clientId, clientSecret] = authStr.split(':')
 
-        if (envClientId !== '' && envClientSecret !== '') {
-            if (clientId !== envClientId || clientSecret !== envClientSecret) {
+        if (settings.client_id !== '' && settings.client_secret !== '') {
+            if (clientId !== settings.client_id || clientSecret !== settings.client_secret) {
                 return formatErrorResponse(req, res, 401)
             }
         }
-        if (envApiKey !== '' && req.headers['x-api-key'] !== envApiKey) {
+        if (settings.api_key !== '' && req.headers['x-api-key'] !== settings.api_key) {
             return formatErrorResponse(req, res, 401)
         }
         // Generate a token string
         const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-        const expiryDate = dayjs().add(envTokenExpiry as number, 'seconds').format()
+        const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
         accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
-        return res.json({ access_token: token, token_type: 'Bearer', expires_in: envTokenExpiry, scope: 'accounts' })
+        return res.json({ access_token: token, token_type: 'Bearer', expires_in: settings.token_expiry, scope: 'accounts' })
     } catch (error) {
         console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -100,7 +166,7 @@ app.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
 })
 
 function isValidToken (req: Request) {
-    if (envAuth !== 'true') {
+    if (settings.auth !== true) {
         return true
     }
     if (!req.get('authorization')) {
@@ -597,6 +663,15 @@ app.get('/za/v1/cards/merchants', async (req: Request, res: Response) => {
         const result = await prisma.merchant.findMany()
         const data = { result }
         return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.get('/envs', async (req: Request, res: Response) => {
+    try {
+        return formatResponse(settings, req, res)
     } catch (error) {
         console.log(error)
     return formatErrorResponse(req, res, 500)

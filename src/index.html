@@ -2,25 +2,57 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Socket.IO chat</title>
-    <style>
-      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-
-      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
-      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
-      #input:focus { outline: none; }
-      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
-
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages > li { padding: 0.5rem 1rem; }
-      #messages > li:nth-child(odd) { background: #efefef; }
-    </style>
+    <title>Programmable Sandbox Sim</title>
+    <link href="/output.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   </head>
   <body>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Send</button>
+    <div class="mx-auto max-w-xl sm:px-6 lg:px-8">
+      <ul role="list" id="messages" class="divide-y divide-gray-200">
+      </ul>
+        <div class="overflow-hidden rounded-lg bg-white shadow">
+            <div class="px-4 py-5 sm:p-6">
+    <form id="form" action="/envs">
+        <div>
+            <label for="client_id" class="block text-sm font-medium leading-6 text-gray-900">Client Id</label>
+            <div class="mt-2">
+                <input id="client_id" name="client_id" type="input" required="" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+            </div>
+        </div>
+        <div>
+            <label for="client_secret" class="block text-sm font-medium leading-6 text-gray-900">Client Secret</label>
+            <div class="mt-2">
+                <input id="client_secret" name="client_secet" type="input" required="" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+            </div>
+        </div>
+        <div>
+            <label for="api_key" class="block text-sm font-medium leading-6 text-gray-900">API Key</label>
+            <div class="mt-2">
+                <input id="api_key" name="api_key" type="input" required="" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+            </div>
+        </div>
+        <div>
+            <label for="token_expiry" class="block text-sm font-medium leading-6 text-gray-900">Token Expiry</label>
+            <div class="mt-2">
+                <input id="token_expiry" name="token_expiry" type="input" required="" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+            </div>
+        </div>
+        <div>
+            <label for="auth" class="block text-sm font-medium leading-6 text-gray-900">Auth</label>
+            <div class="mt-2">
+                <select id="auth" name="auth" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:max-w-xs sm:text-sm sm:leading-6">
+                  <option selected>No</option>
+                  <option>Yes</option>
+                </select>
+              </div>
+        </div>
+        <div>
+            <button type="submit" class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Update</button>
+          </div>
+      </div>
     </form>
+    </div>
+</div>
     <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
@@ -28,12 +60,23 @@
   const messages = document.getElementById('messages');
   const form = document.getElementById('form');
   const input = document.getElementById('input');
-
+fetch('http://localhost:3000/envs').then(response => response.json()).then(data => {
+    console.log(data);
+    document.getElementById('client_id').value = data.data.client_id;
+    document.getElementById('client_secret').value = data.data.client_secret;
+    document.getElementById('api_key').value = data.data.api_key;
+    document.getElementById('token_expiry').value = data.data.token_expiry;
+    if (data.data.auth === 'true') {
+      document.getElementById('auth').value = 'Yes';
+    } else {
+      document.getElementById('auth').value = 'No';
+    }
+    });
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (input.value) {
-      socket.emit('chat message', input.value);
-      input.value = '';
+    if (id.value && secret.value && api_key.value) {
+      socket.emit('chat message', id.value + ' ' + secret.value + ' ' + api_key.value);
+      //input.value = '';
     }
   });
 
@@ -41,9 +84,11 @@
     console.log('message: ', msg);
     const item = document.createElement('li');
     item.textContent = msg;
+    item.className = 'py-4 px-4 even:bg-gray-50 odd:bg-white'
     messages.appendChild(item);
     window.scrollTo(0, document.body.scrollHeight);
   });
 </script>
+</div>
   </body>
 </html>
