@@ -97,6 +97,10 @@ app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
 });
 
+app.get('/guide', (req, res) => {
+    res.sendFile(join(__dirname, 'guide.html'));
+  });
+
 app.post('/envs', async (req: Request, res: Response) => {
     await prisma.setting.update({
         where: {name:'client_id'},
