@@ -117,7 +117,7 @@ export function randomBank () {
   return bank
 }
 
-export function randomTransaction (accountId: Number) {
+export function randomTransaction (accountId: string) {
   const transaction = {
     accountId,
     type: randomType(),
@@ -129,7 +129,9 @@ export function randomTransaction (accountId: Number) {
     valueDate: dayjs().format('YYYY-MM-DD'),
     actionDate: dayjs().add(30, 'day').format('YYYY-MM-DD'),
     transactionDate: dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
-    amount: faker.finance.amount(5, 1000)
+    amount: faker.finance.amount(5, 1000),
+    runningBalance: 0,
+    postedOrder: 0,
   }
   return transaction
 }

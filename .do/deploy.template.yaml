@@ -1,7 +1,0 @@
-spec:
- name: programmable-banking-sim
- services:
- - name: web
-   git:
-     branch: main
-     repo_clone_url: https://github.com/devinpearson/programmable-banking-sim

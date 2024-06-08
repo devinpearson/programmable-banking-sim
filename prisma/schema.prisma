@@ -63,3 +63,8 @@ model Beneficiary {
     categoryId String
     profileId String
 }
+
+model Setting {
+    name String @id
+    value String
+}
