@@ -12,11 +12,6 @@ import { createServer } from 'node:http';
 dotenv.config()
 
 export const port = process.env.PORT || 3000
-const envClientId = process.env.CLIENT_ID
-const envClientSecret = process.env.CLIENT_SECRET
-const envApiKey = process.env.API_KEY
-const envTokenExpiry = process.env.TOKEN_EXPIRY || 1800
-const envAuth = process.env.AUTH
 const dbFile = process.env.DB_FILE || 'investec.db'
 // const overdraft = process.env.OVERDRAFT || 5000
 const prisma = new PrismaClient()
@@ -24,56 +19,16 @@ export const app = express()
 export const server = createServer(app);
 const io = new Server(server);
 let settings = {} as Settings
-const dbSettings = await prisma.setting.findMany()
-for (let i = 0; i < dbSettings.length; i++) {
-    const setting = dbSettings[i]
-    switch (setting.name) {
-        case 'client_id':
-            settings.client_id = setting.value
-            break
-        case 'client_secret':
-            settings.client_secret = setting.value
-            break
-        case 'api_key':
-            settings.api_key = setting.value
-            break
-        case 'token_expiry':
-            settings.token_expiry = setting.value as unknown as number
-            break
-        case 'auth':
-            if (setting.value === 'true') {
-                settings.auth = true
-            } else {
-                settings.auth = false
-            }
-            break
-    }
-}
+await fetchSettings()
 
 import { randomBeneficiary, randomTransaction, randomAccount } from './generate.js'
-
-// for (let i = 0; i < 100; i++) {
-//   const account = randomBeneficiary()
-//   database.insertBeneficiary(db, account)
-// }
-
-// for (let i = 0; i < 900; i++) {
-//   const account = randomTransaction('4675778129910189600000003')
-//   database.insertTransaction(db, account)
-// }
 
 app.use(cors())
 // Configuring body parser middleware
 app.use(express.urlencoded({ extended: false }))
 app.use(morgan('combined'));
 app.use(express.json())
-
-// enum scopes {
-//     accounts = 'accounts',
-//     transactions = 'transactions',
-//     beneficiaries = 'beneficiaries',
-//     cards = 'cards'
-// }
+app.use(express.static('public'));
 
 interface AccessToken {
     expires_at: string
@@ -92,11 +47,17 @@ let accessTokens = {} as Record<string, AccessToken>
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const messageQueue = 'logs'
+
 io.on('connection', (socket) => {
-    socket.broadcast.emit('hi');
-    socket.on('chat message', (msg) => {
+    // socket.broadcast.emit('hi');
+    socket.on('envs', (msg) => {
         console.log('message: ' + msg);
-        io.emit('chat message', msg);
+        settings = msg
+      });
+      socket.on(messageQueue, (msg) => {
+        console.log('message: ' + msg);
+        io.emit(messageQueue, msg);
       });
     console.log('a user connected');
     socket.on('disconnect', () => {
@@ -107,10 +68,6 @@ io.on('connection', (socket) => {
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
 });
-
-app.get('/output.css', (req, res) => {
-    res.sendFile(join(__dirname, 'output.css'));
-  });
 
 app.post('/envs', async (req: Request, res: Response) => {
     await prisma.setting.update({
@@ -680,7 +637,7 @@ app.get('/envs', async (req: Request, res: Response) => {
 
 const formatResponse = (data: any, req: Request, res: Response) => {
     let date = new Date()
-  io.sockets.emit('chat message', date.toUTCString() + ' ' + req.method + ' ' + req.url + ' HTTP/' + req.httpVersion + ' ' + res.statusCode);
+  io.sockets.emit(messageQueue, date.toUTCString() + ' ' + req.method + ' ' + req.url + ' HTTP/' + req.httpVersion + ' ' + res.statusCode);
   return res.json({
     data,
     links: {
@@ -693,6 +650,34 @@ const formatResponse = (data: any, req: Request, res: Response) => {
 }
 function formatErrorResponse (req: Request, res: Response, code: number) {
     let date = new Date()
-    io.sockets.emit('chat message', date.toUTCString() + ' ' + req.method + ' ' + req.url + ' HTTP/' + req.httpVersion + ' ' + code);
+    io.sockets.emit(messageQueue, date.toUTCString() + ' ' + req.method + ' ' + req.url + ' HTTP/' + req.httpVersion + ' ' + code);
     return res.status(code).json()
+}
+
+async function fetchSettings() {
+    const dbSettings = await prisma.setting.findMany()
+    for (let i = 0; i < dbSettings.length; i++) {
+        const setting = dbSettings[i]
+        switch (setting.name) {
+            case 'client_id':
+                settings.client_id = setting.value
+                break
+            case 'client_secret':
+                settings.client_secret = setting.value
+                break
+            case 'api_key':
+                settings.api_key = setting.value
+                break
+            case 'token_expiry':
+                settings.token_expiry = setting.value as unknown as number
+                break
+            case 'auth':
+                if (setting.value === 'true') {
+                    settings.auth = true
+                } else {
+                    settings.auth = false
+                }
+                break
+        }
+    }
 }
