@@ -114,9 +114,20 @@
                     if (!this.messages) {
                         this.messages = [];
                     }
-                this.messages.push(msg);
-                // window.scrollTo(0, document.body.scrollHeight);
-            });
+                    this.messages.push(msg);
+                    // window.scrollTo(0, document.body.scrollHeight);
+                });
+                this.socket.on('envs', (msg) => {
+                    this.client_id = msg.client_id;
+                    this.client_secret = msg.client_secret;
+                    this.api_key = msg.api_key;
+                    this.token_expiry = msg.token_expiry;
+                    if (msg.auth === true || msg.auth === 'true') {
+                        this.auth = true;
+                    } else {
+                        this.auth = false;
+                    }
+                });
                 this.fetchEnv();
             },
           methods: {

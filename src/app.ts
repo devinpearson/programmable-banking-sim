@@ -54,6 +54,7 @@ io.on('connection', (socket) => {
     socket.on('envs', (msg) => {
         console.log('message: ' + msg);
         settings = msg
+        io.emit('envs', settings);
       });
       socket.on(messageQueue, (msg) => {
         console.log('message: ' + msg);
