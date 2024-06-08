@@ -43,6 +43,12 @@ interface Settings {
     auth: boolean
 }
 
+interface ControlMessage {
+    action: string
+    message: string
+
+}
+
 let accessTokens = {} as Record<string, AccessToken>
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -55,15 +61,36 @@ io.on('connection', (socket) => {
         console.log('message: ' + msg);
         settings = msg
         io.emit('envs', settings);
-      });
-      socket.on(messageQueue, (msg) => {
+    });
+    socket.on('control', async (msg: ControlMessage) => {
+        console.log('control: ' + msg);
+        const { action, message } = msg
+        console.log('action: ' + action);
+        switch (action) {
+            case 'clear':
+                await prisma.account.deleteMany()
+                await prisma.transaction.deleteMany()
+                await prisma.beneficiary.deleteMany()
+                break
+            case 'restore':
+                await prisma.account.deleteMany()
+                await prisma.transaction.deleteMany()
+                await prisma.beneficiary.deleteMany()
+                seedAccounts()
+                seedTransactions()
+                seedBeneficiaries()
+                break
+        }
+        //io.emit('control', settings);
+    });
+    socket.on(messageQueue, (msg) => {
         console.log('message: ' + msg);
         io.emit(messageQueue, msg);
-      });
+    });
     console.log('a user connected');
     socket.on('disconnect', () => {
         console.log('user disconnected');
-      });
+    });
   });
 
 app.get('/', (req, res) => {
@@ -621,6 +648,39 @@ app.get('/za/v1/cards/merchants', async (req: Request, res: Response) => {
         const result = await prisma.merchant.findMany()
         const data = { result }
         return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.delete('/clear', async (req: Request, res: Response) => {
+    try {
+        // delete the accounts
+        await prisma.account.deleteMany()
+        // delete the transactions
+        await prisma.transaction.deleteMany()
+        // delete the beneficiaries
+        await prisma.beneficiary.deleteMany()
+
+        return res.status(200).json()
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+import { seedAccounts } from '../prisma/account.js'
+import { seedTransactions } from '../prisma/transaction.js'
+import { seedBeneficiaries } from '../prisma/beneficiary.js'
+
+app.get('/restore', async (req: Request, res: Response) => {
+    try {
+        await seedAccounts()
+        await seedTransactions()
+        await seedBeneficiaries()
+
+        return res.status(200).json()
     } catch (error) {
         console.log(error)
     return formatErrorResponse(req, res, 500)

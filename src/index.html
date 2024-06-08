@@ -5,30 +5,64 @@
     <title>Programmable Sandbox Sim</title>
     <link href="/output.css" rel="stylesheet">
   </head>
-  <body class="h-full antialiased light">
+  <body class="h-full antialiased light bg-gray-100">
     <div id="app">
+        <!-- menu header  -->
+        <header class="bg-white">
+            <nav class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
+            <div class="flex lg:flex-1">
+                <a href="#" class="-m-1.5 p-1.5">
+                <span class="sr-only">Programmable Banking Sandbox</span>
+                <img class="h-8 w-auto" src="/zeb.png" alt="">
+                </a>
+            </div>
+            <div class="hidden lg:flex lg:gap-x-12">
+                <a href="https://developer.investec.com/za/api-products" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">Documentation</a>
+                <a href="https://investec.gitbook.io/programmable-banking-community-wiki" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">Wiki</a>
+                <a href="https://github.com/devinpearson/programmable-banking-sim" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">GitHub</a>
+                <a href="https://www.postman.com/investec-open-api/workspace/hack-days/collection/26868804-62ce3cf6-3d98-4f62-ad82-b912b9826d51" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">Postman</a>
+            </div>
+            <div class="hidden lg:flex lg:flex-1 lg:justify-end">
+                <!-- <a href="#" class="text-sm font-semibold leading-6 text-gray-900">Log in <span aria-hidden="true">&rarr;</span></a> -->
+            </div>
+            </nav>
+        </header>
+        <!-- alert message  -->
+        <div v-if="alertMessage" class="rounded-md bg-green-50 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm font-medium text-green-800">{{ alertMessage }}</p>
+              </div>
+              <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                  <button type="button" @click="clearToast" class="inline-flex rounded-md bg-green-50 p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 focus:ring-offset-green-50">
+                    <span class="sr-only">Dismiss</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <header class="bg-white">
-                <nav class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
-                <div class="flex lg:flex-1">
-                    <a href="#" class="-m-1.5 p-1.5">
-                    <span class="sr-only">Programmable Banking Sandbox</span>
-                    <img class="h-8 w-auto" src="/zeb.png" alt="">
-                    </a>
+            <div class="pt-4 sm:flex sm:items-center">
+                <div class="sm:flex-auto">
                 </div>
-                <div class="hidden lg:flex lg:gap-x-12">
-                    <a href="https://developer.investec.com/za/api-products" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">Documentation</a>
-                    <a href="https://investec.gitbook.io/programmable-banking-community-wiki" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">Wiki</a>
-                    <a href="https://github.com/devinpearson/programmable-banking-sim" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">GitHub</a>
-                    <a href="https://www.postman.com/investec-open-api/workspace/hack-days/collection/26868804-62ce3cf6-3d98-4f62-ad82-b912b9826d51" target="_blank" class="text-sm font-semibold leading-6 text-gray-900">Postman</a>
+                <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                  <button type="button" @click="clearMethod" class="block rounded-md bg-gray-900 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">Clear DB</button>
                 </div>
-                <div class="hidden lg:flex lg:flex-1 lg:justify-end">
-                    <!-- <a href="#" class="text-sm font-semibold leading-6 text-gray-900">Log in <span aria-hidden="true">&rarr;</span></a> -->
-                </div>
-                </nav>
-            </header>
+                <div class="mt-4 sm:ml-1 sm:mt-0 sm:flex-none">
+                    <button type="button" @click="restoreMethod" class="block rounded-md bg-gray-900 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">Reset DB</button>
+                  </div>
+              </div>
             <!-- Server Logs -->
-            <div class="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
+            <div class="mt-4 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-semibold leading-6 text-gray-900">Server Logs</h2>
                 </div>
@@ -100,12 +134,13 @@
           data() {
             return {
                 socket: null,
-              messages: null,
-              api_key: '',
-              client_id: '',
-              client_secret: '',
+                messages: null,
+                api_key: '',
+                client_id: '',
+                client_secret: '',
                 token_expiry: 1799,
                 auth: false,
+                alertMessage: null,
             }
           },
             mounted() {
@@ -135,7 +170,6 @@
               fetch('/envs')
                 .then(response => response.json())
                 .then(data => {
-                  console.log(data);
                   this.client_id = data.data.client_id;
                   this.client_secret = data.data.client_secret;
                   this.api_key = data.data.api_key;
@@ -148,7 +182,6 @@
                 });
             },
             mySubmitMethod() {
-              console.log('submit');
               if (this.client_id && this.client_secret && this.api_key) {
                 this.socket.emit('envs', {
                   client_id: this.client_id,
@@ -158,6 +191,28 @@
                   auth: this.auth,
                 });
               }
+              this.toast('Environmental Variables Updated')
+            },
+            clearMethod() {
+                this.socket.emit('control', {
+                    action: 'clear',
+                    message: '',
+                });
+                this.toast('Database cleared')
+            },
+            restoreMethod() {
+                this.socket.emit('control', {
+                    action: 'restore',
+                    message: '',
+                });
+                this.toast('Database Reseeded')
+            },
+            toast(msg) {
+                this.alertMessage = msg;
+                setTimeout(function () { this.alertMessage = null }.bind(this), 3000)
+            },
+            clearToast() {
+                this.alertMessage = null;
             },
           },
         }).mount('#app')
