@@ -51,31 +51,31 @@
                             <div class="sm:col-span-4">
                                 <label for="client_id" class="block text-sm font-medium leading-6 text-gray-900">Client Id</label>
                                 <div class="mt-2">
-                                    <input v-model="client_id" id="client_id" name="client_id" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                    <input v-model="client_id" id="client_id" name="client_id" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6" />
                                 </div>
                             </div>
                             <div class="sm:col-span-4">
                                 <label for="client_secret" class="block text-sm font-medium leading-6 text-gray-900">Client Secret</label>
                                 <div class="mt-2">
-                                    <input v-model="client_secret" id="client_secret" name="client_secet" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                    <input v-model="client_secret" id="client_secret" name="client_secet" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6" />
                                 </div>
                             </div>
                             <div class="col-span-full">
                                 <label for="api_key" class="block text-sm font-medium leading-6 text-gray-900">API Key</label>
                                 <div class="mt-2">
-                                    <textarea v-model="api_key" id="api_key" name="api_key" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"></textarea>
+                                    <textarea v-model="api_key" id="api_key" name="api_key" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm"></textarea>
                                 </div>
                             </div>
                             <div class="col-span-2">
                                 <label for="token_expiry" class="block text-sm font-medium leading-6 text-gray-900">Token Expiry</label>
                                 <div class="mt-2">
-                                    <input v-model="token_expiry" id="token_expiry" name="token_expiry" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                    <input v-model="token_expiry" id="token_expiry" name="token_expiry" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6" />
                                 </div>
                             </div>
                             <div class="col-span-3">
                                 <label for="auth" class="block text-sm font-medium leading-6 text-gray-900">Require Authentication</label>
                                 <div class="mt-2">
-                                    <select v-model="auth" id="auth" name="auth" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:max-w-xs sm:text-sm sm:leading-6">
+                                    <select v-model="auth" id="auth" name="auth" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:max-w-xs sm:text-sm sm:leading-6">
                                     <option :value=false>No</option>
                                     <option :value=true>Yes</option>
                                     </select>
@@ -84,7 +84,7 @@
                         </div>
                     </div>
                     <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-                        <button type="submit" @click="mySubmitMethod" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save</button>
+                        <button type="submit" @click="mySubmitMethod" class="rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">Save</button>
                       </div>
                 </form>
             </div>
