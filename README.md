@@ -2,7 +2,7 @@
 
 # Investec Programmable Banking Stateful Sandbox
 
-A nodejs server to get eveyone building and demoing regardless whether you have an account.
+A Node.js server to get everyone building and demoing regardless whether you have an account.
 
 ![GitHub](https://img.shields.io/github/license/devinpearson/programmable-banking-sim)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=round-square)](https://github.com/devinpearson/programmable-banking-sim/pulls)
@@ -32,7 +32,7 @@ This will start the simulator on http://localhost:3000
 
 Accessing the room of the domain will show the dashboard view of the server. The dashboard allows you to set the environment variables for the server and view the logs of the server.
 
-There are helpful links to the Investec docs, Community wiki, Github repo and the Postman collection.
+There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
 Supported endpoints
 
