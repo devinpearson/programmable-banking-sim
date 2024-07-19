@@ -12,6 +12,7 @@ RUN npm install
 
 # Copy source
 COPY src ./src
+COPY public ./public
 COPY tsconfig.json ./tsconfig.json
 
 # Expose port 3000
