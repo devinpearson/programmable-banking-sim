@@ -68,3 +68,22 @@ model Setting {
     name String @id
     value String
 }
+
+model Card {
+    cardKey String @id
+    cardNumber String
+    isProgrammable Boolean
+    status String
+    cardTypeCode String
+    accountNumber String
+    accountId String
+    publishedCode String?
+}
+
+model CardCode {
+    codeId String @id
+    code String
+    createdAt DateTime
+    updatedAt DateTime
+    publishedAt DateTime?
+}

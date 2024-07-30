@@ -8,7 +8,7 @@ import { Server } from "socket.io"
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createServer } from 'node:http';
-
+import emu from 'programmable-card-code-emulator'
 dotenv.config()
 
 export const port = process.env.PORT || 3000
@@ -71,14 +71,20 @@ io.on('connection', (socket) => {
                 await prisma.account.deleteMany()
                 await prisma.transaction.deleteMany()
                 await prisma.beneficiary.deleteMany()
+                await prisma.card.deleteMany()
+                await prisma.cardCode.deleteMany()
                 break
             case 'restore':
                 await prisma.account.deleteMany()
                 await prisma.transaction.deleteMany()
                 await prisma.beneficiary.deleteMany()
+                await prisma.card.deleteMany()
+                await prisma.cardCode.deleteMany()
                 seedAccounts()
                 seedTransactions()
                 seedBeneficiaries()
+                seedCards()
+                seedCardCodes()
                 break
         }
         //io.emit('control', settings);
@@ -616,6 +622,173 @@ app.post('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response)
     }
 })
 
+app.get('/za/v1/cards', async (req: Request, res: Response) => {
+    try {
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        const result = await prisma.card.findMany()
+        const cards = Array()
+        result.forEach(card => {
+            cards.push({
+                CardKey: card.cardKey,
+                CardNumber: card.cardNumber,
+                IsProgrammable: card.isProgrammable,
+                status: card.status,
+                CardTypeCode: card.cardTypeCode,
+                AccountNumber: card.accountNumber,
+                AccountId: card.accountId,
+            })
+        })
+        const data = { cards }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.get('/za/v1/cards/:cardKey/code', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        const cardCode = await prisma.cardCode.findFirst({
+            // where: {
+            // cardKey: cardKey
+            // }
+        })
+        const data = { cardCode }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.post('/za/v1/cards/:cardKey/code', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        let code = req.body.code
+        if (code === undefined) 
+        {
+            code = ''
+        }
+        const cardCode = await prisma.cardCode.update({
+            where: {
+            codeId: "3BB77753-R2D2-4U2B-1A2B-4C213E7D0AC3"
+            },
+            data: {
+                code: code
+            }
+        })
+        const data = { cardCode }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        let simulationPayload = req.body
+        let code = simulationPayload.simulationcode
+        const transaction = emu.createTransaction(
+            simulationPayload.currencyCode,
+            simulationPayload.centsAmount, // Amount in cents
+            simulationPayload.merchantCode, // Merchant code (MCC)
+            simulationPayload.merchantName, // Merchant Name
+            simulationPayload.merchantCity, // City
+            simulationPayload.countryCode // Country code
+        );
+        if (simulationPayload.simulationcode === undefined) 
+        {
+            code = ''
+        }
+        
+        const result = await emu.run(transaction, code, '{}')
+        const data = { result }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.post('/za/v1/cards/:cardKey/toggle-programmable-feature', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        let enabled = req.body.Enabled
+        if (enabled !== true) {
+            enabled = false
+        }
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        const result = await prisma.card.update({
+            where: {
+                cardKey: cardKey
+                },
+                data: {
+                    isProgrammable: enabled
+                }
+        })
+        return res.json({ Enabled: enabled})
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
 app.get('/za/v1/cards/countries', async (req: Request, res: Response) => {
     try {
         if (!isValidToken(req)) {
@@ -677,6 +850,8 @@ app.delete('/clear', async (req: Request, res: Response) => {
 import { seedAccounts } from '../prisma/account.js'
 import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
+import { seedCards } from '../prisma/card.js'
+import { seedCardCodes } from '../prisma/card-code.js'
 
 app.get('/restore', async (req: Request, res: Response) => {
     try {
