@@ -7,7 +7,9 @@ CREATE TABLE "Card" (
     "cardTypeCode" TEXT NOT NULL,
     "accountNumber" TEXT NOT NULL,
     "accountId" TEXT NOT NULL,
-    "publishedCode" TEXT
+    "publishedCode" TEXT,
+    "savedCode" TEXT,
+    "envs" TEXT
 );
 
 -- CreateTable

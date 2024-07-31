@@ -664,13 +664,18 @@ app.get('/za/v1/cards/:cardKey/code', async (req: Request, res: Response) => {
         if (!isValidToken(req)) {
             return formatErrorResponse(req, res, 401)
         }
-        const cardCode = await prisma.cardCode.findFirst({
-            // where: {
-            // cardKey: cardKey
-            // }
-        })
-        const data = { cardCode }
-        return formatResponse(data, req, res)
+        if (card.publishedCode !== null) {
+            const cardCode = await prisma.cardCode.findFirst({
+                where: {
+                    codeId: card.publishedCode
+                }
+            })
+            const data = { cardCode }
+            return formatResponse(data, req, res)
+        } else {
+            console.log('no card code found')
+            return formatErrorResponse(req, res, 404)
+        }
     } catch (error) {
         console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -747,6 +752,75 @@ app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Respons
         
         const result = await emu.run(transaction, code, '{}')
         const data = { result }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.get('/za/v1/cards/:cardKey/environmentvariables', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        if (card.envs === null) {
+            card.envs = '{}'
+        }
+        const data = { result: { variables: JSON.parse(card.envs), createdAt: "2023-06-27T07:18:12.086Z",
+            updatedAt: "2023-06-27T07:18:12.086Z",
+            error: null }}
+
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+app.post('/za/v1/cards/:cardKey/environmentvariables', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        if (!isValidToken(req)) {
+            return formatErrorResponse(req, res, 401)
+        }
+        let vars = JSON.stringify(req.body.variables)
+        if (vars === undefined) 
+        {
+            vars = '{}'
+        }
+        const cardCode = await prisma.card.update({
+            where: {
+            cardKey: cardKey
+            },
+            data: {
+                envs: vars
+            }
+        })
+        const data = { result: { variables: JSON.parse(vars), createdAt: "2023-06-27T07:18:12.086Z",
+            updatedAt: "2023-06-27T07:18:12.086Z",
+            error: null }}
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)

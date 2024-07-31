@@ -78,6 +78,8 @@ model Card {
     accountNumber String
     accountId String
     publishedCode String?
+    savedCode String?
+    envs String?
 }
 
 model CardCode {
