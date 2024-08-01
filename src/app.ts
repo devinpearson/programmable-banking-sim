@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createServer } from 'node:http';
 import emu from 'programmable-card-code-emulator'
+import { v4 as uuidv4 } from 'uuid';
 dotenv.config()
 
 export const port = process.env.PORT || 3000
@@ -177,13 +178,16 @@ function isValidToken (req: Request) {
 
     return false
 }
+// middleware to check the token
+app.use('/za', (req, res, next) => {
+    if (!isValidToken(req)) {
+        return formatErrorResponse(req, res, 401)
+    }
+    next()
+})
 
 app.get('/za/pb/v1/accounts', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
-
         const accounts = await prisma.account.findMany()
         const data = { accounts }
         return formatResponse(data, req, res)
@@ -195,9 +199,6 @@ app.get('/za/pb/v1/accounts', async (req: Request, res: Response) => {
 
 app.get('/za/pb/v1/accounts/:accountId/balance', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const accountId = req.params.accountId
 
         const account = await prisma.account.findFirst({
@@ -243,9 +244,6 @@ app.get('/za/pb/v1/accounts/:accountId/balance', async (req: Request, res: Respo
 
 app.get('/za/pb/v1/accounts/:accountId/transactions', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const accountId = req.params.accountId
         // check that the account exists
         const account = await prisma.account.findFirst({
@@ -592,9 +590,6 @@ app.delete('/za/pb/v1/accounts/:accountId', async (req: Request, res: Response) 
 
 app.get('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const result = await prisma.beneficiary.findMany()
         const data = { result }
         return formatResponse(data, req, res)
@@ -624,9 +619,6 @@ app.post('/za/pb/v1/accounts/beneficiaries', async (req: Request, res: Response)
 
 app.get('/za/v1/cards', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const result = await prisma.card.findMany()
         const cards = Array()
         result.forEach(card => {
@@ -661,16 +653,13 @@ app.get('/za/v1/cards/:cardKey/code', async (req: Request, res: Response) => {
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
         }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
-            const cardCode = await prisma.cardCode.findFirst({
-                where: {
-                    codeId: card.savedCode
-                }
-            })
-            const data = { cardCode }
-            return formatResponse(data, req, res)
+        const cardCode = await prisma.cardCode.findFirst({
+            where: {
+                codeId: card.savedCode
+            }
+        })
+        const data = { cardCode }
+        return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -690,15 +679,11 @@ app.post('/za/v1/cards/:cardKey/code', async (req: Request, res: Response) => {
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
         }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         let code = req.body.code
         if (code === undefined) 
         {
             code = ''
         }
-        //@todo wrap this function in a if car.publishedCode !== null
         const cardCode = await prisma.cardCode.update({
             where: {
             codeId: card.savedCode
@@ -728,16 +713,13 @@ app.get('/za/v1/cards/:cardKey/publishedcode', async (req: Request, res: Respons
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
         }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
-            const cardCode = await prisma.cardCode.findFirst({
-                where: {
-                    codeId: card.publishedCode
-                }
-            })
-            const data = { cardCode }
-            return formatResponse(data, req, res)
+        const cardCode = await prisma.cardCode.findFirst({
+            where: {
+                codeId: card.publishedCode
+            }
+        })
+        const data = { cardCode }
+        return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -757,15 +739,12 @@ app.post('/za/v1/cards/:cardKey/publishedcode', async (req: Request, res: Respon
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
         }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         let code = req.body.code
         if (code === undefined) 
         {
             code = ''
         }
-        //@todo wrap this function in a if car.publishedCode !== null
+
         const cardCode = await prisma.cardCode.update({
             where: {
             codeId: card.publishedCode
@@ -781,7 +760,7 @@ app.post('/za/v1/cards/:cardKey/publishedcode', async (req: Request, res: Respon
     return formatErrorResponse(req, res, 500)
     }
 })
-//@todo add function to get executions
+
 app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Response) => {
     try {
         const cardKey = req.params.cardKey
@@ -794,9 +773,6 @@ app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Respons
         if (!card) {
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
-        }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
         }
         let simulationPayload = req.body
         let code = simulationPayload.simulationcode
@@ -814,7 +790,91 @@ app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Respons
         }
         
         const result = await emu.run(transaction, code, card.envs)
+        console.log(result)
+        for (const element of result) {
+            console.log(element)
+            await prisma.cardExecution.create({
+                data: {
+                    executionId: element.executionId,
+                    cardKey: cardKey,
+                    rootCodeFunctionId: element.rootCodeFunctionId,
+                    sandbox: element.sandbox,
+                    type: element.type,
+                    authorizationApproved: element.authorizationApproved,
+                    smsCount: element.smsCount,
+                    emailCount: element.emailCount,
+                    pushNotificationCount: element.pushNotificationCount,
+                    createdAt: element.createdAt,
+                    startedAt: element.startedAt,
+                    completedAt: element.completedAt,
+                    updatedAt: element.updatedAt,
+                }
+            })
+            for (const logItem of element.logs) {
+                await prisma.cardExecutionLog.create({
+                    data: {
+                        logId: uuidv4(),
+                        executionId: element.executionId,
+                        level: logItem.level,
+                        content: logItem.content,
+                        createdAt: logItem.createdAt,
+                    }
+                })
+            }
+        }
+
         const data = { result }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
+type ExecutionItem = {
+    executionId: string;
+    cardKey: string;
+    rootCodeFunctionId: string;
+    sandbox: boolean;
+    type: string;
+    authorizationApproved: boolean | null;
+    smsCount: number;
+    emailCount: number;
+    pushNotificationCount: number;
+    createdAt: Date;
+    startedAt: Date;
+    completedAt: Date;
+    updatedAt: Date | null;
+    logs: Array<any> | null; // Add the 'logs' property
+}
+app.get('/za/v1/cards/:cardKey/code/executions', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        let executions = await prisma.cardExecution.findMany({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        let executionsArr: ExecutionItem[] = executions as unknown as ExecutionItem[]
+        for (let i = 0; i < executionsArr.length; i++) {
+            let logs = await prisma.cardExecutionLog.findMany({
+                where: {
+                executionId: executions[i].executionId
+                }
+            })
+            executionsArr[i].logs = logs
+        }
+        const data = { executions }
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
@@ -834,9 +894,6 @@ app.get('/za/v1/cards/:cardKey/environmentvariables', async (req: Request, res: 
         if (!card) {
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
-        }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
         }
         if (card.envs === null) {
             card.envs = '{}'
@@ -864,9 +921,6 @@ app.post('/za/v1/cards/:cardKey/environmentvariables', async (req: Request, res:
         if (!card) {
             console.log('no card found')
             return formatErrorResponse(req, res, 404) // no account was found
-        }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
         }
         let vars = JSON.stringify(req.body.variables)
         if (vars === undefined) 
@@ -908,9 +962,6 @@ app.post('/za/v1/cards/:cardKey/toggle-programmable-feature', async (req: Reques
         if (enabled !== true) {
             enabled = false
         }
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const result = await prisma.card.update({
             where: {
                 cardKey: cardKey
@@ -928,9 +979,6 @@ app.post('/za/v1/cards/:cardKey/toggle-programmable-feature', async (req: Reques
 
 app.get('/za/v1/cards/countries', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const result = await prisma.country.findMany()
         const data = { result }
         return formatResponse(data, req, res)
@@ -942,9 +990,6 @@ app.get('/za/v1/cards/countries', async (req: Request, res: Response) => {
 
 app.get('/za/v1/cards/currencies', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const result = await prisma.currency.findMany()
         const data = { result }
         return formatResponse(data, req, res)
@@ -956,9 +1001,6 @@ app.get('/za/v1/cards/currencies', async (req: Request, res: Response) => {
 
 app.get('/za/v1/cards/merchants', async (req: Request, res: Response) => {
     try {
-        if (!isValidToken(req)) {
-            return formatErrorResponse(req, res, 401)
-        }
         const result = await prisma.merchant.findMany()
         const data = { result }
         return formatResponse(data, req, res)
@@ -989,6 +1031,7 @@ import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
 import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
+import { log } from 'node:console';
 
 app.get('/restore', async (req: Request, res: Response) => {
     try {

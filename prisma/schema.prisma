@@ -89,3 +89,27 @@ model CardCode {
     updatedAt DateTime
     publishedAt DateTime?
 }
+
+model CardExecution {
+    executionId String @id
+    cardKey String
+    rootCodeFunctionId String
+    sandbox Boolean
+    type String
+    authorizationApproved Boolean?
+    smsCount Int
+    emailCount Int
+    pushNotificationCount Int
+    createdAt DateTime
+    startedAt DateTime
+    completedAt DateTime
+    updatedAt DateTime?
+}
+
+model CardExecutionLog {
+    logId String @id
+    executionId String
+    createdAt DateTime
+    level String
+    content String
+}
