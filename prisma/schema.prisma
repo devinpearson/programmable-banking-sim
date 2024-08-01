@@ -68,3 +68,48 @@ model Setting {
     name String @id
     value String
 }
+
+model Card {
+    cardKey String @id
+    cardNumber String
+    isProgrammable Boolean
+    status String
+    cardTypeCode String
+    accountNumber String
+    accountId String
+    publishedCode String
+    savedCode String
+    envs String
+}
+
+model CardCode {
+    codeId String @id
+    code String
+    createdAt DateTime
+    updatedAt DateTime
+    publishedAt DateTime?
+}
+
+model CardExecution {
+    executionId String @id
+    cardKey String
+    rootCodeFunctionId String
+    sandbox Boolean
+    type String
+    authorizationApproved Boolean?
+    smsCount Int
+    emailCount Int
+    pushNotificationCount Int
+    createdAt DateTime
+    startedAt DateTime
+    completedAt DateTime
+    updatedAt DateTime?
+}
+
+model CardExecutionLog {
+    logId String @id
+    executionId String
+    createdAt DateTime
+    level String
+    content String
+}
