@@ -5,8 +5,8 @@ import { seedMerchants } from './merchant'
 import { seedAccounts } from './account'
 import { seedTransactions } from './transaction'
 import { seedSettings } from './settings'
-import { seedCards } from './card'
 import { seedCardCodes } from './card-code'
+import { seedCards } from './card'
 
 const prisma = new PrismaClient()
 
