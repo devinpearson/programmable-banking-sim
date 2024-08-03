@@ -1031,7 +1031,6 @@ import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
 import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
-import { log } from 'node:console';
 
 app.get('/restore', async (req: Request, res: Response) => {
     try {
