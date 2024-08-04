@@ -831,6 +831,81 @@ app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Respons
     }
 })
 
+app.post('/za/v1/cards/:cardKey/code/execute-live', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the card exists
+        const card = await prisma.card.findFirst({
+            where: {
+            cardKey: cardKey
+            }
+        })
+        if (!card) {
+            console.log('no card found')
+            return formatErrorResponse(req, res, 404) // no account was found
+        }
+        const cardCode = await prisma.cardCode.findFirst({
+            where: {
+                codeId: card.publishedCode
+            }
+        })
+        let simulationPayload = req.body
+        let code = cardCode?.code ?? ''
+        const transaction = emu.createTransaction(
+            simulationPayload.currencyCode,
+            simulationPayload.centsAmount, // Amount in cents
+            simulationPayload.merchantCode, // Merchant code (MCC)
+            simulationPayload.merchantName, // Merchant Name
+            simulationPayload.merchantCity, // City
+            simulationPayload.countryCode // Country code
+        );
+        if (cardCode?.code === null || cardCode?.code === undefined) 
+        {
+            code = ''
+        }
+        
+        const result = await emu.run(transaction, code, card.envs)
+        console.log(result)
+        for (const element of result) {
+            console.log(element)
+            await prisma.cardExecution.create({
+                data: {
+                    executionId: element.executionId,
+                    cardKey: cardKey,
+                    rootCodeFunctionId: element.rootCodeFunctionId,
+                    sandbox: false,
+                    type: element.type,
+                    authorizationApproved: element.authorizationApproved,
+                    smsCount: element.smsCount,
+                    emailCount: element.emailCount,
+                    pushNotificationCount: element.pushNotificationCount,
+                    createdAt: element.createdAt,
+                    startedAt: element.startedAt,
+                    completedAt: element.completedAt,
+                    updatedAt: element.updatedAt,
+                }
+            })
+            for (const logItem of element.logs) {
+                await prisma.cardExecutionLog.create({
+                    data: {
+                        logId: uuidv4(),
+                        executionId: element.executionId,
+                        level: logItem.level,
+                        content: logItem.content,
+                        createdAt: logItem.createdAt,
+                    }
+                })
+            }
+        }
+
+        const data = { result }
+        return formatResponse(data, req, res)
+    } catch (error) {
+        console.log(error)
+    return formatErrorResponse(req, res, 500)
+    }
+})
+
 type ExecutionItem = {
     executionId: string;
     cardKey: string;
