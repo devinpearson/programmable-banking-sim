@@ -790,9 +790,9 @@ app.post('/za/v1/cards/:cardKey/code/execute', async (req: Request, res: Respons
         }
         
         const result = await emu.run(transaction, code, card.envs)
-        console.log(result)
+        // console.log(result)
         for (const element of result) {
-            console.log(element)
+            // console.log(element)
             await prisma.cardExecution.create({
                 data: {
                     executionId: element.executionId,
@@ -859,15 +859,13 @@ app.post('/za/v1/cards/:cardKey/code/execute-live', async (req: Request, res: Re
             simulationPayload.merchantCity, // City
             simulationPayload.countryCode // Country code
         );
-        if (cardCode?.code === null || cardCode?.code === undefined) 
-        {
-            code = ''
-        }
-        
+        let transactionResult = false
         const result = await emu.run(transaction, code, card.envs)
-        console.log(result)
+
         for (const element of result) {
-            console.log(element)
+            if (element.type === 'after_transaction') {
+                transactionResult = true
+            }
             await prisma.cardExecution.create({
                 data: {
                     executionId: element.executionId,
@@ -898,7 +896,7 @@ app.post('/za/v1/cards/:cardKey/code/execute-live', async (req: Request, res: Re
             }
         }
 
-        const data = { result }
+        const data = { result: transactionResult }
         return formatResponse(data, req, res)
     } catch (error) {
         console.log(error)
