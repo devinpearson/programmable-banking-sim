@@ -44,7 +44,7 @@ const companies = [
   'KFC',
   'TOYS R US',
   'JJ Cale',
-  'GAME'
+  'GAME',
 ]
 
 const areas = [
@@ -72,52 +72,52 @@ const areas = [
   'NEWLANDS',
   'BLACKHEATH',
   'SANDTON',
-  'RANDBURG'
+  'RANDBURG',
 ]
 
-export function randomCompany () {
+export function randomCompany() {
   const company = faker.helpers.arrayElement(companies)
   return company
 }
 
-export function randomArea () {
+export function randomArea() {
   const area = faker.helpers.arrayElement(areas)
   return area
 }
 
-export function randomDescription () {
+export function randomDescription() {
   const description = randomCompany() + ' ' + randomArea() + ' ZA'
   return description
 }
 
-export function randomType () {
+export function randomType() {
   const type = faker.helpers.arrayElement(['DEBIT', 'CREDIT'])
   return type
 }
 
-export function randomTransactionType () {
+export function randomTransactionType() {
   const transactionType = faker.helpers.arrayElement([
-    'CardPurchases', 
-    'OnlineBankingPayments', 
-    'FasterPay', 
-    'DebitOrders', 
-    'FeesAndInterest'
+    'CardPurchases',
+    'OnlineBankingPayments',
+    'FasterPay',
+    'DebitOrders',
+    'FeesAndInterest',
   ])
   return transactionType
 }
 
-export function randomBank () {
+export function randomBank() {
   const bank = faker.helpers.arrayElement([
-    { name: 'FIRST NATIONAL BANK', code: '250655' }, 
-    { name: 'ABSA', code: '632005' }, 
-    { name: 'NEDBANK', code: '198765' }, 
-    { name: 'CAPITEC', code: '470010' }, 
-    { name: 'STANDARD BANK', code: '051001' }
+    { name: 'FIRST NATIONAL BANK', code: '250655' },
+    { name: 'ABSA', code: '632005' },
+    { name: 'NEDBANK', code: '198765' },
+    { name: 'CAPITEC', code: '470010' },
+    { name: 'STANDARD BANK', code: '051001' },
   ])
   return bank
 }
 
-export function randomTransaction (accountId: string) {
+export function randomTransaction(accountId: string) {
   const transaction = {
     accountId,
     type: randomType(),
@@ -136,19 +136,19 @@ export function randomTransaction (accountId: string) {
   return transaction
 }
 
-export function randomAccount () {
+export function randomAccount() {
   const randomNumber = faker.datatype.number(99)
   const account = {
     accountId: '46757781299101896000000' + randomNumber,
     accountNumber: '100124200' + randomNumber,
     accountName: faker.name.fullName(),
     referenceName: faker.name.fullName(),
-    productName: 'Private Bank Account'
+    productName: 'Private Bank Account',
   }
   return account
 }
 
-export function randomBeneficiary () {
+export function randomBeneficiary() {
   const bank = randomBank()
   const beneficiary = {
     beneficiaryId: 'MTAxOTA2OTI5Nz' + faker.datatype.number(99) + 'MjM=',
@@ -164,7 +164,7 @@ export function randomBeneficiary () {
     referenceAccountNumber: '100124200' + faker.datatype.number(99),
     referenceName: faker.name.fullName(),
     categoryId: '10189603223001',
-    profileId: '10189603223'
+    profileId: '10189603223',
   }
   return beneficiary
 }
