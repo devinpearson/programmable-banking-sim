@@ -12,7 +12,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   console.log(`Start seeding ...`)
-  
+
   await seedCurrencies()
   await seedCountries()
   await seedMerchants()
@@ -29,7 +29,7 @@ main()
   .then(async () => {
     await prisma.$disconnect()
   })
-  .catch(async (e) => {
+  .catch(async e => {
     console.error(e)
     await prisma.$disconnect()
     process.exit(1)
