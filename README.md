@@ -69,4 +69,4 @@ Mock API only endpoints
 - POST /za/v1/cards/:cardKey/code/execute-live - Used for the POS to execute the code on the card
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
 
-[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/devinpearson/programmable-banking-sim/)
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/devinpearson/programmable-banking-sim/tree/main)
