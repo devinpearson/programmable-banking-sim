@@ -5,6 +5,13 @@ spec:
   features:
   - buildpack-stack=ubuntu-22
   name: stateful-sandbox
+  ingress:
+    rules:
+    - component:
+        name: programmable-banking-sim
+      match:
+        path:
+          prefix: /
   region: ams
   services:
   - dockerfile_path: Dockerfile
