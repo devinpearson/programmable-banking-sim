@@ -4,7 +4,7 @@ spec:
   - rule: DOMAIN_FAILED
   features:
   - buildpack-stack=ubuntu-22
-  name: programmable-banking-sim
+  name: stateful-sandbox
   region: ams
   services:
   - dockerfile_path: Dockerfile
@@ -12,6 +12,7 @@ spec:
       branch: add-db-controls
       deploy_on_push: true
       repo: devinpearson/programmable-banking-sim
+    name: programmable-banking-sim
     http_port: 3000
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
