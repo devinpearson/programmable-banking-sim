@@ -46,16 +46,27 @@ Accounts
 - /za/pb/v1/accounts
 - /za/pb/v1/accounts/:accountId/balance
 - /za/pb/v1/accounts/:accountId/transactions
+- /za/pb/v1/accounts/beneficiaries
 
 Cards
 - /za/v1/cards/countries
 - /za/v1/cards/currencies
 - /za/v1/cards/merchants
+- /za/v1/cards
+- /za/v1/cards/:cardKey/code
+- /za/v1/cards/:cardKey/publishedcode
+- /za/v1/cards/:cardKey/code/execute
+- /za/v1/cards/:cardKey/code/executions
+- /za/v1/cards/:cardKey/environmentvariables
+- /za/v1/cards/:cardKey/toggle-programmable-feature
+
 
 Mock API only endpoints
 - POST /za/pb/v1/accounts/:accountId/transactions - Creates and inserts a transaction into the history
 - DELETE /za/pb/v1/accounts/:accountId/transactions/2023-01-22 - Deletes transactions from account for a particular postingDate
 - POST /za/pb/v1/accounts - Create a new account
 - DELETE /za/pb/v1/accounts/:accountId - Deletes the account and its transactions
-
+- POST /za/v1/cards/:cardKey/code/execute-live - Used for the POS to execute the code on the card
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
+
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/devinpearson/programmable-banking-sim/)
