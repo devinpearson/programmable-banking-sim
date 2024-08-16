@@ -12,6 +12,5 @@ spec:
       branch: add-db-controls
       deploy_on_push: true
       repo: devinpearson/programmable-banking-sim
-  instance_count: 1
   instance_size_slug: apps-s-1vcpu-0.5gb
   source_dir: /
