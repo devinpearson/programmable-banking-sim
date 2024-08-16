@@ -12,7 +12,7 @@ spec:
       match:
         path:
           prefix: /
-  region: ams3
+  region: AMS
   services:
   - dockerfile_path: Dockerfile
     github:
