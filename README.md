@@ -1,15 +1,23 @@
-## Installation
-
 # Investec Programmable Banking Stateful Sandbox
 
-A Node.js server to get everyone building and demoing regardless whether you have an account.
+A Node.js server to get everyone building and demoing regardless whether you have an account. The sandbox is set up in a way that it provides a single profile. Under the profile you are able to see accounts and cards. It does not require authentication because of the single profile. 
+
+There is a number of control functions, such as creating an account or adding transactions. These features help set up the environment you need for your scenario.
 
 ![GitHub](https://img.shields.io/github/license/devinpearson/programmable-banking-sim)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=round-square)](https://github.com/devinpearson/programmable-banking-sim/pulls)
 
 ![Dashboard view](/images/dashboard.png)
 
-### Installation
+## Table of Contents
+- [Installation](#installation)
+- [Docker](#docker)
+- [Usage](#usage)
+- [Endpoints](#endpoints)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Installation
 Before installing, [download and install Node.js](https://nodejs.org/en/download/).
 
 ```bash
@@ -20,7 +28,14 @@ cd programmable-banking-sim
 npm install
 ```
 
-### Usage
+## Docker
+To run the server in a Docker container, run the following
+```bash
+docker build -t investec-sim .
+docker run -p 3000:3000 investec-sim
+```
+
+## Usage
 To start the simulator, run the following
 ```bash
 npm run dev
@@ -34,28 +49,73 @@ Accessing the room of the domain will show the dashboard view of the server. The
 
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
-Supported endpoints
+## Endpoints
 
-Dashboard
-- / - Dashboard view
+### Dashboard
+- **GET /**
+    - Dashboard view of the server
+### Auth
+- **POST /identity/v2/oauth2/token**
+    - Get an access token (only required if auth is turned on)
 
-Auth
-- /identity/v2/oauth2/token
+### Accounts
+- **GET /za/pb/v1/accounts**
+    - Get all accounts
+- **GET /za/pb/v1/accounts/:accountId/balance**
+    - Get the balance of an account
+- **GET /za/pb/v1/accounts/:accountId/transactions**
+    - Get the transactions of an account
+- **GET /za/pb/v1/accounts/beneficiaries**
+    - Get all beneficiaries
 
-Accounts
-- /za/pb/v1/accounts
-- /za/pb/v1/accounts/:accountId/balance
-- /za/pb/v1/accounts/:accountId/transactions
+### Cards
+- **GET /za/v1/cards/countries**
+    - Get all countries
+- **GET /za/v1/cards/currencies**
+    - Get all currencies
+- **GET /za/v1/cards/merchants**
+    - Get all merchant types
+- **GET /za/v1/cards**
+    - Get all cards
+- **GET /za/v1/cards/:cardKey/code**
+    - Get the saved code of a card
+- **POST /za/v1/cards/:cardKey/code**
+    - Set the saved code of a card
+- **GET /za/v1/cards/:cardKey/publishedcode**
+    - Get the published code of a card
+- **POST /za/v1/cards/:cardKey/publishedcode**
+    - Set the published code of a card
+- **POST /za/v1/cards/:cardKey/code/execute**
+    - Execute code you supply. This simulates the card executing the code
+- **GET /za/v1/cards/:cardKey/code/executions**
+    - Get all code executions
+- **GET /za/v1/cards/:cardKey/environmentvariables**
+    - Get all environment variables
+- **POST /za/v1/cards/:cardKey/environmentvariables**
+    - Set new environment variables
+- **POST /za/v1/cards/:cardKey/toggle-programmable-feature**
+    - Toggle the programmable feature of a card
 
-Cards
-- /za/v1/cards/countries
-- /za/v1/cards/currencies
-- /za/v1/cards/merchants
-
-Mock API only endpoints
-- POST /za/pb/v1/accounts/:accountId/transactions - Creates and inserts a transaction into the history
-- DELETE /za/pb/v1/accounts/:accountId/transactions/2023-01-22 - Deletes transactions from account for a particular postingDate
-- POST /za/pb/v1/accounts - Create a new account
-- DELETE /za/pb/v1/accounts/:accountId - Deletes the account and its transactions
+### Mock API only endpoints
+- **POST /za/pb/v1/accounts/:accountId/transactions**
+    - Creates and inserts a transaction into the history
+- **DELETE /za/pb/v1/accounts/:accountId/transactions/2023-01-22**
+    - Deletes transactions from account for a particular postingDate
+- **POST /za/pb/v1/accounts**
+    - Create a new account
+- **DELETE /za/pb/v1/accounts/:accountId**
+    - Deletes the account and its transactions
+- **POST /za/v1/cards/:cardKey/code/execute-live**
+    - Used for the POS to execute the code on the card
 
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
+
+[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/devinpearson/programmable-banking-sim/tree/update-dockerfile)
+
+## Contributing
+
+Contributions are welcome! Please submit a pull request or open an issue for any suggestions or improvements.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

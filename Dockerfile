@@ -1,11 +1,7 @@
-FROM ubuntu as base
-RUN apt-get update
-RUN apt-get install npm -y
-# RUN apt add python3
+FROM nikolaik/python-nodejs:latest as base
 # Add package file
 COPY package.json ./
 COPY package-lock.json ./
-COPY investec.db ./
 COPY prisma ./prisma/ 
 # Install deps
 RUN npm install
