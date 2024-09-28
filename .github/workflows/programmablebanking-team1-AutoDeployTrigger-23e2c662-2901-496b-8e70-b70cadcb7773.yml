@@ -1,0 +1,48 @@
+name: Trigger auto deployment for programmablebanking-team1
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/programmablebanking-team1-AutoDeployTrigger-23e2c662-2901-496b-8e70-b70cadcb7773.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.PROGRAMMABLEBANKINGTEAM1_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.PROGRAMMABLEBANKINGTEAM1_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.PROGRAMMABLEBANKINGTEAM1_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: programmablebanking.azurecr.io
+          registryUsername: ${{ secrets.PROGRAMMABLEBANKINGTEAM1_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.PROGRAMMABLEBANKINGTEAM1_REGISTRY_PASSWORD }}
+          containerAppName: programmablebanking-team1
+          resourceGroup: card-issuer-containerapps
+          imageToBuild: programmablebanking.azurecr.io/programmablebanking-team1:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
