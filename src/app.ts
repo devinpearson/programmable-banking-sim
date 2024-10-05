@@ -695,6 +695,73 @@ app.get('/za/v1/cards', async (req: Request, res: Response) => {
   }
 })
 
+app.post('/za/v1/cards', async (req: Request, res: Response) => {
+    try {
+        let card = {
+            cardKey: uuidv4(),
+            cardNumber: '1234567890123456',
+            isProgrammable: false,
+            status: 'ACTIVE',
+            cardTypeCode: 'vgs',
+            accountId: '1234567890',
+            accountNumber: '1234567890',
+            publishedCode: '',
+            savedCode: '',
+            envs: '{}',
+        }
+        card = { ...card, ...req.body }
+        if (card.cardKey === undefined || card.cardKey === '') {
+            card.cardKey = uuidv4()
+        }
+        // check that the account exists
+        const cardcheck = await prisma.card.findFirst({
+          where: {
+            cardKey: card.cardKey,
+          },
+        })
+        if (cardcheck) {
+          console.log('card found')
+          return formatErrorResponse(req, res, 409) // account was found
+        }
+        // insert the transaction
+        await prisma.card.create({
+          data: card,
+        })
+    
+        return formatResponse(card, req, res)
+      } catch (error) {
+        console.log(error)
+        return formatErrorResponse(req, res, 500)
+      }
+  })
+
+  app.delete('/za/v1/cards/:cardKey', async (req: Request, res: Response) => {
+    try {
+        const cardKey = req.params.cardKey
+        // check that the account exists
+        const card = await prisma.card.findFirst({
+          where: {
+            cardKey: cardKey,
+          },
+        })
+        if (!card) {
+          console.log('no card found')
+          return formatErrorResponse(req, res, 404) // no account was found
+        }
+        // remove the transactions
+        await prisma.card.delete({
+          where: {
+            cardKey: cardKey,
+          },
+        })
+  
+        return res.status(200).json()
+      } catch (error) {
+        console.log(error)
+        return formatErrorResponse(req, res, 500)
+      }
+  })
+
 app.get('/za/v1/cards/:cardKey/code', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
