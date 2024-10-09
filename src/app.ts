@@ -193,25 +193,25 @@ app.get('/envs', async (req: Request, res: Response) => {
 })
 
 function isValidToken(req: Request) {
-    if (settings.auth !== true) {
-      return true
-    }
-    if (!req.get('authorization')) {
-      return false
-    }
-    const authorization = req.get('authorization')?.split(' ')[1]
-    if (!authorization) {
-      return false
-    }
-    if (
-      accessTokens[authorization] &&
-      dayjs().isBefore(accessTokens[authorization].expires_at)
-    ) {
-      return true
-    }
-  
+  if (settings.auth !== true) {
+    return true
+  }
+  if (!req.get('authorization')) {
     return false
   }
+  const authorization = req.get('authorization')?.split(' ')[1]
+  if (!authorization) {
+    return false
+  }
+  if (
+    accessTokens[authorization] &&
+    dayjs().isBefore(accessTokens[authorization].expires_at)
+  ) {
+    return true
+  }
+
+  return false
+}
 
 export const formatResponse = (data: any, req: Request, res: Response) => {
   const date = new Date()
