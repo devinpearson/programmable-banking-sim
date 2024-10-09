@@ -12,6 +12,11 @@ import identity from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
 import { AccessToken, Settings, ControlMessage } from './types.js'
+import { seedAccounts } from '../prisma/account.js'
+import { seedTransactions } from '../prisma/transaction.js'
+import { seedBeneficiaries } from '../prisma/beneficiary.js'
+import { seedCards } from '../prisma/card.js'
+import { seedCardCodes } from '../prisma/card-code.js'
 
 dotenv.config()
 
@@ -39,7 +44,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const messageQueue = 'logs'
 
 io.on('connection', socket => {
-  // socket.broadcast.emit('hi');
   socket.on('envs', msg => {
     console.log('message: ' + msg)
     settings = msg
@@ -146,12 +150,6 @@ app.delete('/clear', async (req: Request, res: Response) => {
     return formatErrorResponse(req, res, 500)
   }
 })
-
-import { seedAccounts } from '../prisma/account.js'
-import { seedTransactions } from '../prisma/transaction.js'
-import { seedBeneficiaries } from '../prisma/beneficiary.js'
-import { seedCards } from '../prisma/card.js'
-import { seedCardCodes } from '../prisma/card-code.js'
 
 app.get('/restore', async (req: Request, res: Response) => {
   try {
