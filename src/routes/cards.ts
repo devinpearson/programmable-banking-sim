@@ -5,6 +5,7 @@ const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse } from '../app.js'
 import { v4 as uuidv4 } from 'uuid'
 import emu from 'programmable-card-code-emulator'
+import { ExecutionItem } from '../types.js'
 
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -473,22 +474,6 @@ router.post(
   },
 )
 
-type ExecutionItem = {
-  executionId: string
-  cardKey: string
-  rootCodeFunctionId: string
-  sandbox: boolean
-  type: string
-  authorizationApproved: boolean | null
-  smsCount: number
-  emailCount: number
-  pushNotificationCount: number
-  createdAt: Date
-  startedAt: Date
-  completedAt: Date
-  updatedAt: Date | null
-  logs: Array<any> | null // Add the 'logs' property
-}
 router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey

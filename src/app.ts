@@ -11,6 +11,7 @@ import { createServer } from 'node:http'
 import identity from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
+import { AccessToken, Settings, ControlMessage } from './types.js'
 
 dotenv.config()
 
@@ -30,24 +31,6 @@ app.use(express.urlencoded({ extended: false }))
 app.use(morgan('combined'))
 app.use(express.json())
 app.use(express.static('public'))
-
-interface AccessToken {
-  expires_at: string
-  scope: string
-}
-
-interface Settings {
-  client_id: string
-  client_secret: string
-  api_key: string
-  token_expiry: number
-  auth: boolean
-}
-
-interface ControlMessage {
-  action: string
-  message: string
-}
 
 export const accessTokens = {} as Record<string, AccessToken>
 
