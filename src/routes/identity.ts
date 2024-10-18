@@ -4,7 +4,7 @@ import { accessTokens, authorizationCodes, refreshTokens, settings, formatErrorR
 import dayjs from 'dayjs'
 import { AuthorizationCode } from '../types.js'
 
-router.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
+router.post('/v2/oauth2/token', (req: Request, res: Response) => {
     try {
       if (req.headers.authorization === undefined) {
           return formatErrorResponse(req, res, 422)
@@ -102,7 +102,7 @@ router.post('/identity/v2/oauth2/token', (req: Request, res: Response) => {
     }
   })
 
-router.get('/identity/v2/oauth2/authorize', (req: Request, res: Response) => {
+router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
     const token =
                 Math.random().toString(36).substring(2, 15) +
                 Math.random().toString(36).substring(2, 15)
