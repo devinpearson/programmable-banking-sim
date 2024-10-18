@@ -96,6 +96,21 @@ app.get('/login', (req, res) => {
     res.sendFile(join(__dirname, 'login.html'))
   })
 
+app.post('/login', (req, res) => {
+    const email = req.body.email
+    const password = req.body.password
+    if (email === 'admin@example.com' && password === 'admin') {
+        return res.redirect('/wpaas/prog-banking-wpaas/oauth-consent')
+    } else {
+        return res.redirect('/login')
+    }
+})
+
+// screen where the scopes and accounts are selected
+app.get('/wpaas/prog-banking-wpaas/oauth-consent', (req: Request, res: Response) => {
+    res.sendFile(join(__dirname, 'oauth-consent.html'))
+})
+
 app.get('/guide', (req, res) => {
   res.sendFile(join(__dirname, 'guide.html'))
 })
@@ -177,17 +192,6 @@ app.get('/envs', async (req: Request, res: Response) => {
     console.log(error)
     return formatErrorResponse(req, res, 500)
   }
-})
-
-// screen where the scopes and accounts are selected
-app.get('/wpaas/prog-banking-wpaas/oauth-consent', (req: Request, res: Response) => {
-    const uuid = '999'
-    const scopes = req.query.scope
-    const clientId = req.query.client_id
-    const redirectUri = req.query.redirect_uri
-    const responseType = req.query.response_type
-    //oathRequests.push({ uuid, clientId, redirectUri, responseType, scopes })
-    return res.json({ Location: "localhost:3000/login?qsp=" + uuid}).redirect(302, 'localhost:3000/login?qsp=' + uuid)
 })
 
 function isValidToken(req: Request) {

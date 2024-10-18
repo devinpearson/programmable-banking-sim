@@ -1,0 +1,76 @@
+<!--
+  This example requires updating your template:
+
+  ```
+  <html class="h-full bg-white">
+  <body class="h-full">
+  ```
+-->
+<!DOCTYPE html>
+<html class="h-full bg-white">
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>OAuth Approval</title>
+    <link href="/output.css" rel="stylesheet">
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+  </head>
+  <body class="h-full">
+    <div id="app">
+<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+      <img class="mx-auto h-10 w-auto" src="/sandbox.svg?color=indigo&shade=600" alt="Your Company">
+      <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">Authorize accounts</h2>
+    </div>
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <div class="border-b border-gray-200 pb-5">
+            <p>By approving this request, you will grant Joe Soap 3 Legged OAuth - PB access to these permissions</p>
+            <ul class="mt-3">
+                <li class="font-medium text-gray-900">- Your account name and number</li>
+                <li class="font-medium text-gray-900">- Your transaction</li>
+            </ul>
+        </div>
+    </div>
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+      <form class="space-y-6" action="/oauth" method="POST">
+        <div class="border-b border-gray-200 pb-5">
+        <fieldset>
+            <legend class="sr-only">Mr J Soap</legend>
+            <div class="space-y-5">
+              <div class="relative flex items-start">
+                <div class="flex h-6 items-center">
+                  <input id="10012420003" name="10012420003" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                </div>
+                <div class="ml-3 text-sm leading-6">
+                  <label for="10012420004" class="font-medium text-gray-900">Mr J Soap - 10012420003</label>
+                </div>
+              </div>
+              <div class="relative flex items-start">
+                <div class="flex h-6 items-center">
+                  <input id="10012420004" name="10012420004" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                </div>
+                <div class="ml-3 text-sm leading-6">
+                  <label for="10012420004" class="font-medium text-gray-900">Mr J Soap - 10012420004</label>
+                </div>
+              </div>
+              <div class="relative flex items-start">
+                <div class="flex h-6 items-center">
+                  <input id="10012420005" name="offers" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                </div>
+                <div class="ml-3 text-sm leading-6">
+                  <label for="10012420005" class="font-medium text-gray-900">Mr J Soap - 10012420005</label>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="mt-3 flex sm:ml-4 sm:mt-0 w-full">
+            <button type="submit" class="grow w-full justify-center rounded-md bg-white px-3 py-1.5 text-sm font-semibold leading-6 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Decline</button>
+          <button type="submit" class="grow ml-3 w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Authorize</button>
+        </div>
+      </form>
+  
+      <p class="mt-10 text-center text-sm text-gray-500">
+        This is a simulated login screen step. This is where you would login to the bank.
+      </p>
+    </div>
+  </div>
