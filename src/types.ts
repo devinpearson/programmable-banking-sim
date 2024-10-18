@@ -2,6 +2,13 @@ export interface AccessToken {
     expires_at: string
     scope: string
   }
+
+  export interface AuthorizationCode {
+    code: string
+    expires_at: string
+    scope: string
+    redirect_uri: string
+}
   
   export interface Settings {
     client_id: string

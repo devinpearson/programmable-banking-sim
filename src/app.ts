@@ -11,7 +11,7 @@ import { createServer } from 'node:http'
 import identity from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
-import { AccessToken, Settings, ControlMessage } from './types.js'
+import { AccessToken, AuthorizationCode, Settings, ControlMessage } from './types.js'
 import { seedAccounts } from '../prisma/account.js'
 import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
@@ -38,6 +38,8 @@ app.use(express.json())
 app.use(express.static('public'))
 
 export const accessTokens = {} as Record<string, AccessToken>
+export const authorizationCodes = {} as Record<string, AuthorizationCode>
+export const refreshTokens = [] as string[]
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -89,6 +91,10 @@ io.on('connection', socket => {
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'))
 })
+
+app.get('/login', (req, res) => {
+    res.sendFile(join(__dirname, 'login.html'))
+  })
 
 app.get('/guide', (req, res) => {
   res.sendFile(join(__dirname, 'guide.html'))
@@ -171,6 +177,17 @@ app.get('/envs', async (req: Request, res: Response) => {
     console.log(error)
     return formatErrorResponse(req, res, 500)
   }
+})
+
+// screen where the scopes and accounts are selected
+app.get('/wpaas/prog-banking-wpaas/oauth-consent', (req: Request, res: Response) => {
+    const uuid = '999'
+    const scopes = req.query.scope
+    const clientId = req.query.client_id
+    const redirectUri = req.query.redirect_uri
+    const responseType = req.query.response_type
+    //oathRequests.push({ uuid, clientId, redirectUri, responseType, scopes })
+    return res.json({ Location: "localhost:3000/login?qsp=" + uuid}).redirect(302, 'localhost:3000/login?qsp=' + uuid)
 })
 
 function isValidToken(req: Request) {
