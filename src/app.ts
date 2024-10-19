@@ -11,7 +11,12 @@ import { createServer } from 'node:http'
 import identity from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
-import { AccessToken, AuthorizationCode, Settings, ControlMessage } from './types.js'
+import {
+  AccessToken,
+  AuthorizationCode,
+  Settings,
+  ControlMessage,
+} from './types.js'
 import { seedAccounts } from '../prisma/account.js'
 import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
@@ -21,7 +26,7 @@ import { seedCardCodes } from '../prisma/card-code.js'
 dotenv.config()
 
 export const port = process.env.PORT || 3000
-const dbFile = process.env.DB_FILE || 'investec.db'
+// const dbFile = process.env.DB_FILE || 'investec.db'
 // const overdraft = process.env.OVERDRAFT || 5000
 const prisma = new PrismaClient()
 export const app = express()
@@ -53,7 +58,7 @@ io.on('connection', socket => {
   })
   socket.on('control', async (msg: ControlMessage) => {
     console.log('control: ' + msg)
-    const { action, message } = msg
+    const { action } = msg // , message
     console.log('action: ' + action)
     switch (action) {
       case 'clear':
@@ -93,23 +98,26 @@ app.get('/', (req, res) => {
 })
 
 app.get('/login', (req, res) => {
-    res.sendFile(join(__dirname, 'login.html'))
-  })
+  res.sendFile(join(__dirname, 'login.html'))
+})
 
 app.post('/login', (req, res) => {
-    const email = req.body.email
-    const password = req.body.password
-    if (email === 'admin@example.com' && password === 'admin') {
-        return res.redirect('/wpaas/prog-banking-wpaas/oauth-consent')
-    } else {
-        return res.redirect('/login')
-    }
+  const email = req.body.email
+  const password = req.body.password
+  if (email === 'admin@example.com' && password === 'admin') {
+    return res.redirect('/wpaas/prog-banking-wpaas/oauth-consent')
+  } else {
+    return res.redirect('/login')
+  }
 })
 
 // screen where the scopes and accounts are selected
-app.get('/wpaas/prog-banking-wpaas/oauth-consent', (req: Request, res: Response) => {
+app.get(
+  '/wpaas/prog-banking-wpaas/oauth-consent',
+  (req: Request, res: Response) => {
     res.sendFile(join(__dirname, 'oauth-consent.html'))
-})
+  },
+)
 
 app.get('/guide', (req, res) => {
   res.sendFile(join(__dirname, 'guide.html'))
@@ -215,7 +223,7 @@ function isValidToken(req: Request) {
   return false
 }
 
-export const formatResponse = (data: any, req: Request, res: Response) => {
+export const formatResponse = (data: unknown, req: Request, res: Response) => {
   const date = new Date()
   io.sockets.emit(
     messageQueue,

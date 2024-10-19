@@ -39,6 +39,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@faker-js/faker": "^7.6.0",
+    "@stylistic/eslint-plugin-js": "^2.9.0",
     "@types/better-sqlite3": "^7.6.10",
     "@types/chai": "^4.3.17",
     "@types/cors": "^2.8.17",
