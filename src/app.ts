@@ -223,7 +223,7 @@ function isValidToken(req: Request) {
   return false
 }
 
-export const formatResponse = (data: unknown, req: Request, res: Response) => {
+export function formatResponse (data: unknown, req: Request, res: Response) {
   const date = new Date()
   io.sockets.emit(
     messageQueue,

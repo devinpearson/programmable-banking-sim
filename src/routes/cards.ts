@@ -22,8 +22,7 @@ router.get('/', async (req: Request, res: Response) => {
         AccountId: card.accountId,
       })
     })
-    const data = { cards }
-    return formatResponse(data, req, res)
+    return formatResponse({ cards }, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -89,7 +88,6 @@ router.delete('/:cardKey', async (req: Request, res: Response) => {
         cardKey: cardKey,
       },
     })
-
     return res.status(200).json()
   } catch (error) {
     console.log(error)
@@ -115,8 +113,7 @@ router.get('/:cardKey/code', async (req: Request, res: Response) => {
         codeId: card.savedCode,
       },
     })
-    const data = { cardCode }
-    return formatResponse(data, req, res)
+    return formatResponse({ cardCode }, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -148,8 +145,7 @@ router.post('/:cardKey/code', async (req: Request, res: Response) => {
         code: code,
       },
     })
-    const data = { cardCode }
-    return formatResponse(data, req, res)
+    return formatResponse({ cardCode }, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -174,8 +170,7 @@ router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
         codeId: card.publishedCode,
       },
     })
-    const data = { cardCode }
-    return formatResponse(data, req, res)
+    return formatResponse({ cardCode }, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)

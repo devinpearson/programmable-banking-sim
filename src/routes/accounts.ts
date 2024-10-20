@@ -9,6 +9,7 @@ import {
   randomTransaction,
   randomAccount,
 } from '../generate.js'
+import { TransactionType, BalanceResponse } from '../types.js'
 
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -43,7 +44,7 @@ router.get('/:accountId/balance', async (req: Request, res: Response) => {
 
     for (let j = 0; j < transactionsArr.length; j++) {
       const amount = transactionsArr[j].amount.toNumber()
-      if (transactionsArr[j].type === 'CREDIT') {
+      if (transactionsArr[j].type === TransactionType.CREDIT) {
         runningBalance += amount
       } else {
         runningBalance -= amount
@@ -53,7 +54,7 @@ router.get('/:accountId/balance', async (req: Request, res: Response) => {
     const balance = runningBalance.toFixed(2)
     // overdraft - balance // workout over
     // fetch the currentBalance and availableBalance from the transactions table
-    const data = {
+    const data: BalanceResponse = {
       accountId,
       currentBalance: +balance,
       availableBalance: 0,
@@ -96,7 +97,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
     for (let j = 0; j < transactionsArr.length; j++) {
       postedOrder++
       const amount = transactionsArr[j].amount.toNumber()
-      if (transactionsArr[j].type === 'CREDIT') {
+      if (transactionsArr[j].type === TransactionType.CREDIT) {
         runningBalance += amount
       } else {
         runningBalance -= amount
@@ -144,8 +145,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
 })
 
 // transfer multiple transactions
-router.post(
-  '/:accountId/transfermultiple',
+router.post('/:accountId/transfermultiple',
   async (req: Request, res: Response) => {
     try {
       const accountId = req.params.accountId
@@ -173,7 +173,7 @@ router.post(
         }
         const transactionOut = {
           accountId: accountId,
-          type: 'DEBIT',
+          type: TransactionType.DEBIT,
           transactionType: 'Transfer',
           status: 'POSTED',
           description: transfers[i].myReference,
@@ -193,7 +193,7 @@ router.post(
 
         const transactionIn = {
           accountId: transfers[i].beneficiaryAccountId,
-          type: 'CREDIT',
+          type: TransactionType.CREDIT,
           transactionType: 'Transfer',
           status: 'POSTED',
           description: transfers[i].theirReference,
@@ -248,7 +248,7 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
       }
       const transactionOut = {
         accountId: accountId,
-        type: 'DEBIT',
+        type: TransactionType.DEBIT,
         transactionType: 'Transfer',
         status: 'POSTED',
         description: transfers[i].myReference,
@@ -330,8 +330,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   }
 })
 
-router.delete(
-  '/:accountId/transactions/:postingDate',
+router.delete('/:accountId/transactions/:postingDate',
   async (req: Request, res: Response) => {
     try {
       const accountId = req.params.accountId

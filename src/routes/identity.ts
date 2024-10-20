@@ -37,9 +37,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
         return formatErrorResponse(req, res, 401)
       }
       // Generate a token string
-      const token =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15)
+      const token = generateToken()
       const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
       accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
       return res.json({
@@ -59,12 +57,8 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       delete authorizationCodes[code]
 
       // Generate a token string
-      const token =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15)
-      const refreshToken =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15)
+      const token = generateToken()
+      const refreshToken = generateToken()
       refreshTokens.push(refreshToken)
       const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
       accessTokens[token] = {
@@ -86,12 +80,8 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       refreshTokens.splice(refreshTokens.indexOf(incomingToken), 1)
 
       // Generate a token string
-      const token =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15)
-      const refreshToken =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15)
+      const token = generateToken()
+      const refreshToken = generateToken()
       refreshTokens.push(refreshToken)
       const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
       accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
@@ -110,9 +100,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
 })
 
 router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
-  const token =
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
+  const token = generateToken()
   const authorizationCode: AuthorizationCode = {
     code: token,
     expires_at: dayjs().add(settings.token_expiry, 'seconds').format(),
@@ -135,5 +123,12 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
       authorizationCode.code,
   )
 })
+
+function generateToken() {
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  )
+}
 
 export default router

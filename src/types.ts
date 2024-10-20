@@ -1,3 +1,8 @@
+export enum TransactionType {
+    DEBIT = 'DEBIT',
+    CREDIT = 'CREDIT',
+}
+
 export interface AccessToken {
   expires_at: string
   scope: string
@@ -8,6 +13,13 @@ export interface AuthorizationCode {
   expires_at: string
   scope: string
   redirect_uri: string
+}
+
+export type BalanceResponse = {
+    accountId: string,
+    currentBalance: number,
+    availableBalance: number,
+    currency: string,
 }
 
 export interface Settings {
