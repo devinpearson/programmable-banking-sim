@@ -4,11 +4,7 @@ const router = express.Router()
 import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse } from '../app.js'
-import {
-  randomBeneficiary,
-  randomTransaction,
-  randomAccount,
-} from '../generate.js'
+import { Investec } from 'programmable-banking-faker'
 import { TransactionType, BalanceResponse } from '../types.js'
 
 router.get('/', async (req: Request, res: Response) => {
@@ -277,7 +273,7 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
 // function to create transactions for an account
 router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   try {
-    let randomTx = randomTransaction(req.params.accountId)
+    let randomTx = Investec.transaction(req.params.accountId)
     randomTx = { ...randomTx, ...req.body }
 
     const accountId = req.params.accountId
@@ -304,7 +300,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
 
 router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   try {
-    let randomTx = randomTransaction(req.params.accountId)
+    let randomTx = Investec.transaction(req.params.accountId)
     randomTx.runningBalance = 0
     randomTx = { ...randomTx, ...req.body }
 
@@ -364,7 +360,7 @@ router.delete('/:accountId/transactions/:postingDate',
 // function to create an account
 router.post('/', async (req: Request, res: Response) => {
   try {
-    let account = randomAccount()
+    let account = Investec.account()
     account = { ...account, ...req.body }
     // check that the account exists
     const accountcheck = await prisma.account.findFirst({
@@ -435,7 +431,7 @@ router.get('/beneficiaries', async (req: Request, res: Response) => {
 // function to create an account
 router.post('/beneficiaries', async (req: Request, res: Response) => {
   try {
-    let beneficiary = randomBeneficiary()
+    let beneficiary = Investec.beneficiary()
     beneficiary = { ...beneficiary, ...req.body }
 
     // insert the beneficiary
