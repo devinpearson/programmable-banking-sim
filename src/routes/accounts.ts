@@ -4,11 +4,8 @@ const router = express.Router()
 import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse } from '../app.js'
-import {
-  randomBeneficiary,
-  randomTransaction,
-  randomAccount,
-} from '../generate.js'
+import { Investec } from 'programmable-banking-faker'
+import { TransactionType, BalanceResponse } from '../types.js'
 
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -43,7 +40,7 @@ router.get('/:accountId/balance', async (req: Request, res: Response) => {
 
     for (let j = 0; j < transactionsArr.length; j++) {
       const amount = transactionsArr[j].amount.toNumber()
-      if (transactionsArr[j].type === 'CREDIT') {
+      if (transactionsArr[j].type === TransactionType.CREDIT) {
         runningBalance += amount
       } else {
         runningBalance -= amount
@@ -53,7 +50,7 @@ router.get('/:accountId/balance', async (req: Request, res: Response) => {
     const balance = runningBalance.toFixed(2)
     // overdraft - balance // workout over
     // fetch the currentBalance and availableBalance from the transactions table
-    const data = {
+    const data: BalanceResponse = {
       accountId,
       currentBalance: +balance,
       availableBalance: 0,
@@ -96,7 +93,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
     for (let j = 0; j < transactionsArr.length; j++) {
       postedOrder++
       const amount = transactionsArr[j].amount.toNumber()
-      if (transactionsArr[j].type === 'CREDIT') {
+      if (transactionsArr[j].type === TransactionType.CREDIT) {
         runningBalance += amount
       } else {
         runningBalance -= amount
@@ -144,8 +141,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
 })
 
 // transfer multiple transactions
-router.post(
-  '/:accountId/transfermultiple',
+router.post('/:accountId/transfermultiple',
   async (req: Request, res: Response) => {
     try {
       const accountId = req.params.accountId
@@ -173,7 +169,7 @@ router.post(
         }
         const transactionOut = {
           accountId: accountId,
-          type: 'DEBIT',
+          type: TransactionType.DEBIT,
           transactionType: 'Transfer',
           status: 'POSTED',
           description: transfers[i].myReference,
@@ -193,7 +189,7 @@ router.post(
 
         const transactionIn = {
           accountId: transfers[i].beneficiaryAccountId,
-          type: 'CREDIT',
+          type: TransactionType.CREDIT,
           transactionType: 'Transfer',
           status: 'POSTED',
           description: transfers[i].theirReference,
@@ -248,7 +244,7 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
       }
       const transactionOut = {
         accountId: accountId,
-        type: 'DEBIT',
+        type: TransactionType.DEBIT,
         transactionType: 'Transfer',
         status: 'POSTED',
         description: transfers[i].myReference,
@@ -277,7 +273,7 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
 // function to create transactions for an account
 router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   try {
-    let randomTx = randomTransaction(req.params.accountId)
+    let randomTx = Investec.transaction(req.params.accountId)
     randomTx = { ...randomTx, ...req.body }
 
     const accountId = req.params.accountId
@@ -304,7 +300,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
 
 router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   try {
-    let randomTx = randomTransaction(req.params.accountId)
+    let randomTx = Investec.transaction(req.params.accountId)
     randomTx.runningBalance = 0
     randomTx = { ...randomTx, ...req.body }
 
@@ -330,8 +326,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   }
 })
 
-router.delete(
-  '/:accountId/transactions/:postingDate',
+router.delete('/:accountId/transactions/:postingDate',
   async (req: Request, res: Response) => {
     try {
       const accountId = req.params.accountId
@@ -365,7 +360,7 @@ router.delete(
 // function to create an account
 router.post('/', async (req: Request, res: Response) => {
   try {
-    let account = randomAccount()
+    let account = Investec.account()
     account = { ...account, ...req.body }
     // check that the account exists
     const accountcheck = await prisma.account.findFirst({
@@ -436,7 +431,7 @@ router.get('/beneficiaries', async (req: Request, res: Response) => {
 // function to create an account
 router.post('/beneficiaries', async (req: Request, res: Response) => {
   try {
-    let beneficiary = randomBeneficiary()
+    let beneficiary = Investec.beneficiary()
     beneficiary = { ...beneficiary, ...req.body }
 
     // insert the beneficiary
