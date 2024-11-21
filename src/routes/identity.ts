@@ -16,7 +16,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       return formatErrorResponse(req, res, 422)
     }
     const authStr = Buffer.from(
-      (req.headers.authorization ?? '').split(' ')[1],
+      (req.headers.authorization ? req.headers.authorization.split(' ')[1] || '' : ''),
       'base64',
     ).toString()
     const [clientId, clientSecret] = authStr.split(':')
