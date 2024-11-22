@@ -51,3 +51,24 @@ export type ExecutionItem = {
   updatedAt: Date | null
   logs: Array<unknown> | null // Add the 'logs' property
 }
+
+export interface Card {
+    cardKey: string,
+    cardNumber: string,
+    isProgrammable: boolean,
+    status: string,
+    cardTypeCode: string,
+    accountId: string,
+    accountNumber: string,
+    publishedCode: string,
+    savedCode: string,
+    envs: string
+}
+
+export enum SettingType {
+    CLIENT_ID = 'client_id',
+    CLIENT_SECRET = 'client_secret',
+    API_KEY = 'api_key',
+    TOKEN_EXPIRY = 'token_expiry',
+    AUTH = 'auth',
+}
