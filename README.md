@@ -27,6 +27,10 @@ cd programmable-banking-sim
 ```bash
 npm install
 ```
+## DevContainer (VSCode)
+```bash
+docker-compose -f .devcontainer/docker-compose.yml up
+```
 
 ## Docker
 To run the server in a Docker container, run the following
