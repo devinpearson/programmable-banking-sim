@@ -1,6 +1,6 @@
 import request from 'supertest'
-import { app } from '../src/app'
-import { assert } from 'chai'
+import { app } from '../src/app.js'
+import { assert, describe, it } from 'vitest'
 
 describe('Test the environmental variables', () => {
   it('should respond with the environmental variables', async () => {

@@ -3,7 +3,6 @@ import morgan from 'morgan'
 import cors from 'cors'
 import dayjs from 'dayjs'
 import dotenv from 'dotenv'
-import { PrismaClient } from '@prisma/client'
 import { Server } from 'socket.io'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -16,19 +15,20 @@ import {
   AuthorizationCode,
   Settings,
   ControlMessage,
+  SettingType,
 } from './types.js'
 import { seedAccounts } from '../prisma/account.js'
 import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
 import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
+import { deleteAllAccounts, deleteAllBeneficiaries, deleteAllCardCode, deleteAllCards, deleteAllTransactions, getSettings, updateSetting } from './db.js'
 
 dotenv.config()
 
 export const port = process.env.PORT || 3000
 // const dbFile = process.env.DB_FILE || 'investec.db'
 // const overdraft = process.env.OVERDRAFT || 5000
-const prisma = new PrismaClient()
 export const app = express()
 export const server = createServer(app)
 const io = new Server(server)
@@ -62,18 +62,18 @@ io.on('connection', socket => {
     console.log('action: ' + action)
     switch (action) {
       case 'clear':
-        await prisma.account.deleteMany()
-        await prisma.transaction.deleteMany()
-        await prisma.beneficiary.deleteMany()
-        await prisma.card.deleteMany()
-        await prisma.cardCode.deleteMany()
+        await deleteAllAccounts()
+        await deleteAllTransactions()
+        await deleteAllBeneficiaries()
+        await deleteAllCards()
+        await deleteAllCardCode()
         break
       case 'restore':
-        await prisma.account.deleteMany()
-        await prisma.transaction.deleteMany()
-        await prisma.beneficiary.deleteMany()
-        await prisma.card.deleteMany()
-        await prisma.cardCode.deleteMany()
+        await deleteAllAccounts()
+        await deleteAllTransactions()
+        await deleteAllBeneficiaries()
+        await deleteAllCards()
+        await deleteAllCardCode()
         seedAccounts()
         seedTransactions()
         seedBeneficiaries()
@@ -123,33 +123,16 @@ app.get('/guide', (req, res) => {
   res.sendFile(join(__dirname, 'guide.html'))
 })
 
+
 app.post('/envs', async (req: Request, res: Response) => {
-  await prisma.setting.update({
-    where: { name: 'client_id' },
-    data: { value: req.body.client_id },
-  })
-  await prisma.setting.update({
-    where: { name: 'client_secret' },
-    data: { value: req.body.client_secret },
-  })
-  await prisma.setting.update({
-    where: { name: 'api_key' },
-    data: { value: req.body.api_key },
-  })
-  await prisma.setting.update({
-    where: { name: 'token_expiry' },
-    data: { value: req.body.token_expiry as unknown as string },
-  })
-  let auth = 'false'
-  if (req.body.auth === true) {
-    auth = 'true'
-  }
-  await prisma.setting.update({
-    where: { name: 'auth' },
-    data: { value: auth },
-  })
-  settings = req.body
-  return res.json(settings)
+    await updateSetting(SettingType.CLIENT_ID, req.body.client_id)
+    await updateSetting(SettingType.CLIENT_SECRET, req.body.client_secret)
+    await updateSetting(SettingType.API_KEY, req.body.api_key)
+    await updateSetting(SettingType.TOKEN_EXPIRY, req.body.token_expiry as unknown as string)
+    await updateSetting(SettingType.AUTH, (req.body.auth)? true:false)
+  
+    settings = req.body
+    return res.json(settings)
 })
 
 app.use('/identity', identity)
@@ -167,11 +150,11 @@ app.use('/za/v1/cards', cards)
 app.delete('/clear', async (req: Request, res: Response) => {
   try {
     // delete the accounts
-    await prisma.account.deleteMany()
+    await deleteAllAccounts()
     // delete the transactions
-    await prisma.transaction.deleteMany()
+    await deleteAllTransactions()
     // delete the beneficiaries
-    await prisma.beneficiary.deleteMany()
+    await deleteAllBeneficiaries()
 
     return res.status(200).json()
   } catch (error) {
@@ -265,29 +248,31 @@ export function formatErrorResponse(req: Request, res: Response, code: number) {
 }
 
 async function fetchSettings() {
-  const dbSettings = await prisma.setting.findMany()
+  const dbSettings = await getSettings()
   for (let i = 0; i < dbSettings.length; i++) {
     const setting = dbSettings[i]
-    switch (setting.name) {
-      case 'client_id':
-        settings.client_id = setting.value
-        break
-      case 'client_secret':
-        settings.client_secret = setting.value
-        break
-      case 'api_key':
-        settings.api_key = setting.value
-        break
-      case 'token_expiry':
-        settings.token_expiry = setting.value as unknown as number
-        break
-      case 'auth':
-        if (setting.value === 'true') {
-          settings.auth = true
-        } else {
-          settings.auth = false
+    if (setting) {
+        switch (setting.name) {
+        case 'client_id':
+            settings.client_id = setting.value
+            break
+        case 'client_secret':
+            settings.client_secret = setting.value
+            break
+        case 'api_key':
+            settings.api_key = setting.value
+            break
+        case 'token_expiry':
+            settings.token_expiry = setting.value as unknown as number
+            break
+        case 'auth':
+            if (setting.value === 'true') {
+            settings.auth = true
+            } else {
+            settings.auth = false
+            }
+            break
         }
-        break
     }
   }
 }

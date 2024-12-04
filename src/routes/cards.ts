@@ -1,15 +1,14 @@
 import express, { Request, Response } from 'express'
 const router = express.Router()
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse } from '../app.js'
 import { v4 as uuidv4 } from 'uuid'
 import emu from 'programmable-card-code-emulator'
-import { ExecutionItem } from '../types.js'
+import { ExecutionItem, Card } from '../types.js'
+import { createCard, createExecution, createExecutionLog, deleteCard, getCard, getCardCode, getCards, getCountries, getCurrencies, getExecutionLogs, getExecutions, getMerchants, updateCode, updateEnvs, updateProgrammable } from '../db.js'
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const result = await prisma.card.findMany()
+    const result = await getCards()
     const cards = Array()
     result.forEach(card => {
       cards.push({
@@ -31,7 +30,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    let card = {
+    let card: Card = {
       cardKey: uuidv4(),
       cardNumber: '1234567890123456',
       isProgrammable: false,
@@ -48,19 +47,13 @@ router.post('/', async (req: Request, res: Response) => {
       card.cardKey = uuidv4()
     }
     // check that the account exists
-    const cardcheck = await prisma.card.findFirst({
-      where: {
-        cardKey: card.cardKey,
-      },
-    })
+    const cardcheck = await getCard(card.cardKey)
     if (cardcheck) {
       console.log('card found')
       return formatErrorResponse(req, res, 409) // account was found
     }
     // insert the transaction
-    await prisma.card.create({
-      data: card,
-    })
+    await createCard(card)
 
     return formatResponse(card, req, res)
   } catch (error) {
@@ -72,22 +65,17 @@ router.post('/', async (req: Request, res: Response) => {
 router.delete('/:cardKey', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the account exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
     // remove the transactions
-    await prisma.card.delete({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    await deleteCard(cardKey)
     return res.status(200).json()
   } catch (error) {
     console.log(error)
@@ -98,21 +86,16 @@ router.delete('/:cardKey', async (req: Request, res: Response) => {
 router.get('/:cardKey/code', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the card exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const cardCode = await prisma.cardCode.findFirst({
-      where: {
-        codeId: card.savedCode,
-      },
-    })
+    const cardCode = await getCardCode(card.savedCode)
     return formatResponse({ cardCode }, req, res)
   } catch (error) {
     console.log(error)
@@ -123,12 +106,11 @@ router.get('/:cardKey/code', async (req: Request, res: Response) => {
 router.post('/:cardKey/code', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the card exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
@@ -137,14 +119,7 @@ router.post('/:cardKey/code', async (req: Request, res: Response) => {
     if (code === undefined) {
       code = ''
     }
-    const cardCode = await prisma.cardCode.update({
-      where: {
-        codeId: card.savedCode,
-      },
-      data: {
-        code: code,
-      },
-    })
+    const cardCode = await updateCode(card.savedCode, code)
     return formatResponse({ cardCode }, req, res)
   } catch (error) {
     console.log(error)
@@ -155,21 +130,16 @@ router.post('/:cardKey/code', async (req: Request, res: Response) => {
 router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the card exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const cardCode = await prisma.cardCode.findFirst({
-      where: {
-        codeId: card.publishedCode,
-      },
-    })
+    const cardCode = await getCardCode(card.publishedCode)
     return formatResponse({ cardCode }, req, res)
   } catch (error) {
     console.log(error)
@@ -180,12 +150,11 @@ router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
 router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the card exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
@@ -195,14 +164,7 @@ router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
       code = ''
     }
 
-    const cardCode = await prisma.cardCode.update({
-      where: {
-        codeId: card.publishedCode,
-      },
-      data: {
-        code: code,
-      },
-    })
+    const cardCode = await updateCode(card.publishedCode, code)
     const data = { cardCode }
     return formatResponse(data, req, res)
   } catch (error) {
@@ -216,12 +178,11 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const cardKey = req.params.cardKey
+      if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
       // check that the card exists
-      const card = await prisma.card.findFirst({
-        where: {
-          cardKey: cardKey,
-        },
-      })
+      const card = await getCard(cardKey)
       if (!card) {
         console.log('no card found')
         return formatErrorResponse(req, res, 404) // no account was found
@@ -230,14 +191,7 @@ router.post(
       if (enabled !== true) {
         enabled = false
       }
-      await prisma.card.update({
-        where: {
-          cardKey: cardKey,
-        },
-        data: {
-          isProgrammable: enabled,
-        },
-      })
+      await updateProgrammable(cardKey, enabled)
       return res.json({ Enabled: enabled })
     } catch (error) {
       console.log(error)
@@ -251,12 +205,11 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const cardKey = req.params.cardKey
+      if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
       // check that the card exists
-      const card = await prisma.card.findFirst({
-        where: {
-          cardKey: cardKey,
-        },
-      })
+      const card = await getCard(cardKey)
       if (!card) {
         console.log('no card found')
         return formatErrorResponse(req, res, 404) // no account was found
@@ -286,12 +239,11 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const cardKey = req.params.cardKey
+      if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+        }
       // check that the card exists
-      const card = await prisma.card.findFirst({
-        where: {
-          cardKey: cardKey,
-        },
-      })
+      const card = await getCard(cardKey)
       if (!card) {
         console.log('no card found')
         return formatErrorResponse(req, res, 404) // no account was found
@@ -300,14 +252,7 @@ router.post(
       if (vars === undefined) {
         vars = '{}'
       }
-      await prisma.card.update({
-        where: {
-          cardKey: cardKey,
-        },
-        data: {
-          envs: vars,
-        },
-      })
+      await updateEnvs(cardKey, vars)
       const data = {
         result: {
           variables: JSON.parse(vars),
@@ -327,12 +272,11 @@ router.post(
 router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the card exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
@@ -355,8 +299,7 @@ router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
     // console.log(result)
     for (const element of result) {
       // console.log(element)
-      await prisma.cardExecution.create({
-        data: {
+      await createExecution({
           executionId: element.executionId,
           cardKey: cardKey,
           rootCodeFunctionId: element.rootCodeFunctionId,
@@ -366,22 +309,19 @@ router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
           smsCount: element.smsCount,
           emailCount: element.emailCount,
           pushNotificationCount: element.pushNotificationCount,
-          createdAt: element.createdAt,
-          startedAt: element.startedAt,
-          completedAt: element.completedAt,
-          updatedAt: element.updatedAt,
-        },
+          createdAt: new Date(element.createdAt),
+          startedAt: new Date(element.startedAt),
+          completedAt: new Date(element.completedAt),
+          updatedAt: new Date(element.updatedAt),
       })
       for (const logItem of element.logs) {
-        await prisma.cardExecutionLog.create({
-          data: {
+        await createExecutionLog({
             logId: uuidv4(),
             executionId: element.executionId,
             level: logItem.level,
             content: logItem.content,
             createdAt: logItem.createdAt,
-          },
-        })
+          })
       }
     }
 
@@ -398,21 +338,16 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const cardKey = req.params.cardKey
+      if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+        }
       // check that the card exists
-      const card = await prisma.card.findFirst({
-        where: {
-          cardKey: cardKey,
-        },
-      })
+      const card = await getCard(cardKey)
       if (!card) {
         console.log('no card found')
         return formatErrorResponse(req, res, 404) // no account was found
       }
-      const cardCode = await prisma.cardCode.findFirst({
-        where: {
-          codeId: card.publishedCode,
-        },
-      })
+      const cardCode = await getCardCode(card.publishedCode)
       const simulationPayload = req.body
       const code = cardCode?.code ?? ''
       const transaction = emu.createTransaction(
@@ -430,8 +365,7 @@ router.post(
         if (element.type === 'after_transaction') {
           transactionResult = true
         }
-        await prisma.cardExecution.create({
-          data: {
+        await createExecution({
             executionId: element.executionId,
             cardKey: cardKey,
             rootCodeFunctionId: element.rootCodeFunctionId,
@@ -441,21 +375,18 @@ router.post(
             smsCount: element.smsCount,
             emailCount: element.emailCount,
             pushNotificationCount: element.pushNotificationCount,
-            createdAt: element.createdAt,
-            startedAt: element.startedAt,
-            completedAt: element.completedAt,
-            updatedAt: element.updatedAt,
-          },
-        })
+            createdAt: new Date(element.createdAt),
+            startedAt: new Date(element.startedAt),
+            completedAt: new Date(element.completedAt),
+            updatedAt: new Date(element.updatedAt),
+          })
         for (const logItem of element.logs) {
-          await prisma.cardExecutionLog.create({
-            data: {
-              logId: uuidv4(),
-              executionId: element.executionId,
-              level: logItem.level,
-              content: logItem.content,
-              createdAt: logItem.createdAt,
-            },
+          await createExecutionLog({
+            logId: uuidv4(),
+            executionId: element.executionId,
+            level: logItem.level,
+            content: logItem.content,
+            createdAt: logItem.createdAt,
           })
         }
       }
@@ -472,30 +403,29 @@ router.post(
 router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
   try {
     const cardKey = req.params.cardKey
+    if (!cardKey) {
+        return formatErrorResponse(req, res, 404) // no account was found
+    }
     // check that the card exists
-    const card = await prisma.card.findFirst({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const card = await getCard(cardKey)
     if (!card) {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const executions = await prisma.cardExecution.findMany({
-      where: {
-        cardKey: cardKey,
-      },
-    })
+    const executions = await getExecutions(cardKey)
     const executionsArr: ExecutionItem[] =
       executions as unknown as ExecutionItem[]
     for (let i = 0; i < executionsArr.length; i++) {
-      const logs = await prisma.cardExecutionLog.findMany({
-        where: {
-          executionId: executions[i].executionId,
-        },
-      })
-      executionsArr[i].logs = logs
+        const execution = executionsArr[i]
+        if (!execution) {
+            continue
+        }
+        const executionInner = executions[i]
+        if (!executionInner) {
+            continue
+        }
+        const logs = await getExecutionLogs(executionInner.executionId)
+        execution.logs = logs
     }
     const data = { executions }
     return formatResponse(data, req, res)
@@ -507,7 +437,7 @@ router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
 
 router.get('/countries', async (req: Request, res: Response) => {
   try {
-    const result = await prisma.country.findMany()
+    const result = await getCountries()
     const data = { result }
     return formatResponse(data, req, res)
   } catch (error) {
@@ -518,7 +448,7 @@ router.get('/countries', async (req: Request, res: Response) => {
 
 router.get('/currencies', async (req: Request, res: Response) => {
   try {
-    const result = await prisma.currency.findMany()
+    const result = await getCurrencies()
     const data = { result }
     return formatResponse(data, req, res)
   } catch (error) {
@@ -529,7 +459,7 @@ router.get('/currencies', async (req: Request, res: Response) => {
 
 router.get('/merchants', async (req: Request, res: Response) => {
   try {
-    const result = await prisma.merchant.findMany()
+    const result = await getMerchants()
     const data = { result }
     return formatResponse(data, req, res)
   } catch (error) {

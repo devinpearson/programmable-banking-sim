@@ -1,12 +1,12 @@
 import { PrismaClient } from '@prisma/client'
-import { seedCurrencies } from './currency'
-import { seedCountries } from './country'
-import { seedMerchants } from './merchant'
-import { seedAccounts } from './account'
-import { seedTransactions } from './transaction'
-import { seedSettings } from './settings'
-import { seedCardCodes } from './card-code'
-import { seedCards } from './card'
+import { seedCurrencies } from './currency.js'
+import { seedCountries } from './country.js'
+import { seedMerchants } from './merchant.js'
+import { seedAccounts } from './account.js'
+import { seedTransactions } from './transaction.js'
+import { seedSettings } from './settings.js'
+import { seedCardCodes } from './card-code.js'
+import { seedCards } from './card.js'
 
 const prisma = new PrismaClient()
 
