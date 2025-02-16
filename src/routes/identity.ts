@@ -3,12 +3,14 @@ const router = express.Router()
 import {
   accessTokens,
   authorizationCodes,
+  sessionTokens,
   refreshTokens,
   settings,
   formatErrorResponse,
 } from '../app.js'
 import dayjs from 'dayjs'
 import { AuthorizationCode } from '../types.js'
+import { createHmac } from 'crypto'
 
 router.post('/v2/oauth2/token', (req: Request, res: Response) => {
   try {
@@ -110,18 +112,23 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
   if (settings.client_id !== req.query.client_id) {
     return formatErrorResponse(req, res, 401)
   }
+  const secret = 'abcdefg';
+  const hash = createHmac('sha256', secret)
+               .update('I love cupcakes')
+               .digest('hex');
   // const responseType = req.query.response_type
   authorizationCodes[authorizationCode.code] = authorizationCode
-
-  // return res.json({ Location: "localhost:3000/login?qsp=" + uuid}).redirect(302, 'localhost:3000/login?qsp=' + uuid)
-  return res.redirect(
-    302,
-    authorizationCode.redirect_uri +
-      '?authorizationCode=' +
-      authorizationCode.code +
-      '&status=SUCCESS&code=' +
-      authorizationCode.code,
-  )
+  sessionTokens[hash] = authorizationCode
+  return res.redirect(302, 'localhost:3000/login?qsp=' + hash)
+  return res.json({ Location: "localhost:3000/login?qsp=" + hash}).redirect(302, 'localhost:3000/login?qsp=' + hash)
+//   return res.redirect(
+//     302,
+//     authorizationCode.redirect_uri +
+//       '?authorizationCode=' +
+//       authorizationCode.code +
+//       '&status=SUCCESS&code=' +
+//       authorizationCode.code,
+//   )
 })
 
 function generateToken() {

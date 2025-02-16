@@ -45,6 +45,7 @@ app.use(express.static('public'))
 export const accessTokens = {} as Record<string, AccessToken>
 export const authorizationCodes = {} as Record<string, AuthorizationCode>
 export const refreshTokens = [] as string[]
+export const sessionTokens = {} as Record<string, AuthorizationCode>
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -105,11 +106,23 @@ app.post('/login', (req, res) => {
   const email = req.body.email
   const password = req.body.password
   if (email === 'admin@example.com' && password === 'admin') {
-    return res.redirect('/wpaas/prog-banking-wpaas/oauth-consent')
+    return res.redirect('/wpaas/prog-banking-wpaas/oauth-consent?qsp=' + req.body.qsp)
   } else {
-    return res.redirect('/login')
+    return res.redirect('/login?qsp=' + req.body.qsp)
   }
 })
+
+app.get('/decline', (req, res) => {
+    const authorizationCode = sessionTokens[req.query.qsp as string]
+    if (authorizationCode)
+    return res.redirect(
+        302,
+        'http://'+authorizationCode.redirect_uri +
+          '?authorizationCode=' +
+          '&status=ERROR&code=' +
+          '&error=invalid_scope',
+      )
+  })
 
 // screen where the scopes and accounts are selected
 app.get(

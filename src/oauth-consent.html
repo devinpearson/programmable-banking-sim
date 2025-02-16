@@ -31,41 +31,25 @@
         </div>
     </div>
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-      <form class="space-y-6" action="/oauth" method="POST">
+      <form class="space-y-6"  action="#" @submit.prevent="" method="POST">
         <div class="border-b border-gray-200 pb-5">
         <fieldset>
             <legend class="sr-only">Mr J Soap</legend>
             <div class="space-y-5">
-              <div class="relative flex items-start">
+              <div  v-for="account in accounts" class="relative flex items-start">
                 <div class="flex h-6 items-center">
-                  <input id="10012420003" name="10012420003" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                  <input :id="account.accountName" :name="account.accountName" :value="account.accountNumber" v-model="selectedAccounts" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
                 </div>
                 <div class="ml-3 text-sm leading-6">
-                  <label for="10012420004" class="font-medium text-gray-900">Mr J Soap - 10012420003</label>
-                </div>
-              </div>
-              <div class="relative flex items-start">
-                <div class="flex h-6 items-center">
-                  <input id="10012420004" name="10012420004" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
-                </div>
-                <div class="ml-3 text-sm leading-6">
-                  <label for="10012420004" class="font-medium text-gray-900">Mr J Soap - 10012420004</label>
-                </div>
-              </div>
-              <div class="relative flex items-start">
-                <div class="flex h-6 items-center">
-                  <input id="10012420005" name="offers" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
-                </div>
-                <div class="ml-3 text-sm leading-6">
-                  <label for="10012420005" class="font-medium text-gray-900">Mr J Soap - 10012420005</label>
+                  <label :for="account.accountName" class="font-medium text-gray-900">{{account.accountName}} - {{account.accountNumber}}</label>
                 </div>
               </div>
             </div>
           </fieldset>
         </div>
         <div class="mt-3 flex sm:ml-4 sm:mt-0 w-full">
-            <button type="submit" class="grow w-full justify-center rounded-md bg-white px-3 py-1.5 text-sm font-semibold leading-6 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Decline</button>
-          <button type="submit" class="grow ml-3 w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Authorize</button>
+            <button @click="submit('decline')" class="grow w-full justify-center rounded-md bg-white px-3 py-1.5 text-sm font-semibold leading-6 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Decline</button>
+          <button @click="submit('submit')" class="grow ml-3 w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Authorize</button>
         </div>
       </form>
   
@@ -74,3 +58,56 @@
       </p>
     </div>
   </div>
+  </div>
+  <script type="module">
+    import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+  
+    createApp({
+      setup() {
+      },
+      data() {
+        return {
+            socket: null,
+            messages: null,
+            accounts: ref([]),
+            selectedAccounts: ref([]),
+            qsp: ref(),
+        }
+      },
+        mounted() {
+            let params = new URLSearchParams(document.location.search);
+            this.qsp = params.get("qsp")
+            this.fetchAccounts();
+        },
+      methods: {
+        fetchAccounts() {
+          fetch('/za/pb/v1/accounts')
+            .then(response => response.json())
+            .then(data => {
+              this.accounts = data.data.accounts;
+            });
+        },
+        async submit(action) {
+            if (action=== "submit"){
+                this.$alert('delete is called, update should not');
+                // submit request 
+                // permissions
+                // selectedAccounts
+                // window.location.href = '/approve?qsp=' + this.qsp;
+                return;
+            }else{
+                window.location.href = '/decline?qsp=' + this.qsp;
+            }
+        },
+        toast(msg) {
+            this.alertMessage = msg;
+            setTimeout(function () { this.alertMessage = null }.bind(this), 3000)
+        },
+        clearToast() {
+            this.alertMessage = null;
+        },
+      },
+    }).mount('#app')
+  </script>
+   </body>
+   </html>

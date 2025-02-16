@@ -28,6 +28,7 @@ cd programmable-banking-sim
 npm install
 ```
 ## DevContainer (VSCode)
+VS Code will automatically detect the `.devcontainer` folder and prompt you to open the project in a container. This will set up the environment for you to run the server in a Docker container. 
 ```bash
 docker-compose -f .devcontainer/docker-compose.yml up
 ```

@@ -23,20 +23,20 @@
     </div>
   
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-      <form class="space-y-6" action="/login" method="POST">
+      <form class="space-y-6" :action="loginUrl" method="POST">
         <div>
           <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>
           <div class="mt-2">
-            <input id="email" name="email" type="email" autocomplete="email" value="admin@example.com" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            <input v-model="email" id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
           </div>
         </div>
-  
+            <input type="hidden" name="qsp" v-model="qsp"></input>
         <div>
           <div class="flex items-center justify-between">
             <label for="password" class="block text-sm font-medium leading-6 text-gray-900">Password</label>
           </div>
           <div class="mt-2">
-            <input id="password" name="password" type="password" value="admin" autocomplete="current-password" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            <input v-model="password" id="password" name="password" type="password" autocomplete="current-password" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
           </div>
         </div>
   
@@ -50,3 +50,42 @@
       </p>
     </div>
   </div>
+  <script type="module">
+    import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+    createApp({
+      setup() {
+      },
+      data() {
+        return {
+            email: 'admin@example.com',
+            password: 'admin',
+            qsp: ref(),
+            loginUrl: ref()
+        }
+      },
+        mounted() {
+            let params = new URLSearchParams(document.location.search);
+            this.qsp = params.get("qsp")
+            this.loginUrl = "/login?qsp=" + this.qsp
+            console.log(this.qsp)
+        },
+      methods: {
+        mySubmitMethod() {
+          if (this.email && this.password) {
+            this.$refs.form.
+            this.$refs.form.submit()
+          }
+          this.toast('Environmental Variables Updated')
+        },
+        toast(msg) {
+            this.alertMessage = msg;
+            setTimeout(function () { this.alertMessage = null }.bind(this), 3000)
+        },
+        clearToast() {
+            this.alertMessage = null;
+        },
+      },
+    }).mount('#app')
+  </script>
+</body>
+</html>
