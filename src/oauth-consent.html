@@ -88,15 +88,14 @@
             });
         },
         async submit(action) {
-            if (action=== "submit"){
-                this.$alert('delete is called, update should not');
-                // submit request 
-                // permissions
-                // selectedAccounts
-                // window.location.href = '/approve?qsp=' + this.qsp;
+            if (action === "submit"){
+                // Include selected accounts in the approval
+                const selectedAccountsParam = this.selectedAccounts.length > 0 ? 
+                    '&selectedAccounts=' + encodeURIComponent(JSON.stringify(this.selectedAccounts)) : '';
+                window.location.href = '/identity/approve?qsp=' + this.qsp + selectedAccountsParam;
                 return;
-            }else{
-                window.location.href = '/decline?qsp=' + this.qsp;
+            } else {
+                window.location.href = '/identity/decline?qsp=' + this.qsp;
             }
         },
         toast(msg) {
