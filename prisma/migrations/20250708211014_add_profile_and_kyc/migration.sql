@@ -1,14 +1,3 @@
-/*
-  Warnings:
-
-  - Added the required column `profileId` to the `Account` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `profileName` to the `Account` table without a default value. This is not possible if the table is not empty.
-
-*/
--- Default profile values
--- Profile ID: 10001234567890 (14 digits starting with 1000)
--- Profile Name: Joe Soap
-
 -- CreateTable
 CREATE TABLE "Profile" (
     "profileId" TEXT NOT NULL PRIMARY KEY,
