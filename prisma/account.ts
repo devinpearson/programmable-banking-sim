@@ -9,6 +9,9 @@ const accountData: Prisma.AccountCreateInput[] = [
     accountName: 'Mr J Soap',
     referenceName: 'Mr J Soap',
     productName: 'Private Bank Account',
+    kycCompliant: true,
+    profileId: '10001234567890',
+    profileName: 'Joe Soap',
   },
   {
     accountId: '4675778129910189600000004',
@@ -16,6 +19,9 @@ const accountData: Prisma.AccountCreateInput[] = [
     accountName: 'Mr J Soap',
     referenceName: 'Mr J Soap',
     productName: 'PrimeSaver',
+    kycCompliant: true,
+    profileId: '10001234567890',
+    profileName: 'Joe Soap',
   },
   {
     accountId: '4675778129910189600000005',
@@ -23,6 +29,9 @@ const accountData: Prisma.AccountCreateInput[] = [
     accountName: 'Mr J Soap',
     referenceName: 'Mr J Soap',
     productName: 'Cash Management Account',
+    kycCompliant: true,
+    profileId: '10001234567890',
+    profileName: 'Joe Soap',
   },
   {
     accountId: '4675778129910189600000006',
@@ -30,6 +39,9 @@ const accountData: Prisma.AccountCreateInput[] = [
     accountName: 'Mr J Soap',
     referenceName: 'Mr J Soap',
     productName: 'Mortgage Loan Account',
+    kycCompliant: true,
+    profileId: '10001234567890',
+    profileName: 'Joe Soap',
   },
   {
     accountId: '4675778129910189600000007',
@@ -37,6 +49,9 @@ const accountData: Prisma.AccountCreateInput[] = [
     accountName: 'Mr J Soap',
     referenceName: 'Mr J Soap',
     productName: 'Instalment Sale Loan Account',
+    kycCompliant: true,
+    profileId: '10001234567890',
+    profileName: 'Joe Soap',
   },
 ]
 
