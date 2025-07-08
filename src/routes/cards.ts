@@ -10,7 +10,7 @@ import { ExecutionItem } from '../types.js'
 router.get('/', async (req: Request, res: Response) => {
   try {
     const result = await prisma.card.findMany()
-    const cards = Array()
+    const cards = []
     result.forEach(card => {
       cards.push({
         CardKey: card.cardKey,

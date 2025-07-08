@@ -12,6 +12,9 @@ describe('Test the accounts', () => {
       accountName: 'Mr J Soap',
       referenceName: 'Mr J Soap',
       productName: 'Mortgage Loan Account',
+      kycCompliant: true,
+      profileId: '10001234567890',
+      profileName: 'Joe Soap',
     })
   })
 
