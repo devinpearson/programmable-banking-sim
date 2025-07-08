@@ -22,6 +22,7 @@ import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
 import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
+import { seedProfiles } from '../prisma/profile.js'
 
 dotenv.config()
 
@@ -67,6 +68,8 @@ io.on('connection', socket => {
         await prisma.beneficiary.deleteMany()
         await prisma.card.deleteMany()
         await prisma.cardCode.deleteMany()
+        await prisma.profile.deleteMany()
+        await emitDatabaseSummary()
         break
       case 'restore':
         await prisma.account.deleteMany()
@@ -74,11 +77,14 @@ io.on('connection', socket => {
         await prisma.beneficiary.deleteMany()
         await prisma.card.deleteMany()
         await prisma.cardCode.deleteMany()
+        await prisma.profile.deleteMany()
+        seedProfiles()
         seedAccounts()
         seedTransactions()
         seedBeneficiaries()
         seedCards()
         seedCardCodes()
+        await emitDatabaseSummary()
         break
     }
     //io.emit('control', settings);
@@ -202,6 +208,29 @@ app.get('/envs', async (req: Request, res: Response) => {
   }
 })
 
+app.get('/database-summary', async (req: Request, res: Response) => {
+  try {
+    const [profileCount, accountCount, cardCount, transactionCount] = await Promise.all([
+      prisma.profile.count(),
+      prisma.account.count(),
+      prisma.card.count(),
+      prisma.transaction.count()
+    ])
+    
+    const summary = {
+      profiles: profileCount,
+      accounts: accountCount,
+      cards: cardCount,
+      transactions: transactionCount
+    }
+    
+    return formatResponse(summary, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
 function isValidToken(req: Request) {
   if (settings.auth !== true) {
     return true
@@ -223,20 +252,45 @@ function isValidToken(req: Request) {
   return false
 }
 
+export async function emitDatabaseSummary() {
+  try {
+    const [profileCount, accountCount, cardCount, transactionCount] = await Promise.all([
+      prisma.profile.count(),
+      prisma.account.count(),
+      prisma.card.count(),
+      prisma.transaction.count()
+    ])
+    
+    const summary = {
+      profiles: profileCount,
+      accounts: accountCount,
+      cards: cardCount,
+      transactions: transactionCount
+    }
+    
+    io.sockets.emit('database-summary', summary)
+  } catch (error) {
+    console.log('Error emitting database summary:', error)
+  }
+}
+
 export function formatResponse (data: unknown, req: Request, res: Response) {
   const date = new Date()
-  io.sockets.emit(
-    messageQueue,
-    date.toUTCString() +
-      ' ' +
-      req.method +
-      ' ' +
-      req.url +
-      ' HTTP/' +
-      req.httpVersion +
-      ' ' +
-      res.statusCode,
-  )
+  // Don't log database-summary calls as they're internal dashboard calls
+  if (req.originalUrl !== '/database-summary') {
+    io.sockets.emit(
+      messageQueue,
+      date.toUTCString() +
+        ' ' +
+        req.method +
+        ' ' +
+        req.originalUrl +
+        ' HTTP/' +
+        req.httpVersion +
+        ' ' +
+        res.statusCode,
+    )
+  }
   return res.json({
     data,
     links: {
@@ -255,7 +309,7 @@ export function formatErrorResponse(req: Request, res: Response, code: number) {
       ' ' +
       req.method +
       ' ' +
-      req.url +
+      req.originalUrl +
       ' HTTP/' +
       req.httpVersion +
       ' ' +
