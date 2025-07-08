@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 const router = express.Router()
 import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
-import { formatResponse, formatErrorResponse } from '../app.js'
+import { formatResponse, formatErrorResponse, emitDatabaseSummary } from '../app.js'
 import { Investec } from 'programmable-banking-faker'
 import { TransactionType, BalanceResponse } from '../types.js'
 
@@ -291,6 +291,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
     const transaction = await prisma.transaction.create({
       data: randomTx,
     })
+    await emitDatabaseSummary()
     return formatResponse(transaction, req, res)
   } catch (error) {
     console.log(error)
@@ -348,6 +349,7 @@ router.delete('/:accountId/transactions/:postingDate',
           postingDate: postingDate,
         },
       })
+      await emitDatabaseSummary()
 
       return res.status(200).json()
     } catch (error) {
@@ -376,6 +378,7 @@ router.post('/', async (req: Request, res: Response) => {
     await prisma.account.create({
       data: account,
     })
+    await emitDatabaseSummary()
 
     return formatResponse(account, req, res)
   } catch (error) {
@@ -409,6 +412,7 @@ router.delete('/:accountId', async (req: Request, res: Response) => {
         accountId: accountId,
       },
     })
+    await emitDatabaseSummary()
 
     return res.status(200).json()
   } catch (error) {

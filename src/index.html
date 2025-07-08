@@ -66,6 +66,23 @@
                     <button type="button" @click="restoreMethod" class="block rounded-md bg-gray-900 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">Reset DB</button>
                   </div>
               </div>
+            <!-- Database Summary -->
+            <div class="mt-4 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
+                <div class="px-4 py-5 sm:p-6">
+                    <h2 class="text-lg font-semibold leading-6 text-gray-900">Database Summary</h2>
+                </div>
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium">Profiles:</span> <span class="font-semibold text-gray-900">{{ summary.profiles || 0 }}</span>
+                        <span style="margin: 0 2rem;"></span>
+                        <span class="font-medium">Accounts:</span> <span class="font-semibold text-gray-900">{{ summary.accounts || 0 }}</span>
+                        <span style="margin: 0 2rem;"></span>
+                        <span class="font-medium">Cards:</span> <span class="font-semibold text-gray-900">{{ summary.cards || 0 }}</span>
+                        <span style="margin: 0 2rem;"></span>
+                        <span class="font-medium">Transactions:</span> <span class="font-semibold text-gray-900">{{ summary.transactions || 0 }}</span>
+                    </div>
+                </div>
+            </div>
             <!-- Server Logs -->
             <div class="mt-4 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
                 <div class="px-4 py-5 sm:p-6">
@@ -146,6 +163,12 @@
                 token_expiry: 1799,
                 auth: false,
                 alertMessage: null,
+                summary: {
+                    profiles: 0,
+                    accounts: 0,
+                    cards: 0,
+                    transactions: 0
+                }
             }
           },
             mounted() {
@@ -168,7 +191,11 @@
                         this.auth = false;
                     }
                 });
+                this.socket.on('database-summary', (msg) => {
+                    this.summary = msg;
+                });
                 this.fetchEnv();
+                this.fetchSummary();
             },
           methods: {
             fetchEnv() {
@@ -184,6 +211,13 @@
                   } else {
                     this.auth = false;
                   }
+                });
+            },
+            fetchSummary() {
+              fetch('/database-summary')
+                .then(response => response.json())
+                .then(data => {
+                  this.summary = data.data;
                 });
             },
             mySubmitMethod() {
@@ -203,14 +237,16 @@
                     action: 'clear',
                     message: '',
                 });
-                this.toast('Database cleared')
+                this.toast('Database cleared');
+                setTimeout(() => this.fetchSummary(), 500);
             },
             restoreMethod() {
                 this.socket.emit('control', {
                     action: 'restore',
                     message: '',
                 });
-                this.toast('Database Reseeded')
+                this.toast('Database Reseeded');
+                setTimeout(() => this.fetchSummary(), 500);
             },
             toast(msg) {
                 this.alertMessage = msg;
