@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { seedCurrencies } from './currency'
 import { seedCountries } from './country'
 import { seedMerchants } from './merchant'
+import { seedProfiles } from './profile'
 import { seedAccounts } from './account'
 import { seedTransactions } from './transaction'
 import { seedSettings } from './settings'
@@ -16,6 +17,7 @@ async function main() {
   await seedCurrencies()
   await seedCountries()
   await seedMerchants()
+  await seedProfiles()
   await seedAccounts()
   await seedTransactions()
   await seedCards()
