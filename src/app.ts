@@ -26,7 +26,6 @@ import { seedCardCodes } from '../prisma/card-code.js'
 dotenv.config()
 
 export const port = process.env.PORT || 3000
-// const dbFile = process.env.DB_FILE || 'investec.db'
 // const overdraft = process.env.OVERDRAFT || 5000
 const prisma = new PrismaClient()
 export const app = express()
