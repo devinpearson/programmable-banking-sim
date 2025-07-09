@@ -7,12 +7,20 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+model Profile {
+    profileId String @id
+    profileName String
+}
+
 model Account {
     accountId String @id
     accountNumber String
     accountName String
     referenceName String
     productName String
+    kycCompliant Boolean @default(true)
+    profileId String
+    profileName String
 }
 
 model Transaction {

@@ -3,3 +3,6 @@
 .env
 **.db-shm
 **.db-wal
+**.db-journal
+CLAUDE.md
+.idea
