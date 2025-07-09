@@ -9,7 +9,7 @@ export default [
       '@stylistic/js': stylisticJs,
     },
     rules: {
-      '@stylistic/js/max-len': 120,
+      '@stylistic/js/max-len': ['error', { code: 120 }],
     },
   },
   { files: ['**/*.{js,mjs,cjs,ts}'] },
