@@ -112,14 +112,35 @@
                             </div>
                             <div class="sm:col-span-4">
                                 <label for="client_secret" class="block text-sm font-medium leading-6 text-gray-900">Client Secret</label>
-                                <div class="mt-2">
-                                    <input v-model="client_secret" id="client_secret" name="client_secet" type="input" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6" />
+                                <div class="mt-2 flex gap-2">
+                                    <input v-model="client_secret" id="client_secret" name="client_secet" :type="showClientSecret ? 'text' : 'password'" required="" class="block w-full px-3 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6" />
+                                    <button type="button" @click="toggleClientSecretVisibility" class="flex items-center justify-center px-3 py-1.5 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                        <svg v-if="!showClientSecret" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                             <div class="col-span-full">
                                 <label for="api_key" class="block text-sm font-medium leading-6 text-gray-900">API Key</label>
-                                <div class="mt-2">
-                                    <textarea v-model="api_key" id="api_key" name="api_key" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm"></textarea>
+                                <div class="mt-2 flex gap-2">
+                                    <textarea v-if="showApiKey" v-model="api_key" id="api_key" name="api_key" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm"></textarea>
+                                    <div v-else class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm min-h-[72px] bg-white flex items-start pt-1.5 px-3" style="font-family: inherit; letter-spacing: normal; font-size: 14px; line-height: 1.5;">
+                                        <span style="word-break: break-all;">{{ api_key ? '•'.repeat(api_key.length) : '' }}</span>
+                                    </div>
+                                    <button type="button" @click="toggleApiKeyVisibility" class="flex items-center justify-center px-3 py-1.5 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                        <svg v-if="!showApiKey" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                             <div class="col-span-2">
@@ -163,6 +184,8 @@
                 token_expiry: 1799,
                 auth: false,
                 alertMessage: null,
+                showClientSecret: false,
+                showApiKey: false,
                 summary: {
                     profiles: 0,
                     accounts: 0,
@@ -254,6 +277,12 @@
             },
             clearToast() {
                 this.alertMessage = null;
+            },
+            toggleClientSecretVisibility() {
+                this.showClientSecret = !this.showClientSecret;
+            },
+            toggleApiKeyVisibility() {
+                this.showApiKey = !this.showApiKey;
             },
           },
         }).mount('#app')
