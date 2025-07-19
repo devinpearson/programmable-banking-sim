@@ -4,6 +4,22 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Programmable Sandbox Sim</title>
     <link href="/output.css" rel="stylesheet">
+    <style>
+        .logs-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .logs-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .logs-container::-webkit-scrollbar-thumb {
+            background: #9ca3af;
+            border-radius: 4px;
+        }
+        .logs-container::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
 <script async defer src="https://buttons.github.io/buttons.js"></script>
   </head>
   <body class="h-full antialiased light bg-gray-100">
@@ -84,17 +100,19 @@
                 </div>
             </div>
             <!-- Server Logs -->
-            <div class="mt-4 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
+            <div class="mt-4 divide-y divide-gray-200 rounded-lg bg-white shadow">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-semibold leading-6 text-gray-900">Server Logs</h2>
                 </div>
                 <div class="px-4 py-5 sm:p-6">
-                    <ul role="list" id="messages" v-if="messages" class="divide-y divide-gray-200">
-                        <li v-for="item in messages" class="even:bg-gray-50 odd:bg-white">
-                            {{ item }}
-                        </li>
-                    </ul>
-                    <p v-else>No logs available. Send a request to view here.</p>
+                    <div ref="logsContainer" class="logs-container border border-gray-200 rounded bg-gray-50" style="height: 300px !important; overflow-y: scroll !important; overflow-x: hidden !important; scrollbar-width: auto !important; -webkit-overflow-scrolling: touch;">
+                        <ul role="list" id="messages" v-if="messages" class="divide-y divide-gray-200" style="min-height: 350px;">
+                            <li v-for="item in messages" class="even:bg-gray-50 odd:bg-white px-3 py-2">
+                                {{ item }}
+                            </li>
+                        </ul>
+                        <p v-else class="px-3 py-2 text-gray-500" style="min-height: 350px;">No logs available. Send a request to view here.</p>
+                    </div>
                 </div>
             </div>
             <!-- Environment Variables -->
@@ -201,7 +219,12 @@
                         this.messages = [];
                     }
                     this.messages.push(msg);
-                    // window.scrollTo(0, document.body.scrollHeight);
+                    this.$nextTick(() => {
+                        const container = this.$refs.logsContainer;
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
                 });
                 this.socket.on('envs', (msg) => {
                     this.client_id = msg.client_id;
