@@ -45,7 +45,7 @@ npm run dev
 
 This will start the simulator on http://localhost:3000
 
-Accessing the room of the domain will show the dashboard view of the server. The dashboard allows you to set the environment variables for the server and view the logs of the server.
+Accessing the root of the domain will show the dashboard view of the server. The dashboard allows you to set the environment variables for the server and view the logs of the server.
 
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
@@ -54,6 +54,8 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 ### Dashboard
 - **GET /**
     - Dashboard view of the server
+- **GET /health**
+    - Health check endpoint returning service status
 ### Auth
 - **POST /identity/v2/oauth2/token**
     - Get an access token (only required if auth is turned on)
