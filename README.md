@@ -107,6 +107,10 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
     - Create a new account
 - **DELETE /za/pb/v1/accounts/:accountId**
     - Deletes the account and its transactions
+- **POST /za/pb/v1/accounts/beneficiaries**
+    - Create a new beneficiary
+- **DELETE /za/pb/v1/accounts/beneficiaries/:beneficiaryId**
+    - Delete a beneficiary
 - **POST /za/v1/cards/:cardKey/code/execute-live**
     - Used for the POS to execute the code on the card
 

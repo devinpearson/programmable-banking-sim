@@ -7,10 +7,20 @@ import { v4 as uuidv4 } from 'uuid'
 import emu from 'programmable-card-code-emulator'
 import { ExecutionItem } from '../types.js'
 
+interface CardResponse {
+  CardKey: string
+  CardNumber: string
+  IsProgrammable: boolean
+  status: string
+  CardTypeCode: string
+  AccountNumber: string
+  AccountId: string
+}
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const result = await prisma.card.findMany()
-    const cards = []
+    const cards: CardResponse[] = []
     result.forEach(card => {
       cards.push({
         CardKey: card.cardKey,
