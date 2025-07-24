@@ -207,6 +207,9 @@ app.get('/envs', async (req: Request, res: Response) => {
   }
 })
 
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok' })
+})
 app.get('/database-summary', async (req: Request, res: Response) => {
   try {
     const [profileCount, accountCount, cardCount, transactionCount] = await Promise.all([

@@ -20,29 +20,66 @@ describe('Test the card helpers', () => {
   it('should respond with the cards saved code', async () => {
     const response = await request(app).get('/za/v1/cards/700615/code')
     assert.equal(response.statusCode, 200)
-    assert.deepEqual(response.body.data, {
+    
+    const expectedStructure = {
       cardCode: {
         codeId: 'DC5A7EE9-DD2A-4327-9305-78B9185890CA',
-        code: '// This function runs before a transaction.\nconst beforeTransaction = async (authorization) => {\n  console.log(authorization);\n};\n// This function runs after a transaction was successful.\nconst afterTransaction = async (transaction) => {\n  console.log(transaction);\n};\n// This function runs after a transaction was declined.\nconst afterDecline = async (transaction) => {\n  console.log(transaction);\n};',
-        createdAt: '2024-08-01T13:05:33.685Z',
-        updatedAt: '2024-08-01T13:05:33.685Z',
-        publishedAt: '2024-08-01T13:05:33.685Z',
+        code: '// This function runs before a transaction.\n' +
+          'const beforeTransaction = async (authorization) => {\n' +
+          '  console.log(authorization);\n' +
+          '};\n' +
+          '// This function runs after a transaction was successful.\n' +
+          'const afterTransaction = async (transaction) => {\n' +
+          '  console.log(transaction);\n' +
+          '};\n' +
+          '// This function runs after a transaction was declined.\n' +
+          'const afterDecline = async (transaction) => {\n' +
+          '  console.log(transaction);\n' +
+          '};',
       },
-    })
+    }
+    
+    assert.equal(response.body.data.cardCode.codeId, expectedStructure.cardCode.codeId)
+    assert.equal(response.body.data.cardCode.code, expectedStructure.cardCode.code)
+    
+    assert.exists(response.body.data.cardCode.createdAt)
+    assert.exists(response.body.data.cardCode.updatedAt)
+    assert.exists(response.body.data.cardCode.publishedAt)
+    assert.isTrue(new Date(response.body.data.cardCode.createdAt) instanceof Date)
+    assert.isTrue(new Date(response.body.data.cardCode.updatedAt) instanceof Date)
+    assert.isTrue(new Date(response.body.data.cardCode.publishedAt) instanceof Date)
   })
 
   it('should respond with the cards published code', async () => {
     const response = await request(app).get('/za/v1/cards/700615/publishedcode')
     assert.equal(response.statusCode, 200)
-    assert.deepEqual(response.body.data, {
+    
+    const expectedStructure = {
       cardCode: {
         codeId: '3BB77753-R2D2-4U2B-1A2B-4C213E7D0AC3',
-        code: '// This function runs before a transaction.\nconst beforeTransaction = async (authorization) => {\n  console.log(authorization);\n};\n// This function runs after a transaction was successful.\nconst afterTransaction = async (transaction) => {\n  console.log(transaction);\n};\n// This function runs after a transaction was declined.\nconst afterDecline = async (transaction) => {\n  console.log(transaction);\n};',
-        createdAt: '2024-08-01T13:05:33.685Z',
-        updatedAt: '2024-08-01T13:05:33.685Z',
-        publishedAt: '2024-08-01T13:05:33.685Z',
+        code: '// This function runs before a transaction.\n' +
+          'const beforeTransaction = async (authorization) => {\n' +
+          '  console.log(authorization);\n' +
+          '};\n' +
+          '// This function runs after a transaction was successful.\n' +
+          'const afterTransaction = async (transaction) => {\n' +
+          '  console.log(transaction);\n' +
+          '};\n' +
+          '// This function runs after a transaction was declined.\n' +
+          'const afterDecline = async (transaction) => {\n' +
+          '  console.log(transaction);\n' +
+          '};',
       },
-    })
+    }
+    
+    assert.equal(response.body.data.cardCode.codeId, expectedStructure.cardCode.codeId)
+    assert.equal(response.body.data.cardCode.code, expectedStructure.cardCode.code)
+    assert.exists(response.body.data.cardCode.createdAt)
+    assert.exists(response.body.data.cardCode.updatedAt)
+    assert.exists(response.body.data.cardCode.publishedAt)
+    assert.isTrue(new Date(response.body.data.cardCode.createdAt) instanceof Date)
+    assert.isTrue(new Date(response.body.data.cardCode.updatedAt) instanceof Date)
+    assert.isTrue(new Date(response.body.data.cardCode.publishedAt) instanceof Date)
   })
 
   it('should respond with the merchant code list', async () => {

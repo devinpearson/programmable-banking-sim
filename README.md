@@ -45,7 +45,7 @@ npm run dev
 
 This will start the simulator on http://localhost:3000
 
-Accessing the room of the domain will show the dashboard view of the server. The dashboard allows you to set the environment variables for the server and view the logs of the server.
+Accessing the root of the domain will show the dashboard view of the server. The dashboard allows you to set the environment variables for the server and view the logs of the server.
 
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
@@ -54,6 +54,8 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 ### Dashboard
 - **GET /**
     - Dashboard view of the server
+- **GET /health**
+    - Health check endpoint returning service status
 ### Auth
 - **POST /identity/v2/oauth2/token**
     - Get an access token (only required if auth is turned on)
@@ -105,6 +107,10 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
     - Create a new account
 - **DELETE /za/pb/v1/accounts/:accountId**
     - Deletes the account and its transactions
+- **POST /za/pb/v1/accounts/beneficiaries**
+    - Create a new beneficiary
+- **DELETE /za/pb/v1/accounts/beneficiaries/:beneficiaryId**
+    - Delete a beneficiary
 - **POST /za/v1/cards/:cardKey/code/execute-live**
     - Used for the POS to execute the code on the card
 
