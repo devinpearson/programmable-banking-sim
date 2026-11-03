@@ -10,8 +10,11 @@
     "build": "npx tsc",
     "test": "mocha",
     "tailwind": "npx tailwindcss -i ./src/input.css -o ./public/output.css",
-    "lint": "npx eslint src/**",
-    "format": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\""
+    "lint": "biome lint ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check --write ./src",
+    "knip": "knip",
+    "mutate": "stryker run"
   },
   "bin": {
     "pbsim": "index.js"
@@ -30,17 +33,19 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "morgan": "^1.10.0",
+    "programmable-banking-faker": "^1.0.2",
     "programmable-card-code-emulator": "^1.2.0",
     "socket.io": "^4.7.5",
     "typescript": "^5.4.5",
     "uuid": "^10.0.0",
-    "programmable-banking-faker": "^1.0.2",
     "vue": "^3.4.27"
   },
   "devDependencies": {
-    "@eslint/js": "^9.9.0",
+    "@biomejs/biome": "^2.6.4",
     "@faker-js/faker": "^7.6.0",
-    "@stylistic/eslint-plugin-js": "^2.9.0",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/mocha-runner": "^10.1.1",
+    "@stryker-mutator/typescript-checker": "^10.1.1",
     "@types/better-sqlite3": "^7.6.10",
     "@types/chai": "^4.3.17",
     "@types/cors": "^2.8.17",
@@ -50,19 +55,14 @@
     "@types/sinon": "^17.0.3",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.1.0",
-    "@typescript-eslint/parser": "^8.1.0",
     "chai": "^5.1.1",
-    "eslint": "^9.9.0",
-    "globals": "^15.9.0",
+    "knip": "^6.44.1",
     "mocha": "^10.7.0",
-    "prettier": "^3.3.3",
     "prisma": "^5.17.0",
     "sinon": "^18.0.0",
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.3",
-    "tsx": "^4.7.2",
-    "typescript-eslint": "^8.1.0"
+    "tsx": "^4.7.2"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

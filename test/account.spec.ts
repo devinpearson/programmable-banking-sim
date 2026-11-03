@@ -26,7 +26,7 @@ describe('Test the accounts', () => {
     assert.deepEqual(response.body.data, {
       accountId: '4675778129910189600000003',
       currentBalance: -35696.04,
-      availableBalance: 0,
+      availableBalance: -35696.04,
       currency: 'ZAR',
     })
   })
