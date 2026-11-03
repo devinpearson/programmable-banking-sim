@@ -2,7 +2,21 @@ import request from 'supertest'
 import { app } from '../src/app'
 import { assert } from 'chai'
 
+const TEST_CARD_KEY = 'test-card-create-delete-001'
+const TEST_CARD_TOGGLE_KEY = 'test-card-toggle-001'
+const TEST_CARD_WRITE_KEY = 'test-card-write-001'
+
 describe('Test the card helpers', () => {
+  beforeAll(async () => {
+    await request(app).delete(`/za/v1/cards/${TEST_CARD_KEY}`)
+    await request(app).delete(`/za/v1/cards/${TEST_CARD_TOGGLE_KEY}`)
+    await request(app).delete(`/za/v1/cards/${TEST_CARD_WRITE_KEY}`)
+    await request(app).post('/za/v1/cards').send({ cardKey: TEST_CARD_WRITE_KEY })
+  })
+
+  afterAll(async () => {
+    await request(app).delete(`/za/v1/cards/${TEST_CARD_WRITE_KEY}`)
+  })
   it('should respond with the card list', async () => {
     const response = await request(app).get('/za/v1/cards')
     assert.equal(response.statusCode, 200)
@@ -107,5 +121,261 @@ describe('Test the card helpers', () => {
       code: 'AL',
       name: 'Albania',
     })
+  })
+
+  it('should create and delete a card', async () => {
+    const cardKey = TEST_CARD_KEY
+    const createResponse = await request(app)
+      .post('/za/v1/cards')
+      .send({ cardKey })
+    assert.equal(createResponse.statusCode, 200)
+    assert.equal(createResponse.body.data.cardKey, cardKey)
+
+    const duplicateResponse = await request(app)
+      .post('/za/v1/cards')
+      .send({ cardKey })
+    assert.equal(duplicateResponse.statusCode, 409)
+
+    const deleteResponse = await request(app).delete(`/za/v1/cards/${cardKey}`)
+    assert.equal(deleteResponse.statusCode, 200)
+
+    const secondDeleteResponse = await request(app).delete(
+      `/za/v1/cards/${cardKey}`,
+    )
+    assert.equal(secondDeleteResponse.statusCode, 404)
+  })
+
+  it('should toggle the programmable feature on a card', async () => {
+    const cardKey = TEST_CARD_TOGGLE_KEY
+    await request(app).post('/za/v1/cards').send({ cardKey })
+
+    const enableResponse = await request(app)
+      .post(`/za/v1/cards/${cardKey}/toggle-programmable-feature`)
+      .send({ Enabled: true })
+    assert.equal(enableResponse.statusCode, 200)
+    assert.equal(enableResponse.body.Enabled, true)
+
+    const disableResponse = await request(app)
+      .post(`/za/v1/cards/${cardKey}/toggle-programmable-feature`)
+      .send({ Enabled: false })
+    assert.equal(disableResponse.statusCode, 200)
+    assert.equal(disableResponse.body.Enabled, false)
+
+    await request(app).delete(`/za/v1/cards/${cardKey}`)
+  })
+
+  it('should respond with 404 toggling the programmable feature on an invalid card', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/does-not-exist/toggle-programmable-feature')
+      .send({ Enabled: true })
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should execute the published code live and record the execution', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/700615/code/execute-live')
+      .send({
+        currencyCode: 'ZAR',
+        centsAmount: 1000,
+        merchantCode: '5411',
+        merchantName: 'Test Merchant',
+        merchantCity: 'Cape Town',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 200)
+    assert.isBoolean(response.body.data.result)
+  })
+
+  it('should respond with the executions for a card', async () => {
+    const response = await request(app).get(
+      '/za/v1/cards/700615/code/executions',
+    )
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data.executions)
+  })
+
+  it('should respond with 404 for executions on an invalid card', async () => {
+    const response = await request(app).get(
+      '/za/v1/cards/does-not-exist/code/executions',
+    )
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should update and retrieve the saved code', async () => {
+    const newCode = 'const beforeTransaction = async (auth) => { return true; };'
+    const updateResponse = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code`)
+      .send({ code: newCode })
+    assert.equal(updateResponse.statusCode, 200)
+    assert.equal(updateResponse.body.data.cardCode.code, newCode)
+
+    const getResponse = await request(app).get(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code`)
+    assert.equal(getResponse.statusCode, 200)
+    assert.equal(getResponse.body.data.cardCode.code, newCode)
+  })
+
+  it('should respond with 404 when updating saved code on an invalid card', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/does-not-exist/code')
+      .send({ code: 'const x = 1;' })
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should update and retrieve the published code', async () => {
+    const newCode = 'const afterTransaction = async (tx) => { return true; };'
+    const updateResponse = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/publishedcode`)
+      .send({ code: newCode })
+    assert.equal(updateResponse.statusCode, 200)
+    assert.equal(updateResponse.body.data.cardCode.code, newCode)
+
+    const getResponse = await request(app).get(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/publishedcode`)
+    assert.equal(getResponse.statusCode, 200)
+    assert.equal(getResponse.body.data.cardCode.code, newCode)
+  })
+
+  it('should respond with 404 when updating published code on an invalid card', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/does-not-exist/publishedcode')
+      .send({ code: 'const x = 1;' })
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should update and retrieve environment variables', async () => {
+    const variables = { MY_VAR: 'hello', ANOTHER_VAR: '42' }
+    const updateResponse = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/environmentvariables`)
+      .send({ variables })
+    assert.equal(updateResponse.statusCode, 200)
+    assert.deepEqual(updateResponse.body.data.result.variables, variables)
+
+    const getResponse = await request(app).get(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/environmentvariables`)
+    assert.equal(getResponse.statusCode, 200)
+    assert.deepEqual(getResponse.body.data.result.variables, variables)
+  })
+
+  it('should respond with 404 when updating env vars on an invalid card', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/does-not-exist/environmentvariables')
+      .send({ variables: {} })
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should execute simulation code and record the result', async () => {
+    const response = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code/execute`)
+      .send({
+        simulationcode: 'const beforeTransaction = async (auth) => { console.log(auth); };',
+        currencyCode: 'ZAR',
+        centsAmount: 500,
+        merchantCode: '5411',
+        merchantName: 'Sim Merchant',
+        merchantCity: 'Johannesburg',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data.result)
+  })
+
+  it('should respond with 404 when executing code on an invalid card', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/does-not-exist/code/execute')
+      .send({
+        simulationcode: '',
+        currencyCode: 'ZAR',
+        centsAmount: 100,
+        merchantCode: '5411',
+        merchantName: 'Test',
+        merchantCity: 'Cape Town',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should respond with 404 when executing live code on an invalid card', async () => {
+    const response = await request(app)
+      .post('/za/v1/cards/does-not-exist/code/execute-live')
+      .send({
+        currencyCode: 'ZAR',
+        centsAmount: 1000,
+        merchantCode: '5411',
+        merchantName: 'Test',
+        merchantCity: 'Cape Town',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should return true from execute-live when the published code has an afterTransaction handler', async () => {
+    const afterTxCode =
+      'const afterTransaction = async (transaction) => { console.log(transaction); };'
+    await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/publishedcode`)
+      .send({ code: afterTxCode })
+
+    const response = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code/execute-live`)
+      .send({
+        currencyCode: 'ZAR',
+        centsAmount: 1000,
+        merchantCode: '5411',
+        merchantName: 'Test Merchant',
+        merchantCity: 'Cape Town',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 200)
+    assert.isBoolean(response.body.data.result)
+    assert.isTrue(response.body.data.result)
+  })
+
+  it('should execute live code and record the execution in the DB', async () => {
+    const response = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code/execute-live`)
+      .send({
+        currencyCode: 'ZAR',
+        centsAmount: 500,
+        merchantCode: '5411',
+        merchantName: 'Live Exec',
+        merchantCity: 'Durban',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 200)
+    assert.isBoolean(response.body.data.result)
+
+    const executionsResponse = await request(app).get(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code/executions`)
+    assert.equal(executionsResponse.statusCode, 200)
+    assert.isArray(executionsResponse.body.data.executions)
+    assert.isAbove(executionsResponse.body.data.executions.length, 0)
+  })
+
+  it('should execute simulation code without a simulationcode field and default to empty string', async () => {
+    const response = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code/execute`)
+      .send({
+        currencyCode: 'ZAR',
+        centsAmount: 100,
+        merchantCode: '5411',
+        merchantName: 'No Code',
+        merchantCity: 'Pretoria',
+        countryCode: 'ZA',
+      })
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data.result)
+  })
+
+  it('should update saved code with no code field and default to empty string', async () => {
+    const response = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/code`)
+      .send({})
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.cardCode.code, '')
+  })
+
+  it('should update published code with no code field and default to empty string', async () => {
+    const response = await request(app)
+      .post(`/za/v1/cards/${TEST_CARD_WRITE_KEY}/publishedcode`)
+      .send({})
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.cardCode.code, '')
   })
 })

@@ -62,7 +62,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       return res.json({
         access_token: token,
         token_type: 'Bearer',
-        expires_in: settings.token_expiry,
+        expires_in: +settings.token_expiry,
         scope: 'accounts',
       })
     } else if (req.body.grant_type == 'authorization_code') {
@@ -87,7 +87,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       return res.json({
         access_token: token,
         token_type: 'Bearer',
-        expires_in: settings.token_expiry,
+        expires_in: +settings.token_expiry,
         scope: authorizationCode.scope,
         refresh_token: refreshToken,
       })
@@ -107,7 +107,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       return res.json({
         access_token: token,
         token_type: 'Bearer',
-        expires_in: settings.token_expiry,
+        expires_in: +settings.token_expiry,
         scope: 'accounts',
         refresh_token: refreshToken,
       })
