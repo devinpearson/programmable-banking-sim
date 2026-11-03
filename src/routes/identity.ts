@@ -9,6 +9,25 @@ import {
 } from '../app.js'
 import dayjs from 'dayjs'
 import { AuthorizationCode } from '../types.js'
+import { createHmac } from 'crypto'
+
+// Local session storage for OAuth flow
+const sessionTokens: { [key: string]: AuthorizationCode } = {}
+
+// Redirect legacy /oauth requests to correct endpoint
+router.all('/oauth', (req: Request, res: Response) => {
+  return res.status(404).json({
+    error: 'endpoint_not_found',
+    message: 'OAuth endpoints have moved. Use /identity/v2/oauth2/token for token requests ' +
+             'and /identity/v2/oauth2/authorize for authorization.',
+    correct_endpoints: {
+      token: '/identity/v2/oauth2/token (POST)',
+      authorize: '/identity/v2/oauth2/authorize (GET)',
+      approve: '/identity/approve (GET)',
+      decline: '/identity/decline (GET)'
+    }
+  })
+})
 
 router.post('/v2/oauth2/token', (req: Request, res: Response) => {
   try {
@@ -110,16 +129,74 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
   if (settings.client_id !== req.query.client_id) {
     return formatErrorResponse(req, res, 401)
   }
-  // const responseType = req.query.response_type
+  
+  // Create a secure hash using the authorization code and timestamp
+  const secret = process.env.OAUTH_SECRET || 'default-oauth-secret-change-in-production';
+  const dataToHash = `${authorizationCode.code}:${authorizationCode.expires_at}:` + 
+                     `${authorizationCode.scope}:${Date.now()}`;
+  const hash = createHmac('sha256', secret)
+               .update(dataToHash)
+               .digest('hex');
+  
+  //const responseType = req.query.response_type
+  // if (settings.auth === false) {
+  //   return res.redirect(
+  //   302,
+  //   authorizationCode.redirect_uri +
+  //     '?authorizationCode=' +
+  //     authorizationCode.code +
+  //     '&status=SUCCESS&code=' +
+  //     authorizationCode.code,
+  // )
+  // }
   authorizationCodes[authorizationCode.code] = authorizationCode
+  sessionTokens[hash] = authorizationCode
+  
+  return res.redirect(302, '/login?qsp=' + hash)
+})
 
-  // return res.json({ Location: "localhost:3000/login?qsp=" + uuid}).redirect(302, 'localhost:3000/login?qsp=' + uuid)
+router.get('/approve', (req: Request, res: Response) => {
+  const qsp = req.query.qsp as string
+  if (!qsp || !sessionTokens[qsp]) {
+    return formatErrorResponse(req, res, 400)
+  }
+  const authorizationCode: AuthorizationCode = sessionTokens[qsp]
+  delete sessionTokens[qsp]
+
+  // Here you would typically render a consent page where the user can approve or decline the request
+  // For this example, we will just redirect to the redirect_uri with the authorization code
+  const redirectUri = authorizationCode.redirect_uri.startsWith('http')
+    ? authorizationCode.redirect_uri
+    : 'http://' + authorizationCode.redirect_uri
   return res.redirect(
     302,
-    authorizationCode.redirect_uri +
+    redirectUri +
       '?authorizationCode=' +
       authorizationCode.code +
       '&status=SUCCESS&code=' +
+      authorizationCode.code,
+  )
+})
+
+router.get('/decline', (req: Request, res: Response) => {
+  const qsp = req.query.qsp as string
+  if (!qsp || !sessionTokens[qsp]) {
+    return formatErrorResponse(req, res, 400)
+  }
+  const authorizationCode: AuthorizationCode = sessionTokens[qsp]
+  delete sessionTokens[qsp]
+
+  // Here you would typically render a consent page where the user can approve or decline the request
+  // For this example, we will just redirect to the redirect_uri with the authorization code
+  const redirectUri = authorizationCode.redirect_uri.startsWith('http')
+    ? authorizationCode.redirect_uri
+    : 'http://' + authorizationCode.redirect_uri
+  return res.redirect(
+    302,
+    redirectUri +
+      '?authorizationCode=' +
+      authorizationCode.code +
+      '&status=DECLINED&code=' +
       authorizationCode.code,
   )
 })

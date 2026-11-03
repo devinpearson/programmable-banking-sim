@@ -77,12 +77,12 @@ io.on('connection', socket => {
         await prisma.card.deleteMany()
         await prisma.cardCode.deleteMany()
         await prisma.profile.deleteMany()
-        seedProfiles()
-        seedAccounts()
-        seedTransactions()
-        seedBeneficiaries()
-        seedCards()
-        seedCardCodes()
+        await seedProfiles()
+        await seedAccounts()
+        await seedTransactions()
+        await seedBeneficiaries()
+        await seedCards()
+        await seedCardCodes()
         await emitDatabaseSummary()
         break
     }
@@ -109,10 +109,18 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const email = req.body.email
   const password = req.body.password
+  const qsp = req.query.qsp || req.body.qsp // Get qsp from query params or form body
+  
   if (email === 'admin@example.com' && password === 'admin') {
-    return res.redirect('/wpaas/prog-banking-wpaas/oauth-consent')
+    // Preserve the qsp parameter when redirecting to oauth consent
+    const redirectUrl = qsp ? 
+      `/wpaas/prog-banking-wpaas/oauth-consent?qsp=${qsp}` : 
+      '/wpaas/prog-banking-wpaas/oauth-consent'
+    return res.redirect(redirectUrl)
   } else {
-    return res.redirect('/login')
+    // Preserve qsp parameter on failed login too
+    const redirectUrl = qsp ? `/login?qsp=${qsp}` : '/login'
+    return res.redirect(redirectUrl)
   }
 })
 
@@ -157,6 +165,25 @@ app.post('/envs', async (req: Request, res: Response) => {
   return res.json(settings)
 })
 
+// Handle legacy /oauth requests
+app.all('/oauth*', (req: Request, res: Response) => {
+  return res.status(404).json({
+    error: 'endpoint_not_found',
+    message: 'OAuth endpoints have moved. Use the correct endpoints below.',
+    correct_endpoints: {
+      token: '/identity/v2/oauth2/token (POST)',
+      authorize: '/identity/v2/oauth2/authorize (GET)',
+      approve: '/identity/approve (GET)',
+      decline: '/identity/decline (GET)'
+    },
+    examples: {
+      get_token: 'POST /identity/v2/oauth2/token',
+      start_oauth: 'GET /identity/v2/oauth2/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT' + 
+                   '&scope=accounts'
+    }
+  })
+})
+
 app.use('/identity', identity)
 // middleware to check the token
 app.use('/za', (req, res, next) => {
@@ -171,12 +198,12 @@ app.use('/za/v1/cards', cards)
 
 app.delete('/clear', async (req: Request, res: Response) => {
   try {
-    // delete the accounts
     await prisma.account.deleteMany()
-    // delete the transactions
     await prisma.transaction.deleteMany()
-    // delete the beneficiaries
     await prisma.beneficiary.deleteMany()
+    await prisma.card.deleteMany()
+    await prisma.cardCode.deleteMany()
+    await prisma.profile.deleteMany()
 
     return res.status(200).json()
   } catch (error) {
