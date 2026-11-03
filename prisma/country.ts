@@ -260,9 +260,11 @@ const countryData: Prisma.CountryCreateInput[] = [
 
 export async function seedCountries() {
   for (const c of countryData) {
-    const currency = await prisma.country.create({
-      data: c,
+    const country = await prisma.country.upsert({
+      where: { code: c.code },
+      update: { name: c.name },
+      create: c,
     })
-    console.log(`Created country with code: ${currency.code}`)
+    console.log(`Seeded country with code: ${country.code}`)
   }
 }

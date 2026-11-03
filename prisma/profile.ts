@@ -11,9 +11,11 @@ const profileData: Prisma.ProfileCreateInput[] = [
 
 export async function seedProfiles() {
   for (const p of profileData) {
-    const profile = await prisma.profile.create({
-      data: p,
+    const profile = await prisma.profile.upsert({
+      where: { profileId: p.profileId },
+      update: { profileName: p.profileName },
+      create: p,
     })
-    console.log(`Created profile with id: ${profile.profileId}`)
+    console.log(`Seeded profile with id: ${profile.profileId}`)
   }
 }

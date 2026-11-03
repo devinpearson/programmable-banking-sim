@@ -344,9 +344,11 @@ const merchantData: Prisma.MerchantCreateInput[] = [
 
 export async function seedMerchants() {
   for (const m of merchantData) {
-    const merchant = await prisma.merchant.create({
-      data: m,
+    const merchant = await prisma.merchant.upsert({
+      where: { code: m.code },
+      update: { name: m.name },
+      create: m,
     })
-    console.log(`Created merchant with code: ${merchant.code}`)
+    console.log(`Seeded merchant with code: ${merchant.code}`)
   }
 }

@@ -55,9 +55,11 @@ const beneficiaryData: Prisma.BeneficiaryCreateInput[] = [
 
 export async function seedBeneficiaries() {
   for (const c of beneficiaryData) {
-    const beneficiary = await prisma.beneficiary.create({
-      data: c,
+    const beneficiary = await prisma.beneficiary.upsert({
+      where: { beneficiaryId: c.beneficiaryId },
+      update: c,
+      create: c,
     })
-    console.log(`Created account with id: ${beneficiary.beneficiaryId}`)
+    console.log(`Seeded beneficiary with id: ${beneficiary.beneficiaryId}`)
   }
 }

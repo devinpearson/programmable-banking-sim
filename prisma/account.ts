@@ -57,9 +57,11 @@ const accountData: Prisma.AccountCreateInput[] = [
 
 export async function seedAccounts() {
   for (const c of accountData) {
-    const account = await prisma.account.create({
-      data: c,
+    const account = await prisma.account.upsert({
+      where: { accountId: c.accountId },
+      update: c,
+      create: c,
     })
-    console.log(`Created account with id: ${account.accountId}`)
+    console.log(`Seeded account with id: ${account.accountId}`)
   }
 }

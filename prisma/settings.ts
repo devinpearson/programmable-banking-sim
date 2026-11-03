@@ -16,9 +16,11 @@ const settingData: Prisma.SettingCreateInput[] = [
 
 export async function seedSettings() {
   for (const c of settingData) {
-    const setting = await prisma.setting.create({
-      data: c,
+    const setting = await prisma.setting.upsert({
+      where: { name: c.name },
+      update: { value: c.value },
+      create: c,
     })
-    console.log(`Created setting with id: ${setting.name}`)
+    console.log(`Seeded setting with id: ${setting.name}`)
   }
 }

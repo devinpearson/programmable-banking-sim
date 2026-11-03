@@ -21,9 +21,11 @@ const cardCodeData: Prisma.CardCodeCreateInput[] = [
 
 export async function seedCardCodes() {
   for (const c of cardCodeData) {
-    const cardCode = await prisma.cardCode.create({
-      data: c,
+    const cardCode = await prisma.cardCode.upsert({
+      where: { codeId: c.codeId },
+      update: { code: c.code, updatedAt: c.updatedAt },
+      create: c,
     })
-    console.log(`Created card with id: ${cardCode.codeId}`)
+    console.log(`Seeded card code with id: ${cardCode.codeId}`)
   }
 }

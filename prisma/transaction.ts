@@ -203,10 +203,13 @@ const transactionData: Prisma.TransactionCreateInput[] = [
 ]
 
 export async function seedTransactions() {
+  const existing = await prisma.transaction.count({ where: { accountId: '4675778129910189600000003' } })
+  if (existing > 0) {
+    console.log(`Transactions already seeded, skipping`)
+    return
+  }
   for (const c of transactionData) {
-    const transaction = await prisma.transaction.create({
-      data: c,
-    })
-    console.log(`Created transaction with id: ${transaction.accountId}`)
+    const transaction = await prisma.transaction.create({ data: c })
+    console.log(`Seeded transaction for account: ${transaction.accountId}`)
   }
 }

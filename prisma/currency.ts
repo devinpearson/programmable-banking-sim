@@ -29,9 +29,11 @@ const currencyData: Prisma.CurrencyCreateInput[] = [
 
 export async function seedCurrencies() {
   for (const c of currencyData) {
-    const currency = await prisma.currency.create({
-      data: c,
+    const currency = await prisma.currency.upsert({
+      where: { code: c.code },
+      update: { name: c.name },
+      create: c,
     })
-    console.log(`Created currency with code: ${currency.code}`)
+    console.log(`Seeded currency with code: ${currency.code}`)
   }
 }
