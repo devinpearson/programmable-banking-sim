@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ArrowRightLeft, Plus, RefreshCw } from 'lucide-react';
+import Disclosure from '@/components/Disclosure';
 import { Button, EmptyState, Field, Input, Panel, Select, Table, Th } from '@/components/ui';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useAction } from '@/components/ToastProvider';
@@ -71,8 +72,7 @@ function TransferForm({ accounts }: { accounts: AccountWithBalance[] }) {
   ));
 
   return (
-    <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Transfer between accounts</h3>
+    <Disclosure id="transfer" title="Transfer between accounts">
       <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-5 sm:items-end">
         <Field label="From" htmlFor="transfer-from">
           <Select id="transfer-from" value={form.from} onChange={e => setForm({ ...form, from: e.target.value })}>
@@ -110,7 +110,7 @@ function TransferForm({ accounts }: { accounts: AccountWithBalance[] }) {
           Transfer
         </Button>
       </div>
-    </div>
+    </Disclosure>
   );
 }
 

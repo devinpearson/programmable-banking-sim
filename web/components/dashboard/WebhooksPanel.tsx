@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Pause, Play, Plus, Send, Trash2 } from 'lucide-react';
+import Disclosure from '@/components/Disclosure';
 import { Button, EmptyState, Field, Input, Panel, Table, Th } from '@/components/ui';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useAction } from '@/components/ToastProvider';
@@ -164,8 +165,7 @@ export default function WebhooksPanel() {
       title="Webhooks"
       description="The sandbox POSTs events to these URLs: transactions posting, card holds and reversals, and every card authorization."
     >
-      <RegisterForm events={events} onRegistered={webhook => { setSelected(webhook.webhookId); void mutate(); }} />
-      <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
+      <div>
         {isLoading && <LoadingState message="Loading webhooks..." />}
         {error && <ErrorState error={error} onRetry={() => mutate()} />}
         {webhooks && webhooks.length === 0 && <EmptyState>No webhooks registered.</EmptyState>}
@@ -251,6 +251,9 @@ export default function WebhooksPanel() {
           <Deliveries webhook={shown} />
         </section>
       )}
+      <Disclosure id="register-webhook" title="Register a webhook">
+        <RegisterForm events={events} onRegistered={webhook => { setSelected(webhook.webhookId); void mutate(); }} />
+      </Disclosure>
     </Panel>
   );
 }

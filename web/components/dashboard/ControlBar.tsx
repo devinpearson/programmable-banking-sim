@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { DatabaseZap, Download, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { DatabaseZap, Download, MoreHorizontal, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { Button, Select } from '@/components/ui';
 import { useAction, useToast } from '@/components/ToastProvider';
 import { useRefreshSandbox, useScenarios } from '@/hooks/useSandbox';
@@ -26,6 +26,16 @@ export default function ControlBar() {
   const description = scenarios.find(s => s.id === selected)?.description;
   const fileInput = useRef<HTMLInputElement>(null);
   const notify = useToast();
+  const menu = useRef<HTMLDetailsElement>(null);
+
+  // The More menu closes on a click anywhere outside it.
+  useEffect(() => {
+    function close(event: MouseEvent) {
+      if (menu.current?.open && !menu.current.contains(event.target as Node)) menu.current.open = false;
+    }
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, []);
 
   async function importFile(file: File) {
     let state: unknown;
@@ -79,34 +89,54 @@ export default function ControlBar() {
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Reset data
         </Button>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            if (window.confirm('Remove all profiles, accounts, transactions, beneficiaries and cards?')) {
-              void act(clearDatabase, 'Sandbox data cleared');
-            }
-          }}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-          Clear data
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() =>
-            run(async () => {
-              const { fileName, json } = await exportState();
-              download(fileName, json);
-              return fileName;
-            }, fileName => `Exported the sandbox to ${fileName}`)
-          }
-        >
-          <Download className="h-4 w-4" aria-hidden="true" />
-          Export
-        </Button>
-        <Button variant="secondary" onClick={() => fileInput.current?.click()}>
-          <Upload className="h-4 w-4" aria-hidden="true" />
-          Import
-        </Button>
+        <details ref={menu} className="relative">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-600 dark:hover:bg-gray-700 [&::-webkit-details-marker]:hidden">
+            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+            More
+          </summary>
+          <div
+            // Picking an item closes the menu.
+            onClick={() => {
+              if (menu.current) menu.current.open = false;
+            }}
+            className="absolute right-0 z-10 mt-2 flex w-40 flex-col rounded-lg bg-white p-1 shadow-lg ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700"
+          >
+            <Button
+              variant="secondary"
+              className="w-full justify-start shadow-none ring-0"
+              onClick={() => {
+                if (window.confirm('Remove all profiles, accounts, transactions, beneficiaries and cards?')) {
+                  void act(clearDatabase, 'Sandbox data cleared');
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Clear data
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start shadow-none ring-0"
+              onClick={() =>
+                run(async () => {
+                  const { fileName, json } = await exportState();
+                  download(fileName, json);
+                  return fileName;
+                }, fileName => `Exported the sandbox to ${fileName}`)
+              }
+            >
+              <Download className="h-4 w-4" aria-hidden="true" />
+              Export
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start shadow-none ring-0"
+              onClick={() => fileInput.current?.click()}
+            >
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              Import
+            </Button>
+          </div>
+        </details>
         <input
           ref={fileInput}
           type="file"

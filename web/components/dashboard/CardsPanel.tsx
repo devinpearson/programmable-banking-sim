@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Ban, CheckCircle2, CreditCard, Plus, RefreshCw } from 'lucide-react';
+import Disclosure from '@/components/Disclosure';
 import { Button, EmptyState, Field, Input, Panel, Select, Table, Th } from '@/components/ui';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useAction, useToast } from '@/components/ToastProvider';
@@ -55,8 +56,7 @@ function SwipeForm({ cards }: { cards: Card[] }) {
   }
 
   return (
-    <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Swipe a card</h3>
+    <Disclosure id="swipe-card" title="Swipe a card">
       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
         Runs the card&apos;s published code like a point-of-sale purchase. An approved swipe places a pending hold
         on the card&apos;s account, unless you post it immediately. Foreign purchases are charged in rand at the
@@ -127,7 +127,7 @@ function SwipeForm({ cards }: { cards: Card[] }) {
           Swipe
         </Button>
       </div>
-    </div>
+    </Disclosure>
   );
 }
 
@@ -152,8 +152,7 @@ function AddCardForm({ accounts }: { accounts: AccountWithBalance[] }) {
   }
 
   return (
-    <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Add a card</h3>
+    <Disclosure id="add-card" title="Add a card">
       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
         Issues a card on an account. It starts active, with the starter code saved and published, so it can be
         swiped straight away.
@@ -195,7 +194,7 @@ function AddCardForm({ accounts }: { accounts: AccountWithBalance[] }) {
           Add card
         </Button>
       </div>
-    </div>
+    </Disclosure>
   );
 }
 

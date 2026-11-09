@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openForm, showTab } from './dashboard';
 import { API_URL } from './servers';
 
 // Seeded data (prisma/*.ts): the Private Bank Account 10012420003 has a
@@ -23,6 +24,7 @@ async function swipe(
 ) {
   const cards = page.getByRole('region', { name: 'Cards' });
   const currency = options.currency ?? 'ZAR';
+  await openForm(cards, 'Swipe a card');
   await cards.getByLabel('Card', { exact: true }).selectOption({ label: options.card ?? CARD });
   await cards.getByLabel('Merchant').fill(merchant);
   await cards.getByLabel('Currency').selectOption(currency);
@@ -96,6 +98,7 @@ test('top-ups and transfers update balances and explain refusals', async ({ page
   await expect(page.getByText(/Topped up .* by R 500[.,]00/)).toBeVisible();
 
   const accounts = page.getByRole('region', { name: 'Accounts' });
+  await openForm(accounts, 'Transfer between accounts');
   await accounts.getByLabel('From', { exact: true }).selectOption({ label: `Mr J Soap (${SAVER})` });
   await accounts.getByLabel('To', { exact: true }).selectOption({ label: `Mr J Soap (${MAIN})` });
   await accounts.getByLabel('Amount (R)', { exact: true }).fill('1000000');
@@ -104,14 +107,16 @@ test('top-ups and transfers update balances and explain refusals', async ({ page
 });
 
 test('the server log shows API requests live', async ({ page }) => {
+  await swipe(page, 'Log Line', '1');
+  await showTab(page, 'Sandbox');
   const logs = page.getByRole('region', { name: 'Server logs' });
   await expect(logs.getByText(/Live/)).toBeVisible();
-  await swipe(page, 'Log Line', '1');
   await expect(logs.getByText(/execute-live/).first()).toBeVisible();
 });
 
 test('a new card can be added and swiped in another currency', async ({ page }) => {
   const cards = page.getByRole('region', { name: 'Cards' });
+  await openForm(cards, 'Add a card');
   await cards.getByLabel('Account', { exact: true }).selectOption({ label: `Mr J Soap (${MAIN})` });
   await cards.getByLabel('Card number (optional)').fill('402167XXXXXX9999');
   await cards.getByRole('button', { name: 'Add card' }).click();
@@ -149,6 +154,7 @@ test('transaction history filters by type and period, with holds on top', async 
 
 test('paying a beneficiary updates the beneficiary and the history', async ({ page }) => {
   const beneficiaries = page.getByRole('region', { name: 'Beneficiaries' });
+  await openForm(beneficiaries, 'Pay a beneficiary');
   await beneficiaries.getByLabel('From account').selectOption({ label: `Mr J Soap (${MAIN})` });
   await beneficiaries.getByLabel('Beneficiary', { exact: true }).selectOption({ label: 'S Jones' });
   await beneficiaries.getByLabel('Amount (R)').fill('250');
@@ -165,9 +171,27 @@ test('paying a beneficiary updates the beneficiary and the history', async ({ pa
 
 test('a payment the account cannot cover is refused with a reason', async ({ page }) => {
   const beneficiaries = page.getByRole('region', { name: 'Beneficiaries' });
+  await openForm(beneficiaries, 'Pay a beneficiary');
   await beneficiaries.getByLabel('From account').selectOption({ label: `Mr J Soap (${SAVER})` });
   await beneficiaries.getByLabel('Beneficiary', { exact: true }).selectOption({ label: 'Discovery CC' });
   await beneficiaries.getByLabel('Amount (R)').fill('100');
   await beneficiaries.getByRole('button', { name: 'Pay' }).click();
   await expect(page.getByText('Insufficient funds')).toBeVisible();
+});
+
+test('forms start folded and stay open once opened; the tab is in the URL', async ({ page }) => {
+  const cards = page.getByRole('region', { name: 'Cards' });
+  await expect(cards.getByLabel('Merchant')).toBeHidden();
+  await openForm(cards, 'Swipe a card');
+  await expect(cards.getByLabel('Merchant')).toBeVisible();
+
+  await showTab(page, 'Simulate');
+  await expect(page).toHaveURL(/#simulate$/);
+  await expect(page.getByRole('region', { name: 'Webhooks' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Accounts' })).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Simulate' })).toHaveAttribute('aria-selected', 'true');
+  await showTab(page, 'Banking');
+  await expect(page.getByRole('region', { name: 'Cards' }).getByLabel('Merchant')).toBeVisible();
 });
