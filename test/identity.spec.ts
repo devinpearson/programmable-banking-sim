@@ -96,14 +96,14 @@ describe('Test the identity oauth endpoints', () => {
     assert.equal(response.statusCode, 401)
   })
 
-  it('should redirect to login with a session token when authorizing', async () => {
+  it('should redirect to the web app login page with a session token when authorizing', async () => {
     const response = await request(app).get('/identity/v2/oauth2/authorize').query({
       client_id: CLIENT_ID,
       redirect_uri: 'http://example.com/callback',
       scope: 'accounts',
     })
     assert.equal(response.statusCode, 302)
-    assert.match(response.headers.location, /^\/login\?qsp=/)
+    assert.match(response.headers.location, /^http:\/\/localhost:3001\/login\?qsp=/)
   })
 
   it('should respond with 401 when authorizing with the wrong client_id', async () => {

@@ -26,14 +26,20 @@ cd programmable-banking-sim
 ```
 ```bash
 npm install
+npm run web:install
 ```
 
+The sandbox has two parts:
+- **The API** (`src/`): Express + Prisma (SQLite), emulating the Investec APIs on http://localhost:3000.
+- **The web app** (`web/`): Next.js 15, React 19, Tailwind CSS v4 and SWR. It holds the dashboard and the simulated bank's OAuth login and consent pages, on http://localhost:3001.
+
 ## Docker
-To run the server in a Docker container, run the following
+To run both in a Docker container, run the following
 ```bash
 docker build -t investec-sim .
-docker run -p 3000:3000 investec-sim
+docker run -p 3000:3000 -p 3001:3001 investec-sim
 ```
+For a hosted deploy, build with the API's public URL so the browser can reach it: `--build-arg NEXT_PUBLIC_API_BASE_URL=https://your-api-host`, and set `WEB_URL` on the container to the web app's public URL.
 
 ## Usage
 To start the simulator, run the following
@@ -43,17 +49,22 @@ npm run dev
 
 [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/26868804-62ce3cf6-3d98-4f62-ad82-b912b9826d51?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D26868804-62ce3cf6-3d98-4f62-ad82-b912b9826d51%26entityType%3Dcollection%26workspaceId%3D37bb2e58-4709-4bd4-8b2c-b00fe7445371#?env%5BSim%5D=W3sia2V5IjoiY2FyZGtleSIsInZhbHVlIjoiIiwidHlwZSI6InNlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiYWNjb3VudElkIiwidmFsdWUiOiI0Njc1Nzc4MTI5OTEwMTg5NjAwMDAwMDAzIiwidHlwZSI6ImRlZmF1bHQiLCJlbmFibGVkIjp0cnVlfSx7ImtleSI6ImJlbmVmaWNpYXJ5SWQiLCJ2YWx1ZSI6Ik1UQXhPVEEyT1RJNU56MzBNak09IiwidHlwZSI6ImRlZmF1bHQiLCJlbmFibGVkIjp0cnVlfSx7ImtleSI6ImNsaWVudF9pZCIsInZhbHVlIjoiIiwidHlwZSI6InNlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiY2xpZW50X3NlY3JldCIsInZhbHVlIjoiIiwidHlwZSI6InNlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoiYXBpX2tleSIsInZhbHVlIjoiIiwidHlwZSI6InNlY3JldCIsImVuYWJsZWQiOnRydWV9LHsia2V5IjoidG9rZW4iLCJ2YWx1ZSI6IiIsInR5cGUiOiJkZWZhdWx0IiwiZW5hYmxlZCI6dHJ1ZX0seyJrZXkiOiJob3N0IiwidmFsdWUiOiJsb2NhbGhvc3Q6MzAwMCIsInR5cGUiOiJkZWZhdWx0IiwiZW5hYmxlZCI6dHJ1ZX1d)
 
-This will start the simulator on http://localhost:3000
+This starts the API on http://localhost:3000 and the dashboard on http://localhost:3001. Run just one with `npm run dev:api` or `npm run dev:web`.
 
-Accessing the root of the domain will show the dashboard view of the server. The dashboard allows you to set the environment variables for the server and view the logs of the server.
+The dashboard lets you load scenarios, top up accounts and transfer between them, swipe cards and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings.
+
+The web app reads the API's address from `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:3000`), and the API sends OAuth users to the web app at `WEB_URL` (default `http://localhost:3001`).
+
+### Web app development
+In `web/`: `npm run lint`, `npm run typecheck`, `npm run test:unit` (Vitest), `npm run test:e2e` (Playwright, which starts its own API and web app on spare ports with a throwaway database) and `npm run build`.
 
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
 ## Endpoints
 
 ### Dashboard
-- **GET /**
-    - Dashboard view of the server
+- **GET /**, **/login**, **/guide**, **/wpaas/prog-banking-wpaas/oauth-consent**
+    - Redirect to the same page in the web app (`WEB_URL`), keeping the query string
 - **GET /health**
     - Health check endpoint returning service status
 ### Auth

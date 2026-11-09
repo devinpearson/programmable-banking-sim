@@ -6,8 +6,6 @@ import dayjs from 'dayjs'
 import dotenv from 'dotenv'
 import { PrismaClient } from '@prisma/client'
 import { Server } from 'socket.io'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { createServer } from 'node:http'
 import identity, { authenticateSession } from './routes/identity.js'
 import accounts from './routes/accounts.js'
@@ -31,11 +29,15 @@ import { listScenarios, applyScenario } from './scenarios.js'
 dotenv.config()
 
 export const port = process.env.PORT || 3000
+// The dashboard and the OAuth login/consent pages are the Next.js app in
+// web/, served separately (npm run dev starts both).
+export const webUrl = (process.env.WEB_URL || 'http://localhost:3001').replace(/\/$/, '')
 // const overdraft = process.env.OVERDRAFT || 5000
 const prisma = new PrismaClient()
 export const app = express()
 export const server = createServer(app)
-const io = new Server(server)
+// The dashboard (another origin) subscribes to live logs and summaries.
+const io = new Server(server, { cors: { origin: '*' } })
 export let settings = {} as Settings
 await fetchSettings()
 
@@ -44,13 +46,10 @@ app.use(cors())
 app.use(express.urlencoded({ extended: false }))
 app.use(morgan('combined'))
 app.use(express.json())
-app.use(express.static('public'))
 
 export const accessTokens = {} as Record<string, AccessToken>
 export const authorizationCodes = {} as Record<string, AuthorizationCode>
 export const refreshTokens = new Map<string, RefreshGrant>()
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const messageQueue = 'logs'
 
@@ -86,13 +85,21 @@ io.on('connection', socket => {
   })
 })
 
-app.get('/', (_req, res) => {
-  res.sendFile(join(__dirname, 'index.html'))
-})
+// The pages live in the web app now; send old links and bookmarks there,
+// keeping the query string (the OAuth qsp handle).
+function redirectToWeb(path: string) {
+  return (req: Request, res: Response) => {
+    const query = req.originalUrl.includes('?')
+      ? req.originalUrl.slice(req.originalUrl.indexOf('?'))
+      : ''
+    res.redirect(`${webUrl}${path}${query}`)
+  }
+}
 
-app.get('/login', (_req, res) => {
-  res.sendFile(join(__dirname, 'login.html'))
-})
+app.get('/', redirectToWeb('/'))
+app.get('/login', redirectToWeb('/login'))
+app.get('/wpaas/prog-banking-wpaas/oauth-consent', redirectToWeb('/consent'))
+app.get('/guide', redirectToWeb('/guide'))
 
 app.post('/login', (req, res) => {
   const email = req.body.email
@@ -104,28 +111,17 @@ app.post('/login', (req, res) => {
     if (qsp) {
       authenticateSession(qsp as string)
     }
-    // Preserve the qsp parameter when redirecting to oauth consent
-    const redirectUrl = qsp ?
-      `/wpaas/prog-banking-wpaas/oauth-consent?qsp=${qsp}` :
-      '/wpaas/prog-banking-wpaas/oauth-consent'
-    return res.redirect(redirectUrl)
+    // On to the consent page, keeping the flow's qsp.
+    const params = new URLSearchParams()
+    if (qsp) params.set('qsp', String(qsp))
+    const query = params.size > 0 ? `?${params}` : ''
+    return res.redirect(`${webUrl}/consent${query}`)
   } else {
-    // Preserve qsp parameter on failed login too
-    const redirectUrl = qsp ? `/login?qsp=${qsp}` : '/login'
-    return res.redirect(redirectUrl)
+    // Back to the login page with an error, keeping the qsp.
+    const params = new URLSearchParams({ error: 'invalid_credentials' })
+    if (qsp) params.set('qsp', String(qsp))
+    return res.redirect(`${webUrl}/login?${params}`)
   }
-})
-
-// screen where the scopes and accounts are selected
-app.get(
-  '/wpaas/prog-banking-wpaas/oauth-consent',
-  (_req: Request, res: Response) => {
-    res.sendFile(join(__dirname, 'oauth-consent.html'))
-  },
-)
-
-app.get('/guide', (_req, res) => {
-  res.sendFile(join(__dirname, 'guide.html'))
 })
 
 app.post('/envs', async (req: Request, res: Response) => {
