@@ -329,6 +329,52 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   }
 })
 
+// Sandbox convenience: top up an account's balance with a single CREDIT.
+// Not a real Investec endpoint — it makes "add money to this account" a
+// one-call action instead of hand-crafting a transaction.
+router.post('/:accountId/topup', async (req: Request, res: Response) => {
+  try {
+    const accountId = req.params.accountId
+    const amount = Number(req.body.amount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return formatErrorResponse(req, res, 400) // invalid amount
+    }
+    // check that the account exists
+    const account = await prisma.account.findFirst({
+      where: {
+        accountId: accountId,
+      },
+    })
+    if (!account) {
+      console.log('no account found')
+      return formatErrorResponse(req, res, 404) // no account was found
+    }
+    const today = dayjs().format('YYYY-MM-DD')
+    const transaction = await prisma.transaction.create({
+      data: {
+        accountId: accountId,
+        type: TransactionType.CREDIT,
+        transactionType: 'Deposit',
+        status: 'POSTED',
+        description: req.body.description ?? 'Sandbox top up',
+        cardNumber: '',
+        postedOrder: 0,
+        postingDate: today,
+        valueDate: today,
+        actionDate: today,
+        transactionDate: today,
+        amount: amount,
+        runningBalance: 0,
+      },
+    })
+    await emitDatabaseSummary()
+    return formatResponse(transaction, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
 
 router.delete('/:accountId/transactions/:postingDate',
   async (req: Request, res: Response) => {
