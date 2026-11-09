@@ -36,24 +36,31 @@ router.get('/:accountId/balance', async (req: Request, res: Response) => {
         accountId: accountId,
       },
     })
-    let runningBalance = 0
+
+    // currentBalance is the posted (ledger) balance; availableBalance also
+    // reflects pending debits, which reduce what the holder can spend right
+    // away. Pending credits are not counted as available until they post.
+    let postedBalance = 0
+    let pendingDebits = 0
 
     for (let j = 0; j < transactionsArr.length; j++) {
       const amount = transactionsArr[j].amount.toNumber()
-      if (transactionsArr[j].type === TransactionType.CREDIT) {
-        runningBalance += amount
+      const isCredit = transactionsArr[j].type === TransactionType.CREDIT
+      if (transactionsArr[j].status === 'PENDING') {
+        if (!isCredit) {
+          pendingDebits += amount
+        }
+      } else if (isCredit) {
+        postedBalance += amount
       } else {
-        runningBalance -= amount
+        postedBalance -= amount
       }
     }
 
-    const balance = runningBalance.toFixed(2)
-    // overdraft - balance // workout over
-    // fetch the currentBalance and availableBalance from the transactions table
     const data: BalanceResponse = {
       accountId,
-      currentBalance: +balance,
-      availableBalance: +balance,
+      currentBalance: +postedBalance.toFixed(2),
+      availableBalance: +(postedBalance - pendingDebits).toFixed(2),
       currency: 'ZAR',
     }
     return formatResponse(data, req, res)
@@ -323,6 +330,37 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
     })
     await emitDatabaseSummary()
     return formatResponse(transaction, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
+// Sandbox convenience: settle an account's pending transactions (flip them to
+// POSTED), simulating the pending → posted lifecycle for scenario testing.
+router.post('/:accountId/transactions/settle', async (req: Request, res: Response) => {
+  try {
+    const accountId = req.params.accountId
+    const account = await prisma.account.findFirst({
+      where: {
+        accountId: accountId,
+      },
+    })
+    if (!account) {
+      console.log('no account found')
+      return formatErrorResponse(req, res, 404) // no account was found
+    }
+    const result = await prisma.transaction.updateMany({
+      where: {
+        accountId: accountId,
+        status: 'PENDING',
+      },
+      data: {
+        status: 'POSTED',
+      },
+    })
+    await emitDatabaseSummary()
+    return formatResponse({ settled: result.count }, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)
