@@ -14,6 +14,8 @@ export type Scenario = Schemas['Scenario'];
 export type DatabaseSummary = Schemas['DatabaseSummary'];
 export type Settings = Schemas['Settings'];
 export type ConsentDetails = Schemas['ConsentDetails'];
+export type ExchangeRate = Schemas['ExchangeRate'];
+export type CreatedCard = Schemas['CreatedCard'];
 export type CardStatus = 'Active' | 'Stopped';
 
 // An account with its balances, as the dashboard shows it.

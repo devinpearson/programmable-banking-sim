@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Ban, CheckCircle2, CreditCard, RefreshCw } from 'lucide-react';
+import { Ban, CheckCircle2, CreditCard, Plus, RefreshCw } from 'lucide-react';
 import { Button, EmptyState, Field, Input, Panel, Select, Table, Th } from '@/components/ui';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useAction, useToast } from '@/components/ToastProvider';
-import { useAccountsOverview, useCards, useRefreshSandbox } from '@/hooks/useSandbox';
-import { setCardStatus, swipeCard } from '@/lib/api/sandbox';
-import type { Card } from '@/lib/api/types';
-import { accountLabel, describeSwipe, isCardActive, parseAmount } from '@/lib/banking';
+import { useAccountsOverview, useCards, useExchangeRates, useRefreshSandbox } from '@/hooks/useSandbox';
+import { createCard, setCardStatus, swipeCard } from '@/lib/api/sandbox';
+import type { AccountWithBalance, Card } from '@/lib/api/types';
+import { accountLabel, describeSwipe, formatMoney, isCardActive, parseAmount } from '@/lib/banking';
 
 function StatusBadge({ card }: { card: Card }) {
   const active = isCardActive(card);
@@ -26,16 +26,26 @@ function StatusBadge({ card }: { card: Card }) {
 }
 
 function SwipeForm({ cards }: { cards: Card[] }) {
-  const [form, setForm] = useState({ cardKey: '', merchantName: '', amount: '', settle: false });
+  const [form, setForm] = useState({ cardKey: '', currencyCode: 'ZAR', merchantName: '', amount: '', settle: false });
+  const { data: rates = [] } = useExchangeRates();
   const notify = useToast();
   const refresh = useRefreshSandbox();
   const amount = parseAmount(form.amount);
+  // Rand first, then the other currencies with a rate.
+  const currencies = ['ZAR', ...rates.map(r => r.currencyCode).filter(code => code !== 'ZAR')];
+  const rate = rates.find(r => r.currencyCode === form.currencyCode);
+  const foreign = form.currencyCode !== 'ZAR';
 
   async function submit() {
     if (!form.cardKey || amount === null) return;
     const merchantName = form.merchantName.trim() || 'Corner Cafe';
     try {
-      const result = await swipeCard(form.cardKey, { amount, merchantName, settle: form.settle });
+      const result = await swipeCard(form.cardKey, {
+        amount,
+        currencyCode: form.currencyCode,
+        merchantName,
+        settle: form.settle,
+      });
       notify(describeSwipe(result, amount, merchantName), { error: !result.result });
       if (result.result) setForm(f => ({ ...f, amount: '' }));
     } catch (error) {
@@ -49,9 +59,10 @@ function SwipeForm({ cards }: { cards: Card[] }) {
       <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Swipe a card</h3>
       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
         Runs the card&apos;s published code like a point-of-sale purchase. An approved swipe places a pending hold
-        on the card&apos;s account, unless you post it immediately.
+        on the card&apos;s account, unless you post it immediately. Foreign purchases are charged in rand at the
+        sandbox exchange rate.
       </p>
-      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-5 sm:items-end">
+      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-end lg:grid-cols-6">
         <Field label="Card" htmlFor="swipe-card">
           <Select id="swipe-card" value={form.cardKey} onChange={e => setForm({ ...form, cardKey: e.target.value })}>
             <option value="">Select card</option>
@@ -70,17 +81,38 @@ function SwipeForm({ cards }: { cards: Card[] }) {
             onChange={e => setForm({ ...form, merchantName: e.target.value })}
           />
         </Field>
-        <Field label="Amount (R)" htmlFor="swipe-amount">
-          <Input
-            id="swipe-amount"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
-            value={form.amount}
-            onChange={e => setForm({ ...form, amount: e.target.value })}
-          />
+        <Field label="Currency" htmlFor="swipe-currency">
+          <Select
+            id="swipe-currency"
+            value={form.currencyCode}
+            onChange={e => setForm({ ...form, currencyCode: e.target.value })}
+          >
+            {currencies.map(code => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </Select>
         </Field>
+        <div>
+          <Field label={`Amount (${form.currencyCode})`} htmlFor="swipe-amount">
+            <Input
+              id="swipe-amount"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={form.amount}
+              onChange={e => setForm({ ...form, amount: e.target.value })}
+            />
+          </Field>
+          {foreign && rate && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              1 {form.currencyCode} = {formatMoney(rate.zarPerUnit)}
+              {amount !== null && <> · charged ≈ {formatMoney(Math.round(amount * 100 * rate.zarPerUnit) / 100)}</>}
+            </p>
+          )}
+        </div>
         <label className="flex items-center gap-2 text-xs font-medium text-gray-600 sm:pb-2 dark:text-gray-300">
           <input
             type="checkbox"
@@ -93,6 +125,74 @@ function SwipeForm({ cards }: { cards: Card[] }) {
         <Button disabled={!form.cardKey || amount === null} onClick={submit}>
           <CreditCard className="h-4 w-4" aria-hidden="true" />
           Swipe
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AddCardForm({ accounts }: { accounts: AccountWithBalance[] }) {
+  const [form, setForm] = useState({ accountId: '', cardNumber: '', isProgrammable: true });
+  const run = useAction();
+  const refresh = useRefreshSandbox();
+
+  async function submit() {
+    if (!form.accountId) return;
+    const card = await run(
+      () =>
+        createCard({
+          accountId: form.accountId,
+          isProgrammable: form.isProgrammable,
+          ...(form.cardNumber.trim() ? { cardNumber: form.cardNumber.trim() } : {}),
+        }),
+      created => `Card ${created.cardNumber} added to ${accountLabel(accounts, created.accountId)}`,
+    );
+    if (card) setForm(f => ({ ...f, cardNumber: '' }));
+    await refresh();
+  }
+
+  return (
+    <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Add a card</h3>
+      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        Issues a card on an account. It starts active, with the starter code saved and published, so it can be
+        swiped straight away.
+      </p>
+      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end lg:grid-cols-4">
+        <Field label="Account" htmlFor="new-card-account">
+          <Select
+            id="new-card-account"
+            value={form.accountId}
+            onChange={e => setForm({ ...form, accountId: e.target.value })}
+          >
+            <option value="">Select account</option>
+            {accounts.map(a => (
+              <option key={a.accountId} value={a.accountId}>
+                {a.accountName} ({a.accountNumber})
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Card number (optional)" htmlFor="new-card-number">
+          <Input
+            id="new-card-number"
+            placeholder="Generated, e.g. 402167XXXXXX1234"
+            value={form.cardNumber}
+            onChange={e => setForm({ ...form, cardNumber: e.target.value })}
+          />
+        </Field>
+        <label className="flex items-center gap-2 text-xs font-medium text-gray-600 sm:pb-2 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={form.isProgrammable}
+            onChange={e => setForm({ ...form, isProgrammable: e.target.checked })}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          />
+          Programmable
+        </label>
+        <Button variant="dark" disabled={!form.accountId} onClick={submit}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Add card
         </Button>
       </div>
     </div>
@@ -115,7 +215,7 @@ export default function CardsPanel() {
     <Panel
       id="cards"
       title="Cards"
-      description="Stop a card to see swipes declined, or swipe one to test your card code end to end."
+      description="Add cards, stop them to see swipes declined, or swipe one to test your card code end to end."
       actions={
         <Button variant="secondary" onClick={() => mutate()}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
@@ -125,7 +225,12 @@ export default function CardsPanel() {
     >
       {isLoading && <LoadingState message="Loading cards..." />}
       {error && <ErrorState error={error} onRetry={() => mutate()} />}
-      {cards && cards.length === 0 && <EmptyState>No cards yet. Load a scenario or reset the data above.</EmptyState>}
+      {cards && cards.length === 0 && (
+        <EmptyState>
+          No cards yet.{' '}
+          {accounts.length > 0 ? 'Add one below.' : 'Load a scenario or reset the data above.'}
+        </EmptyState>
+      )}
       {cards && cards.length > 0 && (
         <>
           <Table
@@ -168,6 +273,7 @@ export default function CardsPanel() {
           <SwipeForm cards={cards} />
         </>
       )}
+      {cards && accounts.length > 0 && <AddCardForm accounts={accounts} />}
     </Panel>
   );
 }

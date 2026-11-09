@@ -15,11 +15,18 @@ test.beforeEach(async ({ request, page }) => {
   await expect(page.getByRole('region', { name: 'Accounts' }).getByRole('row', { name: new RegExp(MAIN) })).toBeVisible();
 });
 
-async function swipe(page: Page, merchant: string, amount: string, options: { settle?: boolean } = {}) {
+async function swipe(
+  page: Page,
+  merchant: string,
+  amount: string,
+  options: { settle?: boolean; currency?: string; card?: string } = {},
+) {
   const cards = page.getByRole('region', { name: 'Cards' });
-  await cards.getByLabel('Card', { exact: true }).selectOption({ label: CARD });
+  const currency = options.currency ?? 'ZAR';
+  await cards.getByLabel('Card', { exact: true }).selectOption({ label: options.card ?? CARD });
   await cards.getByLabel('Merchant').fill(merchant);
-  await cards.getByLabel('Amount (R)').fill(amount);
+  await cards.getByLabel('Currency').selectOption(currency);
+  await cards.getByLabel(`Amount (${currency})`).fill(amount);
   if (options.settle) await cards.getByLabel('Post immediately (no hold)').check();
   await cards.getByRole('button', { name: 'Swipe' }).click();
 }
@@ -101,4 +108,19 @@ test('the server log shows API requests live', async ({ page }) => {
   await expect(logs.getByText(/Live/)).toBeVisible();
   await swipe(page, 'Log Line', '1');
   await expect(logs.getByText(/execute-live/).first()).toBeVisible();
+});
+
+test('a new card can be added and swiped in another currency', async ({ page }) => {
+  const cards = page.getByRole('region', { name: 'Cards' });
+  await cards.getByLabel('Account', { exact: true }).selectOption({ label: `Mr J Soap (${MAIN})` });
+  await cards.getByLabel('Card number (optional)').fill('402167XXXXXX9999');
+  await cards.getByRole('button', { name: 'Add card' }).click();
+  await expect(page.getByText(`Card 402167XXXXXX9999 added to Mr J Soap (${MAIN})`)).toBeVisible();
+  await expect(cards.getByRole('row', { name: /402167XXXXXX9999/ })).toContainText('Active');
+
+  // USD 12.50 at the seeded R17.60 is R220.00.
+  await swipe(page, 'London Books', '12.50', { currency: 'USD', card: '402167XXXXXX9999' });
+  await expect(page.getByText(/Approved: USD 12\.50 \(R 220[.,]00\) at London Books \(pending hold placed\)/)).toBeVisible();
+  const hold = holds(page).getByRole('row', { name: /London Books \(USD 12\.50\)/ });
+  await expect(hold).toContainText(/R 220[.,]00/);
 });

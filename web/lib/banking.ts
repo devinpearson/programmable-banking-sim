@@ -34,16 +34,24 @@ export function transferError(input: TransferInput): string | null {
   return null;
 }
 
+// An amount in any currency: rand as "R 12,50", others as "USD 12.50".
+export function formatCurrency(currencyCode: string, amount: number): string {
+  if (currencyCode.toUpperCase() === 'ZAR') return formatMoney(amount);
+  return `${currencyCode.toUpperCase()} ${amount.toFixed(2)}`;
+}
+
 export interface SwipeInput {
   amount: number;
+  currencyCode: string;
   merchantName: string;
   settle: boolean;
 }
 
-// The execute-live body for a point-of-sale swipe. Amounts go in cents.
+// The execute-live body for a point-of-sale swipe. Amounts go in cents of
+// the purchase currency; the sandbox converts them to rand.
 export function buildSwipeRequest(input: SwipeInput) {
   return {
-    currencyCode: 'ZAR',
+    currencyCode: input.currencyCode.toUpperCase(),
     centsAmount: Math.round(input.amount * 100),
     merchantCode: '5411',
     merchantName: input.merchantName.trim() || 'Corner Cafe',
@@ -56,7 +64,16 @@ export function buildSwipeRequest(input: SwipeInput) {
 // The parts of a swipe result describeSwipe reads.
 type SwipeOutcome = Pick<SwipeResult, 'result' | 'reason'> & {
   transaction: Pick<NonNullable<SwipeResult['transaction']>, 'status'> | null;
+  exchange?: Pick<NonNullable<SwipeResult['exchange']>, 'currencyCode' | 'amount' | 'zarAmount'> | null;
 };
+
+// The amount as the customer sees it: a foreign purchase with what it cost
+// in rand, e.g. "USD 12.50 (R 220,00)".
+function swipeAmount(result: SwipeOutcome, amount: number): string {
+  const exchange = result.exchange;
+  if (!exchange) return formatMoney(amount);
+  return `${formatCurrency(exchange.currencyCode, exchange.amount)} (${formatMoney(exchange.zarAmount)})`;
+}
 
 // One line describing what happened to a swipe.
 export function describeSwipe(result: SwipeOutcome, amount: number, merchantName: string): string {
@@ -66,7 +83,10 @@ export function describeSwipe(result: SwipeOutcome, amount: number, merchantName
       : result.transaction.status === 'POSTED'
         ? ' (posted)'
         : ' (pending hold placed)';
-    return `Approved: ${formatMoney(amount)} at ${merchantName}${outcome}`;
+    return `Approved: ${swipeAmount(result, amount)} at ${merchantName}${outcome}`;
+  }
+  if (result.reason === 'insufficient_funds' && result.exchange) {
+    return `Declined: insufficient funds for ${swipeAmount(result, amount)}`;
   }
   const reasons: Record<string, string> = {
     insufficient_funds: 'insufficient funds',

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { seedCurrencies } from './currency'
+import { seedExchangeRates } from './exchange-rate'
 import { seedCountries } from './country'
 import { seedMerchants } from './merchant'
 import { seedProfiles } from './profile'
@@ -16,6 +17,7 @@ async function main() {
   console.log(`Start seeding ...`)
 
   await seedCurrencies()
+  await seedExchangeRates()
   await seedCountries()
   await seedMerchants()
   await seedProfiles()

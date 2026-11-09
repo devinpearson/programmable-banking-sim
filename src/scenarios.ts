@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import dayjs from 'dayjs'
 import { InvestecTransactionType, TransactionType } from './types.js'
+import { STARTER_CARD_CODE } from './cardCode.js'
 
 const prisma = new PrismaClient()
 
@@ -42,22 +43,6 @@ interface Scenario {
   beneficiaries?: ScenarioBeneficiary[]
   cards?: ScenarioCard[]
 }
-
-// Published/saved code for scenario cards: the same starter template the
-// seeded card has, which approves every transaction.
-const STARTER_CARD_CODE =
-  '// This function runs before a transaction.\n' +
-  'const beforeTransaction = async (authorization) => {\n' +
-  '  console.log(authorization);\n' +
-  '};\n' +
-  '// This function runs after a transaction was successful.\n' +
-  'const afterTransaction = async (transaction) => {\n' +
-  '  console.log(transaction);\n' +
-  '};\n' +
-  '// This function runs after a transaction was declined.\n' +
-  'const afterDecline = async (transaction) => {\n' +
-  '  console.log(transaction);\n' +
-  '};'
 
 const PROFILE = { profileId: '20000000000001', profileName: 'Sandbox User' }
 

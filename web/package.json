@@ -5,8 +5,8 @@
   "description": "Dashboard and OAuth pages for the programmable banking sandbox",
   "scripts": {
     "dev": "next dev --turbopack --port 3001",
-    "build": "next build --turbopack",
-    "start": "next start --port 3001",
+    "build": "NEXT_DIST_DIR=.next-build next build --turbopack",
+    "start": "NEXT_DIST_DIR=.next-build next start --port 3001",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",

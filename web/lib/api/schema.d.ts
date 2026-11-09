@@ -1653,7 +1653,10 @@ export interface paths {
             };
         };
         put?: never;
-        /** Create a card */
+        /**
+         * Issue a card
+         * @description Given an accountId (which must exist), the card swipes against that account and takes its account number. Defaults: a masked card number, status Active, and the starter code saved and published.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1723,6 +1726,15 @@ export interface paths {
                 };
                 /** @description Already exists */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not possible in the current state (e.g. insufficient funds) */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2576,7 +2588,7 @@ export interface paths {
         put?: never;
         /**
          * Swipe the card (point of sale)
-         * @description Runs the published code. Declined up front if the card is stopped or the account can't cover it; an approved swipe places a pending hold (or posts immediately with settle: true).
+         * @description Runs the published code. Any currency with an exchange rate works: the card code sees the purchase in its own currency, and the account is charged in rand. Declined up front if the card is stopped or the account can't cover the rand amount; an approved swipe places a pending hold (or posts immediately with settle: true). 422 when the currency has no exchange rate.
          */
         post: {
             parameters: {
@@ -2659,6 +2671,15 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not possible in the current state (e.g. insufficient funds) */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2938,6 +2959,164 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List exchange rates for foreign card swipes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                rates: components["schemas"]["ExchangeRate"][];
+                            };
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/{currencyCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add a currency or change its rate
+         * @description Rand per unit of the currency. ZAR is always 1.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    currencyCode: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description How many rand one unit of the currency buys.
+                         * @example 17.6
+                         */
+                        zarPerUnit: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ExchangeRate"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove a currency (swipes in it are then refused) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    currencyCode: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3871,6 +4050,22 @@ export interface components {
                 error: null;
             };
         };
+        Exchange: {
+            /** @example USD */
+            currencyCode: string;
+            /**
+             * @description In the purchase currency.
+             * @example 12.5
+             */
+            amount: number;
+            /** @example 17.6 */
+            zarPerUnit: number;
+            /**
+             * @description What the account is charged, in rand.
+             * @example 220
+             */
+            zarAmount: number;
+        };
         /** @description transaction is the pending hold (or posted purchase) on the card's account; null when declined or the card has no account. */
         SwipeResult: {
             /** @description Whether the purchase was approved. */
@@ -3881,6 +4076,7 @@ export interface components {
              */
             reason?: "insufficient_funds" | "card_not_active";
             transaction: components["schemas"]["StoredTransaction"] | null;
+            exchange: components["schemas"]["Exchange"] | null;
         };
         Execution: {
             executionId: string;
@@ -3915,6 +4111,14 @@ export interface components {
                 code: string;
                 name: string;
             }[];
+        };
+        ExchangeRate: {
+            /** @example USD */
+            currencyCode: string;
+            /** @example 17.6 */
+            zarPerUnit: number;
+            /** @example 2026-11-09T10:00:00.000Z */
+            updatedAt: string;
         };
         TokenResponse: {
             access_token: string;

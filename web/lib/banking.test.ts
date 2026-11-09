@@ -5,6 +5,7 @@ import {
   appendLog,
   buildSwipeRequest,
   describeSwipe,
+  formatCurrency,
   formatMoney,
   isCardActive,
   newestFirst,
@@ -57,18 +58,62 @@ describe('transferError', () => {
 
 describe('buildSwipeRequest', () => {
   it('converts rands to whole cents', () => {
-    expect(buildSwipeRequest({ amount: 19.99, merchantName: 'Shop', settle: false }).centsAmount).toBe(1999);
-    expect(buildSwipeRequest({ amount: 0.1 + 0.2, merchantName: 'Shop', settle: false }).centsAmount).toBe(30);
+    expect(buildSwipeRequest({ amount: 19.99, currencyCode: 'ZAR', merchantName: 'Shop', settle: false }).centsAmount).toBe(1999);
+    expect(buildSwipeRequest({ amount: 0.1 + 0.2, currencyCode: 'ZAR', merchantName: 'Shop', settle: false }).centsAmount).toBe(30);
   });
   it('defaults a blank merchant and passes settle through', () => {
-    const body = buildSwipeRequest({ amount: 5, merchantName: '  ', settle: true });
+    const body = buildSwipeRequest({ amount: 5, currencyCode: 'ZAR', merchantName: '  ', settle: true });
     expect(body.merchantName).toBe('Corner Cafe');
     expect(body.settle).toBe(true);
     expect(body).toMatchObject({ currencyCode: 'ZAR', countryCode: 'ZA', merchantCode: '5411' });
   });
 });
 
+describe('formatCurrency', () => {
+  it('formats rand like formatMoney', () => {
+    expect(formatCurrency('ZAR', 12.5)).toBe(formatMoney(12.5));
+  });
+  it('shows other currencies by code', () => {
+    expect(formatCurrency('usd', 12.5)).toBe('USD 12.50');
+  });
+});
+
+describe('buildSwipeRequest currencies', () => {
+  it('sends the purchase currency, upper-cased', () => {
+    expect(buildSwipeRequest({ amount: 12.5, currencyCode: 'usd', merchantName: 'Shop', settle: false })).toMatchObject({
+      currencyCode: 'USD',
+      centsAmount: 1250,
+    });
+  });
+});
+
 describe('describeSwipe', () => {
+  it('shows a foreign purchase with its rand cost', () => {
+    const text = describeSwipe(
+      {
+        result: true,
+        transaction: { status: 'PENDING' },
+        exchange: { currencyCode: 'USD', amount: 12.5, zarAmount: 220 },
+      },
+      12.5,
+      'Books',
+    );
+    expect(text).toMatch(/^Approved: USD 12\.50 \(R 220[.,]00\) at Books \(pending hold placed\)$/);
+  });
+  it('says what a declined foreign purchase would have cost', () => {
+    const text = describeSwipe(
+      {
+        result: false,
+        reason: 'insufficient_funds',
+        transaction: null,
+        exchange: { currencyCode: 'USD', amount: 60, zarAmount: 1056 },
+      },
+      60,
+      'Books',
+    );
+    expect(text).toMatch(/^Declined: insufficient funds for USD 60\.00 \(R 1[\s,]?056[.,]00\)$/);
+  });
+
   it('describes an approved hold', () => {
     const text = describeSwipe({ result: true, transaction: { status: 'PENDING' } }, 50, 'Cafe');
     expect(text).toMatch(/^Approved: R 50[.,]00 at Cafe \(pending hold placed\)$/);

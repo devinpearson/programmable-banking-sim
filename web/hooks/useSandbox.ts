@@ -7,6 +7,7 @@ import { getApiBaseUrl } from '@/lib/api/common';
 import {
   getAccountsOverview,
   getCards,
+  getExchangeRates,
   getScenarios,
   getSettings,
   getSummary,
@@ -27,6 +28,7 @@ export const KEYS = {
   summary: 'summary',
   scenarios: 'scenarios',
   settings: 'settings',
+  exchangeRates: 'exchange-rates',
 } as const;
 
 export function useAccountsOverview() {
@@ -43,6 +45,10 @@ export function useSummary() {
 
 export function useScenarios() {
   return useSWR(KEYS.scenarios, getScenarios, { ...SWR_CONFIG, revalidateOnFocus: false });
+}
+
+export function useExchangeRates() {
+  return useSWR(KEYS.exchangeRates, getExchangeRates, { ...SWR_CONFIG, revalidateOnFocus: false });
 }
 
 export function useSettings() {

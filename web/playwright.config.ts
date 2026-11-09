@@ -33,7 +33,9 @@ export default defineConfig({
       timeout: 120000,
     },
     {
-      command: `NEXT_PUBLIC_API_BASE_URL=${API_URL} npx next dev --port ${WEB_PORT}`,
+      // Its own build folder, so a running `npm run dev` (which uses .next)
+      // isn't clobbered by the test server.
+      command: `NEXT_DIST_DIR=.next-e2e NEXT_PUBLIC_API_BASE_URL=${API_URL} npx next dev --port ${WEB_PORT}`,
       url: `${WEB_URL}/login`,
       reuseExistingServer: false,
       timeout: 120000,

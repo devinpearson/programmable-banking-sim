@@ -10,6 +10,7 @@ import { createServer } from 'node:http'
 import identity, { authenticateSession } from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
+import exchangeRates from './routes/exchangeRates.js'
 import type {
   AccessToken,
   AuthorizationCode,
@@ -184,6 +185,7 @@ export const routerMounts = {
   '/identity': identity,
   '/za/pb/v1/accounts': accounts,
   '/za/v1/cards': cards,
+  '/exchange-rates': exchangeRates,
 } as const
 
 // Token requests check client secrets and the OAuth pages sign users in.
@@ -208,6 +210,8 @@ app.use('/za', (req, res, next) => {
 
 app.use('/za/pb/v1/accounts', routerMounts['/za/pb/v1/accounts'])
 app.use('/za/v1/cards', routerMounts['/za/v1/cards'])
+// Sandbox control, outside /za so it needs no token.
+app.use('/exchange-rates', routerMounts['/exchange-rates'])
 
 // Shared database lifecycle helpers, used by the control socket and the
 // /clear and /restore routes so every entry point behaves identically.

@@ -11,3 +11,6 @@ reports
 
 # Local SQLite databases (recreate with: npm run db:reset)
 prisma/*.db
+
+# Local Claude Code preview config
+.claude/launch.json

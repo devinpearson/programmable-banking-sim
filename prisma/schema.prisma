@@ -136,3 +136,11 @@ model CardExecutionLog {
 
     @@index([executionId])
 }
+// How many rand one unit of a currency buys, for converting foreign card
+// swipes. Illustrative sandbox rates, not live ones; change them with
+// PUT /exchange-rates/:currencyCode.
+model ExchangeRate {
+    currencyCode String @id
+    zarPerUnit Decimal
+    updatedAt DateTime @updatedAt
+}
