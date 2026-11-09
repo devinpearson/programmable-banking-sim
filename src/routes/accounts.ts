@@ -80,6 +80,11 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
       where: {
         accountId: accountId,
       },
+      // Explicit, stable order so postedOrder and runningBalance are
+      // deterministic instead of relying on the database's insertion order.
+      orderBy: {
+        transactionId: 'asc',
+      },
     })
     //    console.log(transactionsArr)
     const toDate = req.query.toDate ?? dayjs().format('YYYY-MM-DD') // set to today
@@ -156,57 +161,68 @@ router.post('/:accountId/transfermultiple',
         return formatErrorResponse(req, res, 404) // no account was found
       }
       const transfers = req.body.transferList
-      console.log(transfers)
-      for (let i = 0; i < transfers.length; i++) {
+      if (!Array.isArray(transfers) || transfers.length === 0) {
+        return formatErrorResponse(req, res, 400) // nothing to transfer
+      }
+
+      // Validate every leg and confirm each beneficiary account exists before
+      // writing anything, so a bad entry can't leave a half-finished transfer.
+      const writes: Prisma.PrismaPromise<unknown>[] = []
+      for (const transfer of transfers) {
+        const amount = Number(transfer.amount)
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return formatErrorResponse(req, res, 400) // invalid amount
+        }
         const beneficiary = await prisma.account.findFirst({
           where: {
-            accountId: transfers[i].beneficiaryAccountId,
+            accountId: transfer.beneficiaryAccountId,
           },
         })
         if (!beneficiary) {
           console.log('no beneficiary account found')
           return formatErrorResponse(req, res, 404) // no account was found
         }
-        const transactionOut = {
-          accountId: accountId,
-          type: TransactionType.DEBIT,
-          transactionType: 'Transfer',
-          status: 'POSTED',
-          description: transfers[i].myReference,
-          cardNumber: '',
-          postedOrder: 0,
-          postingDate: dayjs().format('YYYY-MM-DD'),
-          valueDate: dayjs().format('YYYY-MM-DD'),
-          actionDate: dayjs().format('YYYY-MM-DD'),
-          transactionDate: dayjs().format('YYYY-MM-DD'),
-          amount: transfers[i].amount,
-          runningBalance: 0,
-        }
-        // insert the transaction
-        await prisma.transaction.create({
-          data: transactionOut,
-        })
-
-        const transactionIn = {
-          accountId: transfers[i].beneficiaryAccountId,
-          type: TransactionType.CREDIT,
-          transactionType: 'Transfer',
-          status: 'POSTED',
-          description: transfers[i].theirReference,
-          cardNumber: '',
-          postedOrder: 0,
-          postingDate: dayjs().format('YYYY-MM-DD'),
-          valueDate: dayjs().format('YYYY-MM-DD'),
-          actionDate: dayjs().format('YYYY-MM-DD'),
-          transactionDate: dayjs().format('YYYY-MM-DD'),
-          amount: transfers[i].amount,
-          runningBalance: 0,
-        }
-        // insert the transaction
-        await prisma.transaction.create({
-          data: transactionIn,
-        })
+        const today = dayjs().format('YYYY-MM-DD')
+        writes.push(
+          prisma.transaction.create({
+            data: {
+              accountId: accountId,
+              type: TransactionType.DEBIT,
+              transactionType: 'Transfer',
+              status: 'POSTED',
+              description: transfer.myReference,
+              cardNumber: '',
+              postedOrder: 0,
+              postingDate: today,
+              valueDate: today,
+              actionDate: today,
+              transactionDate: today,
+              amount: transfer.amount,
+              runningBalance: 0,
+            },
+          }),
+          prisma.transaction.create({
+            data: {
+              accountId: transfer.beneficiaryAccountId,
+              type: TransactionType.CREDIT,
+              transactionType: 'Transfer',
+              status: 'POSTED',
+              description: transfer.theirReference,
+              cardNumber: '',
+              postedOrder: 0,
+              postingDate: today,
+              valueDate: today,
+              actionDate: today,
+              transactionDate: today,
+              amount: transfer.amount,
+              runningBalance: 0,
+            },
+          }),
+        )
       }
+
+      // Commit every leg atomically.
+      await prisma.$transaction(writes)
 
       return formatResponse(transfers, req, res)
     } catch (error) {
@@ -231,37 +247,51 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
       return formatErrorResponse(req, res, 404) // no account was found
     }
     const transfers = req.body.paymentList
-    // console.log(transfers)
-    for (let i = 0; i < transfers.length; i++) {
+    if (!Array.isArray(transfers) || transfers.length === 0) {
+      return formatErrorResponse(req, res, 400) // nothing to pay
+    }
+
+    // Validate every payment and confirm each beneficiary exists before writing
+    // anything, so a bad entry can't leave a half-finished batch.
+    const writes: Prisma.PrismaPromise<unknown>[] = []
+    for (const payment of transfers) {
+      const amount = Number(payment.amount)
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return formatErrorResponse(req, res, 400) // invalid amount
+      }
       const beneficiary = await prisma.beneficiary.findFirst({
         where: {
-          beneficiaryId: transfers[i].beneficiaryId,
+          beneficiaryId: payment.beneficiaryId,
         },
       })
       if (!beneficiary) {
         console.log('no beneficiary account found')
         return formatErrorResponse(req, res, 404) // no account was found
       }
-      const transactionOut = {
-        accountId: accountId,
-        type: TransactionType.DEBIT,
-        transactionType: 'Transfer',
-        status: 'POSTED',
-        description: transfers[i].myReference,
-        cardNumber: '',
-        postedOrder: 0,
-        postingDate: dayjs().format('YYYY-MM-DD'),
-        valueDate: dayjs().format('YYYY-MM-DD'),
-        actionDate: dayjs().format('YYYY-MM-DD'),
-        transactionDate: dayjs().format('YYYY-MM-DD'),
-        amount: transfers[i].amount,
-        runningBalance: 0,
-      }
-      // insert the transaction
-      await prisma.transaction.create({
-        data: transactionOut,
-      })
+      const today = dayjs().format('YYYY-MM-DD')
+      writes.push(
+        prisma.transaction.create({
+          data: {
+            accountId: accountId,
+            type: TransactionType.DEBIT,
+            transactionType: 'Payment',
+            status: 'POSTED',
+            description: payment.myReference,
+            cardNumber: '',
+            postedOrder: 0,
+            postingDate: today,
+            valueDate: today,
+            actionDate: today,
+            transactionDate: today,
+            amount: payment.amount,
+            runningBalance: 0,
+          },
+        }),
+      )
     }
+
+    // Commit every payment atomically.
+    await prisma.$transaction(writes)
 
     return formatResponse(transfers, req, res)
   } catch (error) {

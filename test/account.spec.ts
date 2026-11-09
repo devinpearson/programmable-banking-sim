@@ -303,4 +303,88 @@ describe('Test the accounts', () => {
 
     await request(app).delete(`/za/pb/v1/accounts/beneficiaries/${beneficiaryId}`)
   })
+
+  it('should respond with 400 when transfermultiple has no transferList', async () => {
+    const accountId = 'test-transfer-badinput-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '44444444404' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transfermultiple`)
+      .send({})
+    assert.equal(response.statusCode, 400)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should respond with 400 when transfermultiple amount is invalid', async () => {
+    const accountId = 'test-transfer-badamount-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '44444444405' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transfermultiple`)
+      .send({ transferList: [{ beneficiaryAccountId: accountId, amount: -5, myReference: 'r', theirReference: 'r' }] })
+    assert.equal(response.statusCode, 400)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should not write any leg when a transfermultiple beneficiary is missing (atomicity)', async () => {
+    const sourceId = 'test-transfer-atomic-001'
+    const destId = 'test-transfer-atomic-dest-001'
+    await request(app).delete(`/za/pb/v1/accounts/${sourceId}`)
+    await request(app).delete(`/za/pb/v1/accounts/${destId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId: sourceId, accountNumber: '44444444406' })
+    await request(app).post('/za/pb/v1/accounts').send({ accountId: destId, accountNumber: '44444444407' })
+
+    // First leg is valid, second points at a non-existent beneficiary.
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${sourceId}/transfermultiple`)
+      .send({
+        transferList: [
+          { beneficiaryAccountId: destId, amount: 100, myReference: 'r', theirReference: 'r' },
+          { beneficiaryAccountId: 'does-not-exist', amount: 100, myReference: 'r', theirReference: 'r' },
+        ],
+      })
+    assert.equal(response.statusCode, 404)
+
+    // The valid first leg must NOT have been written.
+    const sourceBalance = await request(app).get(`/za/pb/v1/accounts/${sourceId}/balance`)
+    assert.equal(sourceBalance.body.data.currentBalance, 0)
+    const destBalance = await request(app).get(`/za/pb/v1/accounts/${destId}/balance`)
+    assert.equal(destBalance.body.data.currentBalance, 0)
+
+    await request(app).delete(`/za/pb/v1/accounts/${sourceId}`)
+    await request(app).delete(`/za/pb/v1/accounts/${destId}`)
+  })
+
+  it('should respond with 400 when paymultiple has no paymentList', async () => {
+    const accountId = 'test-pay-badinput-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '33333333303' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/paymultiple`)
+      .send({})
+    assert.equal(response.statusCode, 400)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should label paymultiple transactions as Payment', async () => {
+    const accountId = 'test-pay-label-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '33333333304' })
+
+    await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/paymultiple`)
+      .send({ paymentList: [{ beneficiaryId: 'MTAxOTA2OTI5Nzc0Mjz=', amount: 150, myReference: 'My ref' }] })
+
+    const txns = await request(app).get(`/za/pb/v1/accounts/${accountId}/transactions?fromDate=2000-01-01`)
+    assert.equal(txns.statusCode, 200)
+    assert.equal(txns.body.data.transactions[0].transactionType, 'Payment')
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
 })

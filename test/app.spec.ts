@@ -74,4 +74,25 @@ describe('Test the app-level routes', () => {
     assert.equal(response.statusCode, 404)
     assert.equal(response.body.error, 'endpoint_not_found')
   })
+
+  it('should clear the database and fully restore it from the seed', async () => {
+    const clearResponse = await request(app).delete('/clear')
+    assert.equal(clearResponse.statusCode, 200)
+
+    const emptied = await request(app).get('/database-summary')
+    assert.equal(emptied.body.data.profiles, 0)
+    assert.equal(emptied.body.data.accounts, 0)
+    assert.equal(emptied.body.data.cards, 0)
+    assert.equal(emptied.body.data.transactions, 0)
+
+    const restoreResponse = await request(app).get('/restore')
+    assert.equal(restoreResponse.statusCode, 200)
+
+    // Restore must repopulate every seeded table, not just a subset.
+    const restored = await request(app).get('/database-summary')
+    assert.isAbove(restored.body.data.profiles, 0)
+    assert.isAbove(restored.body.data.accounts, 0)
+    assert.isAbove(restored.body.data.cards, 0)
+    assert.isAbove(restored.body.data.transactions, 0)
+  })
 })
