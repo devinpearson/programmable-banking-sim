@@ -382,6 +382,34 @@ register('delete', '/exchange-rates/:currencyCode', {
   ok: z.object({}),
 })
 
+// --- Fault injection --------------------------------------------------------
+const FAULT_HEADERS =
+  'Per request, on /za and the token endpoint: X-Sandbox-Fault: 429 | 500 | 502 | 503 | 504 | timeout | timeout:<ms> | reset, and X-Sandbox-Latency: <ms>.'
+register('get', '/faults', {
+  tag: 'Fault injection',
+  summary: 'Get the random fault settings',
+  description: FAULT_HEADERS,
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(response.FaultConfig),
+})
+register('put', '/faults', {
+  tag: 'Fault injection',
+  summary: 'Set random faults for /za and the token endpoint',
+  description: `Saved across restarts. Requests with X-Sandbox-Client: dashboard are exempt. ${FAULT_HEADERS}`,
+  sandbox: true,
+  security: 'none',
+  body: request.faultConfigBody,
+  ok: response.envelope(response.FaultConfig),
+})
+register('delete', '/faults', {
+  tag: 'Fault injection',
+  summary: 'Turn every fault off',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(response.FaultConfig),
+})
+
 // --- Webhooks ---------------------------------------------------------------
 const webhookIdParams = request.webhookIdParams
 register('get', '/webhooks', {
@@ -587,7 +615,7 @@ export const openApiDocument = new OpenApiGeneratorV31(registry.definitions).gen
     title: 'Programmable Banking Sandbox API',
     version: '1.2.0',
     description:
-      'A local sandbox emulating the Investec Programmable Banking APIs. Operations marked x-sandbox-only have no Investec equivalent.',
+      'A local sandbox emulating the Investec Programmable Banking APIs. Operations marked x-sandbox-only have no Investec equivalent. To test error handling, send X-Sandbox-Fault (429, 500, 502, 503, 504, timeout, timeout:<ms>, reset) or X-Sandbox-Latency (<ms>) with any /za request, or set random faults with PUT /faults.',
   },
   servers: [{ url: 'http://localhost:3000' }],
 })

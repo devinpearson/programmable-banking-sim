@@ -53,6 +53,8 @@ export async function fetchAPI<T>(endpoint: string, init?: RequestInit): Promise
     ...init,
     headers: {
       ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      // Exempts the dashboard from random fault injection (PUT /faults).
+      'X-Sandbox-Client': 'dashboard',
       ...init?.headers,
     },
   });

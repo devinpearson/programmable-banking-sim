@@ -4,6 +4,7 @@ import {
   accountLabel,
   appendLog,
   buildSwipeRequest,
+  describeFaults,
   describeSwipe,
   formatCurrency,
   formatMoney,
@@ -203,5 +204,18 @@ describe('paymentError', () => {
     expect(paymentError({ from: 'a', beneficiaryId: '', amount: '1' })).toBe('Pick a beneficiary');
     expect(paymentError({ from: 'a', beneficiaryId: 'b', amount: '-1' })).toBe('Enter an amount greater than zero');
     expect(paymentError({ from: 'a', beneficiaryId: 'b', amount: '25' })).toBeNull();
+  });
+});
+
+describe('describeFaults', () => {
+  const off = { errorRate: 0, errorStatus: 503, timeoutRate: 0, latencyMs: 0, pathPrefix: '' };
+  it('says when nothing is on', () => {
+    expect(describeFaults(off)).toBe('No faults');
+  });
+  it('lists each fault and where it applies', () => {
+    expect(describeFaults({ ...off, errorRate: 20, latencyMs: 500, pathPrefix: '/za/v1/cards' })).toBe(
+      '20% of requests get 503 · 500 ms extra latency · on /za/v1/cards',
+    );
+    expect(describeFaults({ ...off, timeoutRate: 5 })).toBe('5% time out · on all /za requests and tokens');
   });
 });

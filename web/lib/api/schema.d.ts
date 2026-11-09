@@ -3122,6 +3122,157 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/faults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the random fault settings
+         * @description Per request, on /za and the token endpoint: X-Sandbox-Fault: 429 | 500 | 502 | 503 | 504 | timeout | timeout:<ms> | reset, and X-Sandbox-Latency: <ms>.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["FaultConfig"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * Set random faults for /za and the token endpoint
+         * @description Saved across restarts. Requests with X-Sandbox-Client: dashboard are exempt. Per request, on /za and the token endpoint: X-Sandbox-Fault: 429 | 500 | 502 | 503 | 504 | timeout | timeout:<ms> | reset, and X-Sandbox-Latency: <ms>.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Percent of requests answered with errorStatus.
+                         * @default 0
+                         * @example 20
+                         */
+                        errorRate?: number;
+                        /** @enum {integer} */
+                        errorStatus?: 429 | 500 | 502 | 503 | 504;
+                        /**
+                         * @description Percent of requests held, then dropped.
+                         * @default 0
+                         */
+                        timeoutRate?: number;
+                        /**
+                         * @description Added to every matching request.
+                         * @default 0
+                         * @example 500
+                         */
+                        latencyMs?: number;
+                        /**
+                         * @description Only requests under this path, e.g. /za/v1/cards. '' for all.
+                         * @default
+                         * @example
+                         */
+                        pathPrefix?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["FaultConfig"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Turn every fault off */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["FaultConfig"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks": {
         parameters: {
             query?: never;
@@ -4784,6 +4935,16 @@ export interface components {
             zarPerUnit: number;
             /** @example 2026-11-09T10:00:00.000Z */
             updatedAt: string;
+        };
+        FaultConfig: {
+            errorRate: number;
+            /** @enum {integer} */
+            errorStatus: 429 | 500 | 502 | 503 | 504;
+            timeoutRate: number;
+            latencyMs: number;
+            pathPrefix: string;
+            /** @description Whether any fault is on. */
+            active: boolean;
         };
         Webhook: {
             webhookId: string;
