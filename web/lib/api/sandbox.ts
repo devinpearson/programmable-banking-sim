@@ -185,6 +185,17 @@ export function createCard(card: NewCard) {
   return fetchData<CreatedCard>(CARDS, postJSON(card));
 }
 
+export function setExchangeRate(currencyCode: string, zarPerUnit: number) {
+  return fetchData<ExchangeRate>(`/exchange-rates/${encodeURIComponent(currencyCode)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ zarPerUnit }),
+  });
+}
+
+export function deleteExchangeRate(currencyCode: string) {
+  return fetchAPI(`/exchange-rates/${encodeURIComponent(currencyCode)}`, { method: 'DELETE' });
+}
+
 export async function getExchangeRates(): Promise<ExchangeRate[]> {
   return (await fetchData<{ rates: ExchangeRate[] }>('/exchange-rates')).rates;
 }
@@ -211,6 +222,16 @@ export function resetDatabase() {
 
 export function clearDatabase() {
   return fetchAPI('/clear', { method: 'DELETE' });
+}
+
+// The whole sandbox state as a JSON file's text, for download.
+export async function exportState(): Promise<{ fileName: string; json: string }> {
+  const state = await fetchAPI<{ exportedAt: string }>('/export');
+  return { fileName: `sandbox-${state.exportedAt.slice(0, 10)}.json`, json: JSON.stringify(state, null, 2) };
+}
+
+export function importState(state: unknown) {
+  return fetchData<Record<string, number>>('/import', postJSON(state));
 }
 
 export function getSettings() {

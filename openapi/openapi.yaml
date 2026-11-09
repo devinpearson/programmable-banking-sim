@@ -770,8 +770,16 @@ components:
       properties:
         deliveryId:
           type: string
+          description: This attempt.
         webhookId:
           type: string
+        eventId:
+          type: string
+          description: "The event: the same for every attempt (payload id,
+            X-Sandbox-Delivery)."
+        attempt:
+          type: integer
+          description: 1 for the first try; retries after 5 s, 30 s and 2 min by default.
         event:
           type: string
         status:
@@ -811,6 +819,8 @@ components:
       required:
         - deliveryId
         - webhookId
+        - eventId
+        - attempt
         - event
         - status
         - responseStatus
@@ -966,6 +976,277 @@ components:
         - accounts
         - beneficiaries
         - cards
+    SandboxState:
+      type: object
+      properties:
+        version:
+          type: number
+          enum:
+            - 1
+        exportedAt:
+          type: string
+          format: date-time
+        profiles:
+          type: array
+          items:
+            type: object
+            properties:
+              profileId:
+                type: string
+                minLength: 1
+              profileName:
+                type: string
+            required:
+              - profileId
+              - profileName
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              accountId:
+                type: string
+                minLength: 1
+              accountNumber:
+                type: string
+              accountName:
+                type: string
+              referenceName:
+                type: string
+              productName:
+                type: string
+              kycCompliant:
+                type: boolean
+              profileId:
+                type: string
+              profileName:
+                type: string
+              overdraftLimit:
+                anyOf:
+                  - type: string
+                  - type: number
+            required:
+              - accountId
+              - accountNumber
+              - accountName
+              - referenceName
+              - productName
+              - kycCompliant
+              - profileId
+              - profileName
+              - overdraftLimit
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              transactionId:
+                type: integer
+                exclusiveMinimum: 0
+              accountId:
+                type: string
+              type:
+                type: string
+                enum:
+                  - DEBIT
+                  - CREDIT
+              transactionType:
+                type: string
+              status:
+                type: string
+                enum:
+                  - POSTED
+                  - PENDING
+              description:
+                type: string
+              cardNumber:
+                type: string
+              postedOrder:
+                anyOf:
+                  - type: string
+                  - type: number
+              postingDate:
+                type: string
+              valueDate:
+                type: string
+              actionDate:
+                type: string
+              transactionDate:
+                type: string
+              amount:
+                anyOf:
+                  - type: string
+                  - type: number
+              runningBalance:
+                anyOf:
+                  - type: string
+                  - type: number
+            required:
+              - transactionId
+              - accountId
+              - type
+              - transactionType
+              - status
+              - description
+              - cardNumber
+              - postedOrder
+              - postingDate
+              - valueDate
+              - actionDate
+              - transactionDate
+              - amount
+              - runningBalance
+        beneficiaries:
+          type: array
+          items:
+            type: object
+            properties:
+              beneficiaryId:
+                type: string
+                minLength: 1
+              accountNumber:
+                type: string
+              code:
+                type: string
+              bank:
+                type: string
+              beneficiaryName:
+                type: string
+              lastPaymentAmount:
+                type: string
+              lastPaymentDate:
+                type: string
+              cellNo:
+                type:
+                  - string
+                  - "null"
+              emailAddress:
+                type:
+                  - string
+                  - "null"
+              name:
+                type: string
+              referenceAccountNumber:
+                type: string
+              referenceName:
+                type: string
+              categoryId:
+                type: string
+              profileId:
+                type: string
+            required:
+              - beneficiaryId
+              - accountNumber
+              - code
+              - bank
+              - beneficiaryName
+              - lastPaymentAmount
+              - lastPaymentDate
+              - cellNo
+              - emailAddress
+              - name
+              - referenceAccountNumber
+              - referenceName
+              - categoryId
+              - profileId
+        cards:
+          type: array
+          items:
+            type: object
+            properties:
+              cardKey:
+                type: string
+                minLength: 1
+              cardNumber:
+                type: string
+              isProgrammable:
+                type: boolean
+              status:
+                type: string
+              cardTypeCode:
+                type: string
+              accountNumber:
+                type: string
+              accountId:
+                type: string
+              publishedCode:
+                type: string
+              savedCode:
+                type: string
+              envs:
+                type: string
+              envsCreatedAt:
+                type: string
+                format: date-time
+              envsUpdatedAt:
+                type: string
+                format: date-time
+            required:
+              - cardKey
+              - cardNumber
+              - isProgrammable
+              - status
+              - cardTypeCode
+              - accountNumber
+              - accountId
+              - publishedCode
+              - savedCode
+              - envs
+              - envsCreatedAt
+              - envsUpdatedAt
+        cardCodes:
+          type: array
+          items:
+            type: object
+            properties:
+              codeId:
+                type: string
+                minLength: 1
+              code:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+              publishedAt:
+                type:
+                  - string
+                  - "null"
+                format: date-time
+            required:
+              - codeId
+              - code
+              - createdAt
+              - updatedAt
+              - publishedAt
+        exchangeRates:
+          type: array
+          items:
+            type: object
+            properties:
+              currencyCode:
+                type: string
+                minLength: 3
+                maxLength: 3
+              zarPerUnit:
+                anyOf:
+                  - type: string
+                  - type: number
+            required:
+              - currencyCode
+              - zarPerUnit
+      required:
+        - version
+        - profiles
+        - accounts
+        - transactions
+        - beneficiaries
+        - cards
+        - cardCodes
+        - exchangeRates
+      description: Everything GET /export returns and POST /import accepts.
   parameters: {}
 paths:
   /za/pb/v1/accounts:
@@ -4187,9 +4468,12 @@ paths:
       tags:
         - Webhooks
       summary: Register a webhook
-      description: "Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery
-        and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw
-        body>. See the webhooks section for each payload."
+      description: "Events are POSTed as JSON with X-Sandbox-Event,
+        X-Sandbox-Delivery, X-Sandbox-Attempt and, with a secret,
+        X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. A failed
+        delivery is retried after 5 s, 30 s and 2 min (WEBHOOK_RETRY_DELAYS_MS)
+        with the same X-Sandbox-Delivery id. See the webhooks section for each
+        payload."
       security: []
       x-sandbox-only: true
       requestBody:
@@ -5025,6 +5309,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /export:
+    get:
+      tags:
+        - Sandbox
+      summary: Download the sandbox's data as JSON
+      description: Profiles, accounts, transactions, beneficiaries, cards with their
+        code, and exchange rates. Settings, fault settings and webhooks are left
+        out.
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SandboxState"
+  /import:
+    post:
+      tags:
+        - Sandbox
+      summary: Replace the sandbox's data with an export
+      description: Validated first, then applied all or nothing.
+      security: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SandboxState"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      profiles:
+                        type: integer
+                      accounts:
+                        type: integer
+                      transactions:
+                        type: integer
+                      beneficiaries:
+                        type: integer
+                      cards:
+                        type: integer
+                      exchangeRates:
+                        type: integer
+                    required:
+                      - profiles
+                      - accounts
+                      - transactions
+                      - beneficiaries
+                      - cards
+                      - exchangeRates
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /restore:
     get:
       tags:
@@ -5060,8 +5430,15 @@ webhooks:
           in: header
         - schema:
             type: string
+            description: The event id; the same on every retry.
           required: true
           name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: 1, then 2, 3, 4 for retries.
+          required: true
+          name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
@@ -5077,7 +5454,8 @@ webhooks:
               properties:
                 id:
                   type: string
-                  description: The delivery id (also in X-Sandbox-Delivery).
+                  description: "The event id: the same on every retry (also in
+                    X-Sandbox-Delivery)."
                 event:
                   type: string
                   enum:
@@ -5108,8 +5486,15 @@ webhooks:
           in: header
         - schema:
             type: string
+            description: The event id; the same on every retry.
           required: true
           name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: 1, then 2, 3, 4 for retries.
+          required: true
+          name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
@@ -5125,7 +5510,8 @@ webhooks:
               properties:
                 id:
                   type: string
-                  description: The delivery id (also in X-Sandbox-Delivery).
+                  description: "The event id: the same on every retry (also in
+                    X-Sandbox-Delivery)."
                 event:
                   type: string
                   enum:
@@ -5156,8 +5542,15 @@ webhooks:
           in: header
         - schema:
             type: string
+            description: The event id; the same on every retry.
           required: true
           name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: 1, then 2, 3, 4 for retries.
+          required: true
+          name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
@@ -5173,7 +5566,8 @@ webhooks:
               properties:
                 id:
                   type: string
-                  description: The delivery id (also in X-Sandbox-Delivery).
+                  description: "The event id: the same on every retry (also in
+                    X-Sandbox-Delivery)."
                 event:
                   type: string
                   enum:
@@ -5204,8 +5598,15 @@ webhooks:
           in: header
         - schema:
             type: string
+            description: The event id; the same on every retry.
           required: true
           name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: 1, then 2, 3, 4 for retries.
+          required: true
+          name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
@@ -5221,7 +5622,8 @@ webhooks:
               properties:
                 id:
                   type: string
-                  description: The delivery id (also in X-Sandbox-Delivery).
+                  description: "The event id: the same on every retry (also in
+                    X-Sandbox-Delivery)."
                 event:
                   type: string
                   enum:
@@ -5252,8 +5654,15 @@ webhooks:
           in: header
         - schema:
             type: string
+            description: The event id; the same on every retry.
           required: true
           name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: 1, then 2, 3, 4 for retries.
+          required: true
+          name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
@@ -5269,7 +5678,8 @@ webhooks:
               properties:
                 id:
                   type: string
-                  description: The delivery id (also in X-Sandbox-Delivery).
+                  description: "The event id: the same on every retry (also in
+                    X-Sandbox-Delivery)."
                 event:
                   type: string
                   enum:

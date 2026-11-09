@@ -51,7 +51,10 @@ npm run dev
 
 This starts the API on http://localhost:3000 and the dashboard on http://localhost:3001. Run just one with `npm run dev:api` or `npm run dev:web`.
 
-The dashboard lets you load scenarios, top up accounts and transfer between them, browse each account's transaction history (by period and type, with pending holds), pay beneficiaries, add cards to accounts, swipe them in any currency and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings. It refreshes itself whenever the API's data changes, including changes made from Postman.
+The dashboard lets you load scenarios, top up accounts and transfer between them, browse each account's transaction history (by period and type, with pending holds), pay beneficiaries, add cards to accounts, swipe them in any currency and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings. It refreshes itself whenever the API's data changes, including changes made from Postman. It also edits exchange rates, manages webhooks and fault injection, and exports or imports the whole sandbox. With "Require authentication" on, the dashboard gets its own token through the client-credentials flow.
+
+### Saving and sharing a setup
+**Export** on the dashboard (or `GET /export`) downloads the sandbox's data as JSON: profiles, accounts, transactions, beneficiaries, cards with their code, and exchange rates. Settings, fault settings and webhooks are left out. **Import** (or `POST /import`) validates a file and replaces the data with it, all or nothing, so a team can share a reproducible setup.
 
 The web app reads the API's address from `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:3000`), and the API sends OAuth users to the web app at `WEB_URL` (default `http://localhost:3001`).
 
@@ -191,7 +194,7 @@ Register a URL and the sandbox POSTs events to it as they happen, so you can bui
 | `card.authorization` | Every live card swipe, approved or declined (with the reason, merchant and any currency conversion) |
 | `webhook.test` | Sent on demand by `POST /webhooks/:webhookId/test` |
 
-Each delivery is a JSON POST, `{ "id", "event", "createdAt", "data" }`, with `X-Sandbox-Event` and `X-Sandbox-Delivery` headers. Give the webhook a `secret` and deliveries also carry `X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body, hex>` to verify. Any 2xx response counts as delivered; there are no automatic retries, but every attempt is logged with its status or error. The payload shapes are in the OpenAPI document's `webhooks` section.
+Each delivery is a JSON POST, `{ "id", "event", "createdAt", "data" }`, with `X-Sandbox-Event` and `X-Sandbox-Delivery` headers. Give the webhook a `secret` and deliveries also carry `X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body, hex>` to verify. Any 2xx response counts as delivered. A failed delivery is retried after 5 s, 30 s and 2 min (set `WEBHOOK_RETRY_DELAYS_MS`, e.g. `1000,5000`, or `""` for none); every attempt carries the same `X-Sandbox-Delivery` id plus `X-Sandbox-Attempt`, so receivers can de-duplicate, and is logged with its status or error. Pausing or deleting the webhook stops the retries. The payload shapes are in the OpenAPI document's `webhooks` section.
 
 - **GET /webhooks**, **POST /webhooks** `{ "url", "events"?, "secret"? }` (no `events` means all)
 - **PATCH /webhooks/:webhookId** `{ "active": false }` to pause, or change `url`/`events`

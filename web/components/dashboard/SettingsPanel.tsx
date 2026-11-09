@@ -106,7 +106,8 @@ export default function SettingsPanel() {
           </Field>
           {form.auth && (
             <p className="text-xs text-amber-700 sm:col-span-2 dark:text-amber-400">
-              With authentication on, API calls need a bearer token, including this dashboard&apos;s own requests.
+              With authentication on, API calls need a bearer token. This dashboard gets its own with the client
+              credentials above.
             </p>
           )}
           <div className="sm:col-span-2">

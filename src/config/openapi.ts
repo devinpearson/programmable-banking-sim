@@ -9,6 +9,7 @@ import YAML from 'yaml'
 import { z } from '../schema/zod.js'
 import * as request from '../schema/requestSchemas.js'
 import * as response from '../schema/responseSchemas.js'
+import { sandboxStateSchema } from '../sandboxState.js'
 
 // The OpenAPI document, generated from the same zod schemas that validate
 // requests. Written to openapi/ by `npm run openapi:generate`, checked by
@@ -450,7 +451,7 @@ register('post', '/webhooks', {
   tag: 'Webhooks',
   summary: 'Register a webhook',
   description:
-    'Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.',
+    'Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery, X-Sandbox-Attempt and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. A failed delivery is retried after 5 s, 30 s and 2 min (WEBHOOK_RETRY_DELAYS_MS) with the same X-Sandbox-Delivery id. See the webhooks section for each payload.',
   sandbox: true,
   security: 'none',
   body: request.createWebhookBody,
@@ -494,7 +495,8 @@ register('get', '/webhooks/:webhookId/deliveries', {
 // The deliveries themselves, as OpenAPI 3.1 webhooks.
 const deliveryHeaders = z.object({
   'X-Sandbox-Event': z.string(),
-  'X-Sandbox-Delivery': z.string(),
+  'X-Sandbox-Delivery': z.string().openapi({ description: 'The event id; the same on every retry.' }),
+  'X-Sandbox-Attempt': z.string().openapi({ description: '1, then 2, 3, 4 for retries.' }),
   'X-Sandbox-Signature': z.string().optional().openapi({ description: 'sha256=<hex HMAC of the body>, when the webhook has a secret' }),
 })
 const WEBHOOK_PAYLOADS: [string, string, z.ZodTypeAny][] = [
@@ -623,6 +625,33 @@ register('post', '/scenarios/:id', {
   sandbox: true,
   security: 'none',
   ok: response.envelope(response.ScenarioLoaded),
+})
+register('get', '/export', {
+  tag: 'Sandbox',
+  summary: "Download the sandbox's data as JSON",
+  description:
+    'Profiles, accounts, transactions, beneficiaries, cards with their code, and exchange rates. Settings, fault settings and webhooks are left out.',
+  sandbox: true,
+  security: 'none',
+  ok: sandboxStateSchema,
+})
+register('post', '/import', {
+  tag: 'Sandbox',
+  summary: "Replace the sandbox's data with an export",
+  description: 'Validated first, then applied all or nothing.',
+  sandbox: true,
+  security: 'none',
+  body: sandboxStateSchema,
+  ok: response.envelope(
+    z.object({
+      profiles: z.number().int(),
+      accounts: z.number().int(),
+      transactions: z.number().int(),
+      beneficiaries: z.number().int(),
+      cards: z.number().int(),
+      exchangeRates: z.number().int(),
+    }),
+  ),
 })
 register('get', '/restore', { tag: 'Sandbox', summary: 'Reset to the seed data', sandbox: true, security: 'none', ok: null })
 register('delete', '/clear', { tag: 'Sandbox', summary: 'Remove all data', sandbox: true, security: 'none', ok: null })

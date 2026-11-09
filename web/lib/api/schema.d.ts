@@ -3478,7 +3478,7 @@ export interface paths {
         put?: never;
         /**
          * Register a webhook
-         * @description Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.
+         * @description Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery, X-Sandbox-Attempt and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. A failed delivery is retried after 5 s, 30 s and 2 min (WEBHOOK_RETRY_DELAYS_MS) with the same X-Sandbox-Delivery id. See the webhooks section for each payload.
          */
         post: {
             parameters: {
@@ -4498,6 +4498,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the sandbox's data as JSON
+         * @description Profiles, accounts, transactions, beneficiaries, cards with their code, and exchange rates. Settings, fault settings and webhooks are left out.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SandboxState"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the sandbox's data with an export
+         * @description Validated first, then applied all or nothing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SandboxState"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                profiles: number;
+                                accounts: number;
+                                transactions: number;
+                                beneficiaries: number;
+                                cards: number;
+                                exchangeRates: number;
+                            };
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/restore": {
         parameters: {
             query?: never;
@@ -4584,6 +4692,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4592,7 +4701,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "transaction.posted";
@@ -4634,6 +4743,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4642,7 +4752,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "transaction.pending";
@@ -4684,6 +4794,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4692,7 +4803,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "transaction.reversed";
@@ -4734,6 +4845,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4742,7 +4854,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "card.authorization";
@@ -4784,6 +4896,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4792,7 +4905,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "webhook.test";
@@ -5134,8 +5247,13 @@ export interface components {
             createdAt: string;
         };
         WebhookDelivery: {
+            /** @description This attempt. */
             deliveryId: string;
             webhookId: string;
+            /** @description The event: the same for every attempt (payload id, X-Sandbox-Delivery). */
+            eventId: string;
+            /** @description 1 for the first try; retries after 5 s, 30 s and 2 min by default. */
+            attempt: number;
             event: string;
             /** @enum {string} */
             status: "delivered" | "failed";
@@ -5212,6 +5330,92 @@ export interface components {
             accounts: number;
             beneficiaries: number;
             cards: number;
+        };
+        /** @description Everything GET /export returns and POST /import accepts. */
+        SandboxState: {
+            /** @enum {number} */
+            version: 1;
+            /** Format: date-time */
+            exportedAt?: string;
+            profiles: {
+                profileId: string;
+                profileName: string;
+            }[];
+            accounts: {
+                accountId: string;
+                accountNumber: string;
+                accountName: string;
+                referenceName: string;
+                productName: string;
+                kycCompliant: boolean;
+                profileId: string;
+                profileName: string;
+                overdraftLimit: string | number;
+            }[];
+            transactions: {
+                transactionId: number;
+                accountId: string;
+                /** @enum {string} */
+                type: "DEBIT" | "CREDIT";
+                transactionType: string;
+                /** @enum {string} */
+                status: "POSTED" | "PENDING";
+                description: string;
+                cardNumber: string;
+                postedOrder: string | number;
+                postingDate: string;
+                valueDate: string;
+                actionDate: string;
+                transactionDate: string;
+                amount: string | number;
+                runningBalance: string | number;
+            }[];
+            beneficiaries: {
+                beneficiaryId: string;
+                accountNumber: string;
+                code: string;
+                bank: string;
+                beneficiaryName: string;
+                lastPaymentAmount: string;
+                lastPaymentDate: string;
+                cellNo: string | null;
+                emailAddress: string | null;
+                name: string;
+                referenceAccountNumber: string;
+                referenceName: string;
+                categoryId: string;
+                profileId: string;
+            }[];
+            cards: {
+                cardKey: string;
+                cardNumber: string;
+                isProgrammable: boolean;
+                status: string;
+                cardTypeCode: string;
+                accountNumber: string;
+                accountId: string;
+                publishedCode: string;
+                savedCode: string;
+                envs: string;
+                /** Format: date-time */
+                envsCreatedAt: string;
+                /** Format: date-time */
+                envsUpdatedAt: string;
+            }[];
+            cardCodes: {
+                codeId: string;
+                code: string;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                updatedAt: string;
+                /** Format: date-time */
+                publishedAt: string | null;
+            }[];
+            exchangeRates: {
+                currencyCode: string;
+                zarPerUnit: string | number;
+            }[];
         };
     };
     responses: never;
