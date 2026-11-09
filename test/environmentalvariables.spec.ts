@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { app } from '../src/app'
+import { app } from './app-server'
 import { assert } from 'chai'
 
 describe('Test the environmental variables', () => {

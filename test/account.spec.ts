@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { app } from '../src/app'
+import { app } from './app-server'
 import { assert } from 'chai'
 
 const TEST_ACCOUNT_ID = 'test-account-create-delete-001'
