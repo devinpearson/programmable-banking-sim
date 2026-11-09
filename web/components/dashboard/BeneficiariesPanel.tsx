@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { RefreshCw, Send } from 'lucide-react';
+import Disclosure from '@/components/Disclosure';
 import { Button, EmptyState, Field, Input, Panel, Select, Table, Th } from '@/components/ui';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useAction } from '@/components/ToastProvider';
@@ -36,8 +37,7 @@ function PayForm({ accounts, beneficiaries }: { accounts: AccountWithBalance[]; 
   }
 
   return (
-    <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Pay a beneficiary</h3>
+    <Disclosure id="pay-beneficiary" title="Pay a beneficiary">
       <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-end lg:grid-cols-6">
         <div>
           <Field label="From account" htmlFor="pay-from">
@@ -100,7 +100,7 @@ function PayForm({ accounts, beneficiaries }: { accounts: AccountWithBalance[]; 
           Pay
         </Button>
       </div>
-    </div>
+    </Disclosure>
   );
 }
 

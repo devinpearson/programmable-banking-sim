@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { openForm, openMoreMenu, showTab } from './dashboard';
 import { API_URL } from './servers';
 
 const MAIN = '10012420003';
@@ -24,15 +25,19 @@ test('the dashboard keeps working with authentication on', async ({ page, reques
 });
 
 test('a currency added in the rates editor can be used for a swipe', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#simulate');
   const rates = page.getByRole('region', { name: 'Exchange rates' });
+  await openForm(rates, 'Add a currency');
   await rates.getByLabel('Currency code').fill('thb');
   await rates.getByLabel('Rand per unit').fill('0.5');
   await rates.getByRole('button', { name: 'Add currency' }).click();
   await expect(page.getByText('Added THB at R 0.5')).toBeVisible();
   await expect(rates.getByRole('row', { name: /THB/ })).toBeVisible();
 
-  await expect(page.getByRole('region', { name: 'Cards' }).getByLabel('Currency').locator('option', { hasText: 'THB' })).toHaveCount(1);
+  await showTab(page, 'Banking');
+  const cards = page.getByRole('region', { name: 'Cards' });
+  await openForm(cards, 'Swipe a card');
+  await expect(cards.getByLabel('Currency').locator('option', { hasText: 'THB' })).toHaveCount(1);
 });
 
 test('export the sandbox, change it, and import the file back', async ({ page }) => {
@@ -40,6 +45,7 @@ test('export the sandbox, change it, and import the file back', async ({ page })
   const accounts = page.getByRole('region', { name: 'Accounts' });
   await expect(accounts.getByRole('row', { name: new RegExp(MAIN) })).toBeVisible();
 
+  await openMoreMenu(page);
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export' }).click()]);
   expect(download.suggestedFilename()).toMatch(/^sandbox-\d{4}-\d{2}-\d{2}\.json$/);
   const file = await download.path();
@@ -48,6 +54,7 @@ test('export the sandbox, change it, and import the file back', async ({ page })
 
   // Clear everything, then import the file.
   page.once('dialog', dialog => dialog.accept());
+  await openMoreMenu(page);
   await page.getByRole('button', { name: 'Clear data' }).click();
   await expect(accounts.getByText(/No accounts yet/)).toBeVisible();
 

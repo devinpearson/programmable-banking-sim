@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Save, Trash2 } from 'lucide-react';
+import Disclosure from '@/components/Disclosure';
 import { Button, EmptyState, Field, Input, Panel, Table, Th } from '@/components/ui';
 import { useAction } from '@/components/ToastProvider';
 import { useExchangeRates } from '@/hooks/useSandbox';
@@ -104,25 +105,27 @@ export default function ExchangeRatesPanel() {
       {!rates || rates.length === 0 ? (
         <EmptyState>No exchange rates. Reset the data to restore the seeded ones.</EmptyState>
       ) : (
-        <Table
-          head={
-            <>
-              <Th>Currency</Th>
-              <Th>Rand per unit</Th>
-              <Th>Updated</Th>
-              <Th>
-                <span className="sr-only">Actions</span>
-              </Th>
-            </>
-          }
-        >
-          {rates.map(r => (
-            <RateRow key={r.currencyCode} rate={r} onChanged={() => void mutate()} />
-          ))}
-        </Table>
+        // Scrolls, so a long list of currencies doesn't take over the page.
+        <div className="max-h-80 overflow-y-auto">
+          <Table
+            head={
+              <>
+                <Th>Currency</Th>
+                <Th>Rand per unit</Th>
+                <Th>Updated</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </>
+            }
+          >
+            {rates.map(r => (
+              <RateRow key={r.currencyCode} rate={r} onChanged={() => void mutate()} />
+            ))}
+          </Table>
+        </div>
       )}
-      <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Add a currency</h3>
+      <Disclosure id="add-currency" title="Add a currency">
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-end">
           <Field label="Currency code" htmlFor="new-rate-code">
             <Input id="new-rate-code" placeholder="e.g. THB" maxLength={3} value={code} onChange={e => setCode(e.target.value)} />
@@ -143,7 +146,7 @@ export default function ExchangeRatesPanel() {
             Add currency
           </Button>
         </div>
-      </div>
+      </Disclosure>
     </Panel>
   );
 }

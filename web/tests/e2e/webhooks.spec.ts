@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { openForm, showTab } from './dashboard';
 import { API_URL } from './servers';
 
 // A real receiver in the test process; the sandbox API delivers to it.
@@ -31,8 +32,9 @@ test.afterAll(async ({ request }) => {
 
 test('register a webhook, send a test, and see a swipe delivered live', async ({ page, request }) => {
   expect((await request.get(`${API_URL}/restore`)).ok()).toBe(true);
-  await page.goto('/');
+  await page.goto('/#simulate');
   const panel = page.getByRole('region', { name: 'Webhooks' });
+  await openForm(panel, 'Register a webhook');
 
   await panel.getByLabel('URL').fill(receiverUrl);
   await panel.getByLabel('card.authorization').check();
@@ -47,11 +49,14 @@ test('register a webhook, send a test, and see a swipe delivered live', async ({
   expect(received.map(r => r.event)).toContain('webhook.test');
 
   // Swipe the seeded card: the authorization shows up in the log by itself.
+  await showTab(page, 'Banking');
   const cards = page.getByRole('region', { name: 'Cards' });
+  await openForm(cards, 'Swipe a card');
   await cards.getByLabel('Card', { exact: true }).selectOption({ label: '402167XXXXXX1111' });
   await cards.getByLabel('Merchant').fill('Webhook Cafe');
   await cards.getByLabel('Amount (ZAR)').fill('20');
   await cards.getByRole('button', { name: 'Swipe' }).click();
+  await showTab(page, 'Simulate');
   await expect(deliveries.getByRole('row', { name: /card\.authorization/ })).toContainText('Delivered (200)');
 
   const authorization = received.find(r => r.event === 'card.authorization');

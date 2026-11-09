@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CalendarClock, FastForward, Pause, Play, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import Disclosure from '@/components/Disclosure';
 import { Button, EmptyState, Field, Input, Panel, Select, Table, Th } from '@/components/ui';
 import { useAction } from '@/components/ToastProvider';
 import { useAccountsOverview, useClock, useRefreshSandbox, useSchedules } from '@/hooks/useSandbox';
@@ -86,8 +87,7 @@ function AddScheduleForm({ onAdded }: { onAdded: () => void }) {
   }
 
   return (
-    <div className="mt-6 border-t border-gray-100 pt-4 dark:border-gray-700">
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Add a recurring transaction</h3>
+    <Disclosure id="add-schedule" title="Add a recurring transaction">
       <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:items-end lg:grid-cols-7">
         <Field label="Account" htmlFor="schedule-account">
           <Select id="schedule-account" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>
@@ -157,7 +157,7 @@ function AddScheduleForm({ onAdded }: { onAdded: () => void }) {
           Add
         </Button>
       </div>
-    </div>
+    </Disclosure>
   );
 }
 
