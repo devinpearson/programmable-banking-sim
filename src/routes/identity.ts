@@ -170,14 +170,14 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
 
   // The code is NOT published to authorizationCodes here: it only becomes
   // exchangeable once the user signs in and approves (see /approve).
-  sessionTokens[hash] = { code: authorizationCode, authenticated: false }
+  sessionTokens.set(hash, { code: authorizationCode, authenticated: false })
 
   return res.redirect(302, `/login?qsp=${hash}`)
 })
 
 router.get('/approve', (req: Request, res: Response) => {
   const qsp = req.query.qsp as string
-  const session = sessionTokens[qsp]
+  const session = sessionTokens.get(qsp)
   if (!qsp || !session) {
     return formatErrorResponse(req, res, 400)
   }
@@ -186,7 +186,7 @@ router.get('/approve', (req: Request, res: Response) => {
     return formatErrorResponse(req, res, 401)
   }
   const authorizationCode = session.code
-  delete sessionTokens[qsp]
+  sessionTokens.delete(qsp)
 
   // Approval is what makes the code exchangeable.
   authorizationCodes[authorizationCode.code] = authorizationCode
@@ -206,12 +206,12 @@ router.get('/approve', (req: Request, res: Response) => {
 
 router.get('/decline', (req: Request, res: Response) => {
   const qsp = req.query.qsp as string
-  const session = sessionTokens[qsp]
+  const session = sessionTokens.get(qsp)
   if (!qsp || !session) {
     return formatErrorResponse(req, res, 400)
   }
   const authorizationCode = session.code
-  delete sessionTokens[qsp]
+  sessionTokens.delete(qsp)
   // The code was never published to authorizationCodes, so declining leaves
   // nothing exchangeable. The code is echoed back only for request correlation.
 
