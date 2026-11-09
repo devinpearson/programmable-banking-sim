@@ -210,7 +210,9 @@ export async function seedTransactions() {
     console.log(`Transactions already seeded, skipping`)
     return
   }
-  for (const c of transactionData) {
+  // transactionData is listed newest first (as the API returns it); insert
+  // oldest first so transactionId order matches posting order within a day.
+  for (const c of [...transactionData].reverse()) {
     const transaction = await prisma.transaction.create({ data: c })
     console.log(`Seeded transaction for account: ${transaction.accountId}`)
   }

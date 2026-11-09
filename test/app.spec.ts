@@ -128,4 +128,30 @@ describe('Test the app-level routes', () => {
     const restoreResponse = await request(app).get('/restore')
     assert.equal(restoreResponse.statusCode, 200)
   })
+
+  it('should issue scenario cards that swipe against scenario accounts', async () => {
+    const response = await request(app).post('/scenarios/hackathon')
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.cards, 1)
+
+    // Only the scenario's card remains, linked to its cheque account.
+    const cards = await request(app).get('/za/v1/cards')
+    assert.deepEqual(
+      cards.body.data.cards.map((c: { CardKey: string; AccountId: string }) => [c.CardKey, c.AccountId]),
+      [['scenario-card-021', '30000000000000000000021']],
+    )
+
+    const swipe = await request(app)
+      .post('/za/v1/cards/scenario-card-021/code/execute-live')
+      .send({ currencyCode: 'ZAR', centsAmount: 50000, merchantCode: '5411', merchantName: 'Scenario Shop', merchantCity: 'Cape Town', countryCode: 'ZA' })
+    assert.isTrue(swipe.body.data.result)
+    assert.equal(swipe.body.data.transaction.accountId, '30000000000000000000021')
+
+    const balance = await request(app).get('/za/pb/v1/accounts/30000000000000000000021/balance')
+    assert.equal(balance.body.data.currentBalance, 25000)
+    assert.equal(balance.body.data.availableBalance, 24500)
+
+    const restoreResponse = await request(app).get('/restore')
+    assert.equal(restoreResponse.statusCode, 200)
+  })
 })

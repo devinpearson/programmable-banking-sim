@@ -56,14 +56,43 @@ describe('Test the accounts', () => {
       status: 'POSTED',
       description: 'HTTP://WWW.UBEREATS.CO PARKTOWN NOR ZA',
       cardNumber: '402167xxxxxx9999',
-      postedOrder: '1',
+      // Newest first: the latest of the 13 seeded transactions, carrying the
+      // account's full balance.
+      postedOrder: '13',
       postingDate: '2023-01-22',
       valueDate: '2022-05-15',
       actionDate: '2022-04-24',
       transactionDate: '2022-04-21',
       amount: '40.99',
-      runningBalance: '-40.99',
+      runningBalance: '-35696.04',
     })
+  })
+
+  it('should order the running balance by posting date, even for backdated inserts', async () => {
+    const accountId = 'test-account-tx-order-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '66666666602' })
+    const insert = (type: string, amount: number, date: string) =>
+      request(app).post(`/za/pb/v1/accounts/${accountId}/transactions`)
+        .send({ type, amount, postingDate: date, valueDate: date, actionDate: date, transactionDate: date })
+    await insert('CREDIT', 1000, '2024-03-01')
+    await insert('DEBIT', 300, '2024-03-10')
+    await insert('DEBIT', 100, '2024-03-05') // inserted last, but posted in between
+
+    const response = await request(app).get(
+      `/za/pb/v1/accounts/${accountId}/transactions?fromDate=2024-01-01&toDate=2024-12-31`,
+    )
+    const rows = response.body.data.transactions.map(
+      (t: { postingDate: string; postedOrder: string; runningBalance: string }) =>
+        [t.postingDate, t.postedOrder, t.runningBalance],
+    )
+    assert.deepEqual(rows, [
+      ['2024-03-10', '3', '600'],
+      ['2024-03-05', '2', '900'],
+      ['2024-03-01', '1', '1000'],
+    ])
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
 
   it('should respond with 404 for invalid account on transactions', async () => {
@@ -276,6 +305,30 @@ describe('Test the accounts', () => {
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
 
+  it('should record the last payment on the beneficiary', async () => {
+    const accountId = 'test-pay-lastpayment-001'
+    const beneficiaryId = 'test-bene-lastpayment-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).delete(`/za/pb/v1/accounts/beneficiaries/${beneficiaryId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '33333333305', overdraftLimit: 5000 })
+    await request(app).post('/za/pb/v1/accounts/beneficiaries').send({ beneficiaryId, beneficiaryName: 'Last Payment Test' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/paymultiple`)
+      .send({ paymentList: [{ beneficiaryId, amount: 1234.5, myReference: 'rent' }] })
+    assert.equal(response.statusCode, 200)
+
+    const list = await request(app).get('/za/pb/v1/accounts/beneficiaries')
+    const beneficiary = list.body.data.result.find(
+      (b: { beneficiaryId: string }) => b.beneficiaryId === beneficiaryId,
+    )
+    assert.equal(beneficiary.lastPaymentAmount, '1,234.50')
+    assert.match(beneficiary.lastPaymentDate, /^\d{2}\/\d{2}\/\d{4}$/)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).delete(`/za/pb/v1/accounts/beneficiaries/${beneficiaryId}`)
+  })
+
   it('should respond with 404 when paymultiple source account does not exist', async () => {
     const response = await request(app)
       .post('/za/pb/v1/accounts/does-not-exist/paymultiple')
@@ -375,7 +428,7 @@ describe('Test the accounts', () => {
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
 
-  it('should label paymultiple transactions as Payment', async () => {
+  it('should label paymultiple transactions as OnlineBankingPayments', async () => {
     const accountId = 'test-pay-label-001'
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
     // An overdraft (rather than a top-up) keeps the payment as the only transaction.
@@ -387,7 +440,7 @@ describe('Test the accounts', () => {
 
     const txns = await request(app).get(`/za/pb/v1/accounts/${accountId}/transactions?fromDate=2000-01-01`)
     assert.equal(txns.statusCode, 200)
-    assert.equal(txns.body.data.transactions[0].transactionType, 'Payment')
+    assert.equal(txns.body.data.transactions[0].transactionType, 'OnlineBankingPayments')
 
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
@@ -402,7 +455,7 @@ describe('Test the accounts', () => {
       .send({ amount: 250 })
     assert.equal(response.statusCode, 200)
     assert.equal(response.body.data.type, 'CREDIT')
-    assert.equal(response.body.data.transactionType, 'Deposit')
+    assert.equal(response.body.data.transactionType, 'Deposits')
 
     const balance = await request(app).get(`/za/pb/v1/accounts/${accountId}/balance`)
     assert.equal(balance.body.data.currentBalance, 250)

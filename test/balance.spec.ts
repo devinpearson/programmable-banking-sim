@@ -196,6 +196,51 @@ describe('Balances, card holds and overdrafts', () => {
     assert.lengthOf(pending.body.data.pendingTransactions, 0)
   })
 
+  it('declines swipes on a stopped card until it is reactivated', async () => {
+    const stop = await request(app)
+      .post(`/za/v1/cards/${CARD_KEY}/status`)
+      .send({ status: 'stopped' })
+    assert.equal(stop.statusCode, 200)
+    assert.equal(stop.body.data.status, 'Stopped')
+
+    const declined = await swipe(1000)
+    assert.isFalse(declined.body.data.result)
+    assert.equal(declined.body.data.reason, 'card_not_active')
+    assert.isNull(declined.body.data.transaction)
+
+    await request(app).post(`/za/v1/cards/${CARD_KEY}/status`).send({ status: 'Active' })
+    const approved = await swipe(1000)
+    assert.isTrue(approved.body.data.result)
+  })
+
+  it('validates card status changes', async () => {
+    const bad = await request(app)
+      .post(`/za/v1/cards/${CARD_KEY}/status`)
+      .send({ status: 'Frozen' })
+    assert.equal(bad.statusCode, 400)
+    assert.equal(bad.body.errorMessage, 'status must be one of: Active, Stopped')
+    const missing = await request(app)
+      .post('/za/v1/cards/does-not-exist/status')
+      .send({ status: 'Active' })
+    assert.equal(missing.statusCode, 404)
+  })
+
+  it('labels transfers and top-ups with real transaction types', async () => {
+    await request(app)
+      .post(`/za/pb/v1/accounts/${ACCOUNT_ID}/transfermultiple`)
+      .send({
+        transferList: [
+          { beneficiaryAccountId: OTHER_ACCOUNT_ID, amount: 10, myReference: 'out', theirReference: 'in' },
+        ],
+      })
+    const types = async (accountId: string) =>
+      (await request(app).get(`/za/pb/v1/accounts/${accountId}/transactions`)).body.data.transactions.map(
+        (t: { transactionType: string }) => t.transactionType,
+      )
+    assert.deepEqual(await types(ACCOUNT_ID), ['OnlineBankingTransfers', 'Deposits'])
+    assert.deepEqual(await types(OTHER_ACCOUNT_ID), ['OnlineBankingTransfers'])
+  })
+
   it('rejects a swipe with an invalid amount', async () => {
     const response = await swipe(0)
     assert.equal(response.statusCode, 400)
