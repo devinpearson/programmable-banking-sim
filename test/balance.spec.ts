@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { app } from '../src/app'
+import { app } from './app-server'
 import { assert } from 'chai'
 
 // Card swipes, pending holds, overdraft limits and insufficient-funds checks.
