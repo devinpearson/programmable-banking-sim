@@ -464,4 +464,46 @@ describe('Test the accounts', () => {
 
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
+
+  it('should list the beneficiary categories', async () => {
+    const response = await request(app).get('/za/pb/v1/accounts/beneficiarycategories')
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data)
+    assert.isAbove(response.body.data.length, 0)
+    const def = response.body.data.find((c: { isDefault: boolean }) => c.isDefault)
+    assert.exists(def)
+    assert.exists(def.categoryId)
+    assert.exists(def.name)
+  })
+
+  it('should list an account\'s documents', async () => {
+    const response = await request(app).get('/za/pb/v1/accounts/4675778129910189600000003/documents')
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data.documents)
+    assert.isAbove(response.body.data.documents.length, 0)
+    assert.equal(response.body.data.documents[0].documentType, 'Statement')
+    assert.exists(response.body.data.documents[0].documentDate)
+  })
+
+  it('should respond with 404 listing documents for an unknown account', async () => {
+    const response = await request(app).get('/za/pb/v1/accounts/does-not-exist/documents')
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should fetch a specific document for an account', async () => {
+    const response = await request(app).get(
+      '/za/pb/v1/accounts/4675778129910189600000003/documents/Statement/2024-01-31',
+    )
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.documentType, 'Statement')
+    assert.equal(response.body.data.documentDate, '2024-01-31')
+    assert.exists(response.body.data.fileName)
+  })
+
+  it('should respond with 404 fetching a document for an unknown account', async () => {
+    const response = await request(app).get(
+      '/za/pb/v1/accounts/does-not-exist/documents/Statement/2024-01-31',
+    )
+    assert.equal(response.statusCode, 404)
+  })
 })

@@ -558,4 +558,76 @@ router.delete('/beneficiaries/:beneficiaryId', async (req: Request, res: Respons
   }
 })
 
+// Fixed reference data: the categories a beneficiary can be filed under.
+const beneficiaryCategories = [
+  { categoryId: '10189603223001', isDefault: true, name: 'Default' },
+  { categoryId: '10189603223002', isDefault: false, name: 'Family' },
+  { categoryId: '10189603223003', isDefault: false, name: 'Friends' },
+  { categoryId: '10189603223004', isDefault: false, name: 'Businesses' },
+]
+
+router.get('/beneficiarycategories', (req: Request, res: Response) => {
+  return formatResponse(beneficiaryCategories, req, res)
+})
+
+// Build a list of recent monthly statement documents for an account.
+function statementDocuments() {
+  const documents = []
+  for (let i = 1; i <= 3; i++) {
+    const month = dayjs().subtract(i, 'month')
+    documents.push({
+      documentType: 'Statement',
+      documentDate: month.endOf('month').format('YYYY-MM-DD'),
+      description: `Monthly statement — ${month.format('MMMM YYYY')}`,
+    })
+  }
+  return documents
+}
+
+// List the documents (statements) available for an account.
+router.get('/:accountId/documents', async (req: Request, res: Response) => {
+  try {
+    const accountId = req.params.accountId
+    const account = await prisma.account.findFirst({
+      where: { accountId: accountId },
+    })
+    if (!account) {
+      return formatErrorResponse(req, res, 404)
+    }
+    return formatResponse({ documents: statementDocuments() }, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
+// Fetch a specific document. The sandbox returns a placeholder descriptor
+// rather than a real statement file.
+router.get(
+  '/:accountId/documents/:documentType/:documentDate',
+  async (req: Request, res: Response) => {
+    try {
+      const { accountId, documentType, documentDate } = req.params
+      const account = await prisma.account.findFirst({
+        where: { accountId: accountId },
+      })
+      if (!account) {
+        return formatErrorResponse(req, res, 404)
+      }
+      const document = {
+        accountId: accountId,
+        documentType: documentType,
+        documentDate: documentDate,
+        fileName: `${documentType}-${documentDate}.pdf`,
+        mimeType: 'application/pdf',
+        note: 'Sandbox placeholder document — no real statement is generated.',
+      }
+      return formatResponse(document, req, res)
+    } catch (error) {
+      console.log(error)
+      return formatErrorResponse(req, res, 500)
+    }
+  },
+)
+
 export default router
