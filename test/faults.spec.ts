@@ -8,6 +8,10 @@ const ACCOUNTS = '/za/pb/v1/accounts'
 const CARDS = '/za/v1/cards'
 const TOKEN = '/identity/v2/oauth2/token'
 
+// Timings use performance.now(), a monotonic clock: Date.now() follows the
+// wall clock, which CI machines can step mid-test (a 300 ms latency once
+// measured as 3 ms).
+
 // How a request that never gets a response fails.
 async function connectionError(promise: PromiseLike<unknown>): Promise<string> {
   try {
@@ -44,17 +48,32 @@ describe('Fault injection headers', () => {
   })
 
   it('holds the request, then drops it, for timeout:<ms>', async () => {
-    const started = Date.now()
+    const started = performance.now()
     const outcome = await connectionError(request(app).get(ACCOUNTS).set('X-Sandbox-Fault', 'timeout:300'))
     assert.oneOf(outcome, ['ECONNRESET', 'socket hang up'])
-    assert.isAtLeast(Date.now() - started, 290)
+    assert.isAtLeast(performance.now() - started, 290)
+  })
+
+  it('holds at most 25 requests at once; more are dropped straight away', async () => {
+    const started = performance.now()
+    const finished: number[] = []
+    await Promise.all(
+      Array.from({ length: 26 }, () =>
+        connectionError(request(app).get(ACCOUNTS).set('X-Sandbox-Fault', 'timeout:1500')).then(() =>
+          finished.push(performance.now() - started),
+        ),
+      ),
+    )
+    finished.sort((a, b) => a - b)
+    assert.isBelow(finished[0], 1000, 'one request is dropped at once')
+    assert.isAtLeast(finished[1], 1400, 'the other 25 are held')
   })
 
   it('delays the response by X-Sandbox-Latency', async () => {
-    const started = Date.now()
+    const started = performance.now()
     const response = await request(app).get(ACCOUNTS).set('X-Sandbox-Latency', '300')
     assert.equal(response.statusCode, 200)
-    assert.isAtLeast(Date.now() - started, 290)
+    assert.isAtLeast(performance.now() - started, 290)
   })
 
   it('applies to the token endpoint too', async () => {
@@ -116,9 +135,9 @@ describe('Fault injection config', () => {
 
   it('adds the configured latency', async () => {
     await request(app).put('/faults').send({ latencyMs: 250 })
-    const started = Date.now()
+    const started = performance.now()
     assert.equal((await request(app).get(ACCOUNTS)).statusCode, 200)
-    assert.isAtLeast(Date.now() - started, 240)
+    assert.isAtLeast(performance.now() - started, 240)
   })
 
   it('leaves the dashboard alone, unless it asks for a fault', async () => {

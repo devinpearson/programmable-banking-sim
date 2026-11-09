@@ -24,6 +24,10 @@ const STATUS_TEXT: Record<FaultStatus, string> = {
 const DEFAULT_TIMEOUT_MS = 30_000
 const MAX_TIMEOUT_MS = 120_000
 const MAX_LATENCY_MS = 60_000
+// Requests held open by timeout faults at once. More are dropped straight
+// away, so a client can't tie up the server with held connections.
+const MAX_HELD_REQUESTS = 25
+let heldRequests = 0
 
 export interface FaultConfig {
   // Percent of requests (0–100) answered with errorStatus.
@@ -129,6 +133,8 @@ export async function injectFaults(req: Request, res: Response, next: NextFuncti
     if (!Number.isInteger(requestedLatencyMs) || requestedLatencyMs < 0 || requestedLatencyMs > MAX_LATENCY_MS) {
       return formatErrorResponse(req, res, 400, `X-Sandbox-Latency must be milliseconds from 0 to ${MAX_LATENCY_MS}`)
     }
+    // Only a validated, bounded value is used for the delay.
+    latencyMs = requestedLatencyMs
   }
 
   // Random faults from the saved config, unless the request chose its own.
@@ -151,8 +157,19 @@ export async function injectFaults(req: Request, res: Response, next: NextFuncti
     req.socket.destroy()
     return
   }
-  // Timeout: answer nothing, then drop the connection.
-  logRequest(req, `no response, dropping after ${fault.holdMs} ms (fault: timeout)`)
-  const timer = setTimeout(() => req.socket.destroy(), fault.holdMs)
-  req.socket.once('close', () => clearTimeout(timer))
+  // Timeout: answer nothing, then drop the connection. The hold is bounded
+  // here as well as when parsing the header.
+  const holdMs = fault.holdMs
+  if (!(holdMs >= 0 && holdMs <= MAX_TIMEOUT_MS) || heldRequests >= MAX_HELD_REQUESTS) {
+    logRequest(req, `connection dropped (fault: timeout, ${MAX_HELD_REQUESTS} already held)`)
+    req.socket.destroy()
+    return
+  }
+  heldRequests++
+  logRequest(req, `no response, dropping after ${holdMs} ms (fault: timeout)`)
+  const timer = setTimeout(() => req.socket.destroy(), holdMs)
+  req.socket.once('close', () => {
+    clearTimeout(timer)
+    heldRequests--
+  })
 }
