@@ -5,11 +5,27 @@ import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse, emitDatabaseSummary } from '../app.js'
 import { Investec } from 'programmable-banking-faker'
-import { TransactionType, type BalanceResponse } from '../types.js'
+import {
+  TransactionStatus,
+  TransactionType,
+  type BalanceResponse,
+} from '../types.js'
+import { getAccountBalance } from '../balance.js'
+
+const INSUFFICIENT_FUNDS = 'Insufficient funds'
+
+// Sum the amounts of a pay/transfer batch in cents, so the whole batch is
+// checked against the available balance before anything is written.
+function batchTotal(items: { amount: unknown }[]) {
+  return items.reduce((cents, item) => cents + Math.round(Number(item.amount) * 100), 0) / 100
+}
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const accounts = await prisma.account.findMany()
+    // overdraftLimit is sandbox-internal, so keep the list in the real API's shape.
+    const accounts = (await prisma.account.findMany()).map(
+      ({ overdraftLimit: _overdraftLimit, ...account }) => account,
+    )
     const data = { accounts }
     return formatResponse(data, req, res)
   } catch (error) {
@@ -21,46 +37,16 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:accountId/balance', async (req: Request, res: Response) => {
   try {
     const accountId = req.params.accountId
-
-    const account = await prisma.account.findFirst({
-      where: {
-        accountId: accountId,
-      },
-    })
-    if (!account) {
+    const balance = await getAccountBalance(accountId)
+    if (!balance) {
       return formatErrorResponse(req, res, 404) // no account was found
     }
-
-    const transactionsArr = await prisma.transaction.findMany({
-      where: {
-        accountId: accountId,
-      },
-    })
-
-    // currentBalance is the posted (ledger) balance; availableBalance also
-    // reflects pending debits, which reduce what the holder can spend right
-    // away. Pending credits are not counted as available until they post.
-    let postedBalance = 0
-    let pendingDebits = 0
-
-    for (let j = 0; j < transactionsArr.length; j++) {
-      const amount = transactionsArr[j].amount.toNumber()
-      const isCredit = transactionsArr[j].type === TransactionType.CREDIT
-      if (transactionsArr[j].status === 'PENDING') {
-        if (!isCredit) {
-          pendingDebits += amount
-        }
-      } else if (isCredit) {
-        postedBalance += amount
-      } else {
-        postedBalance -= amount
-      }
-    }
-
+    // currentBalance = posted transactions; availableBalance also counts the
+    // overdraft limit and subtracts pending card holds.
     const data: BalanceResponse = {
       accountId,
-      currentBalance: +postedBalance.toFixed(2),
-      availableBalance: +(postedBalance - pendingDebits).toFixed(2),
+      currentBalance: balance.currentBalance,
+      availableBalance: balance.availableBalance,
       currency: 'ZAR',
     }
     return formatResponse(data, req, res)
@@ -69,6 +55,28 @@ router.get('/:accountId/balance', async (req: Request, res: Response) => {
     return formatErrorResponse(req, res, 500)
   }
 })
+
+type TransactionRow = Awaited<
+  ReturnType<typeof prisma.transaction.findFirstOrThrow>
+>
+
+function toTransactionResponse(transaction: TransactionRow) {
+  return {
+    accountId: transaction.accountId,
+    type: transaction.type,
+    transactionType: transaction.transactionType,
+    status: transaction.status,
+    description: transaction.description,
+    cardNumber: transaction.cardNumber,
+    postedOrder: transaction.postedOrder,
+    postingDate: transaction.postingDate,
+    valueDate: transaction.valueDate,
+    actionDate: transaction.actionDate,
+    transactionDate: transaction.transactionDate,
+    amount: transaction.amount,
+    runningBalance: transaction.runningBalance,
+  }
+}
 
 router.get('/:accountId/transactions', async (req: Request, res: Response) => {
   try {
@@ -98,11 +106,39 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
     const fromDate =
       req.query.fromDate ?? dayjs().subtract(180, 'day').format('YYYY-MM-DD') // set to 180 in the passed
     const transactionType = req.query.transactionType ?? null
+    // Like the real API, pending transactions are only listed on request.
+    const includePending = req.query.includePending === 'true'
 
     let postedOrder = 0
     let runningBalance: number = 0
     const transactions = []
     for (let j = 0; j < transactionsArr.length; j++) {
+      const pending = transactionsArr[j].status === TransactionStatus.PENDING
+      if (pending && !includePending) {
+        continue
+      }
+      // Pending items have no posted order or running balance yet.
+      if (pending) {
+        if (
+          transactionType !== null &&
+          transactionsArr[j].transactionType !== transactionType
+        ) {
+          continue
+        }
+        const pendingDate = dayjs(transactionsArr[j].transactionDate)
+        if (
+          pendingDate.isBefore(fromDate as string, 'day') ||
+          pendingDate.isAfter(toDate as string, 'day')
+        ) {
+          continue
+        }
+        transactions.push({
+          ...toTransactionResponse(transactionsArr[j]),
+          postedOrder: 0,
+          runningBalance: 0,
+        })
+        continue
+      }
       postedOrder++
       const amount = transactionsArr[j].amount.toNumber()
       if (transactionsArr[j].type === TransactionType.CREDIT) {
@@ -128,21 +164,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
       transactionsArr[j].runningBalance = new Prisma.Decimal(
         +runningBalance.toFixed(2),
       )
-      transactions.push({
-        accountId: transactionsArr[j].accountId,
-        type: transactionsArr[j].type,
-        transactionType: transactionsArr[j].transactionType,
-        status: transactionsArr[j].status,
-        description: transactionsArr[j].description,
-        cardNumber: transactionsArr[j].cardNumber,
-        postedOrder: transactionsArr[j].postedOrder,
-        postingDate: transactionsArr[j].postingDate,
-        valueDate: transactionsArr[j].valueDate,
-        actionDate: transactionsArr[j].actionDate,
-        transactionDate: transactionsArr[j].transactionDate,
-        amount: transactionsArr[j].amount,
-        runningBalance: transactionsArr[j].runningBalance,
-      })
+      transactions.push(toTransactionResponse(transactionsArr[j]))
     }
     const data = { transactions }
     return formatResponse(data, req, res)
@@ -228,6 +250,12 @@ router.post('/:accountId/transfermultiple',
         )
       }
 
+      // Every leg is valid; the whole batch must fit the available balance.
+      const balance = await getAccountBalance(accountId)
+      if (balance && batchTotal(transfers) > balance.availableBalance) {
+        return formatErrorResponse(req, res, 422, INSUFFICIENT_FUNDS)
+      }
+
       // Commit every leg atomically.
       await prisma.$transaction(writes)
 
@@ -295,6 +323,12 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
           },
         }),
       )
+    }
+
+    // Every payment is valid; the whole batch must fit the available balance.
+    const balance = await getAccountBalance(accountId)
+    if (balance && batchTotal(transfers) > balance.availableBalance) {
+      return formatErrorResponse(req, res, 422, INSUFFICIENT_FUNDS)
     }
 
     // Commit every payment atomically.
@@ -396,15 +430,26 @@ router.post('/:accountId/transactions/settle', async (req: Request, res: Respons
       console.log('no account found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const result = await prisma.transaction.updateMany({
-      where: {
-        accountId: accountId,
-        status: 'PENDING',
-      },
-      data: {
-        status: 'POSTED',
-      },
-    })
+    // Card holds have no posting date until they settle: they post today.
+    // Pending items created with explicit dates keep them.
+    const today = dayjs().format('YYYY-MM-DD')
+    const [, result] = await prisma.$transaction([
+      prisma.transaction.updateMany({
+        where: {
+          accountId: accountId,
+          status: TransactionStatus.PENDING,
+          postingDate: '',
+        },
+        data: { postingDate: today, valueDate: today, actionDate: today },
+      }),
+      prisma.transaction.updateMany({
+        where: {
+          accountId: accountId,
+          status: TransactionStatus.PENDING,
+        },
+        data: { status: TransactionStatus.POSTED },
+      }),
+    ])
     await emitDatabaseSummary()
     return formatResponse({ settled: result.count }, req, res)
   } catch (error) {
@@ -595,6 +640,102 @@ router.delete('/beneficiaries/:beneficiaryId', async (req: Request, res: Respons
     return formatErrorResponse(req, res, 500)
   }
 })
+
+// Pending transactions (card holds that have not settled yet), with the
+// reduced set of fields the real pending-transactions endpoint returns.
+// transactionId is a sandbox addition so a hold can be settled or reversed.
+router.get('/:accountId/pending-transactions', async (req: Request, res: Response) => {
+  try {
+    const accountId = req.params.accountId
+    const account = await prisma.account.findFirst({ where: { accountId } })
+    if (!account) {
+      return formatErrorResponse(req, res, 404)
+    }
+    const pending = await prisma.transaction.findMany({
+      where: { accountId, status: TransactionStatus.PENDING },
+      orderBy: { transactionId: 'asc' },
+    })
+    const pendingTransactions = pending.map(transaction => ({
+      transactionId: transaction.transactionId,
+      accountId: transaction.accountId,
+      type: transaction.type,
+      transactionType: transaction.transactionType,
+      status: transaction.status,
+      description: transaction.description,
+      cardNumber: transaction.cardNumber,
+      transactionDate: transaction.transactionDate,
+      amount: transaction.amount,
+    }))
+    return formatResponse({ pendingTransactions }, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
+// Find one pending transaction on an account, or null.
+async function findPending(accountId: string, transactionId: string) {
+  const id = Number(transactionId)
+  if (!Number.isInteger(id)) {
+    return null
+  }
+  return prisma.transaction.findFirst({
+    where: { transactionId: id, accountId, status: TransactionStatus.PENDING },
+  })
+}
+
+// Sandbox control: settle a pending transaction so it posts today and counts
+// towards the current balance. Not a real Investec endpoint.
+router.post(
+  '/:accountId/pending-transactions/:transactionId/settle',
+  async (req: Request, res: Response) => {
+    try {
+      const { accountId, transactionId } = req.params
+      const pending = await findPending(accountId, transactionId)
+      if (!pending) {
+        return formatErrorResponse(req, res, 404)
+      }
+      const today = dayjs().format('YYYY-MM-DD')
+      const transaction = await prisma.transaction.update({
+        where: { transactionId: pending.transactionId },
+        data: {
+          status: TransactionStatus.POSTED,
+          postingDate: today,
+          valueDate: today,
+          actionDate: today,
+        },
+      })
+      await emitDatabaseSummary()
+      return formatResponse(toTransactionResponse(transaction), req, res)
+    } catch (error) {
+      console.log(error)
+      return formatErrorResponse(req, res, 500)
+    }
+  },
+)
+
+// Sandbox control: reverse (drop) a pending hold, releasing the funds.
+// Not a real Investec endpoint.
+router.delete(
+  '/:accountId/pending-transactions/:transactionId',
+  async (req: Request, res: Response) => {
+    try {
+      const { accountId, transactionId } = req.params
+      const pending = await findPending(accountId, transactionId)
+      if (!pending) {
+        return formatErrorResponse(req, res, 404)
+      }
+      await prisma.transaction.delete({
+        where: { transactionId: pending.transactionId },
+      })
+      await emitDatabaseSummary()
+      return res.status(200).json({})
+    } catch (error) {
+      console.log(error)
+      return formatErrorResponse(req, res, 500)
+    }
+  },
+)
 
 // Fixed reference data: the categories a beneficiary can be filed under.
 const beneficiaryCategories = [

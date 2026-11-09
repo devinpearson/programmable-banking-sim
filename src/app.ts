@@ -354,7 +354,12 @@ export function formatResponse (data: unknown, req: Request, res: Response) {
     },
   })
 }
-export function formatErrorResponse(req: Request, res: Response, code: number) {
+export function formatErrorResponse(
+  req: Request,
+  res: Response,
+  code: number,
+  errorMessage?: string,
+) {
   const date = new Date()
   io.sockets.emit(
     messageQueue,
@@ -368,7 +373,9 @@ export function formatErrorResponse(req: Request, res: Response, code: number) {
       ' ' +
       code,
   )
-  return res.status(code).json()
+  // Most errors keep an empty body; pass a message when the caller needs to
+  // know *why* (e.g. insufficient funds).
+  return res.status(code).json(errorMessage ? { errorMessage } : undefined)
 }
 
 async function fetchSettings() {

@@ -19,6 +19,7 @@ model Account {
     referenceName String
     productName String
     kycCompliant Boolean @default(true)
+    overdraftLimit Decimal @default(0)
     profileId String
     profileName String
     transactions Transaction[]

@@ -3,6 +3,11 @@ export enum TransactionType {
     CREDIT = 'CREDIT',
 }
 
+export enum TransactionStatus {
+    POSTED = 'POSTED',
+    PENDING = 'PENDING',
+}
+
 export interface AccessToken {
   expires_at: string
   scope: string
