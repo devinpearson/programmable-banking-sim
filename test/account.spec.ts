@@ -387,4 +387,43 @@ describe('Test the accounts', () => {
 
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
+
+  it('should cascade-delete an account\'s transactions, cards and card codes', async () => {
+    const accountId = 'test-cascade-account-001'
+    const cardKey = 'test-cascade-card-001'
+    await request(app).delete(`/za/v1/cards/${cardKey}`)
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '55555555501' })
+
+    // Give the account two transactions and a card.
+    await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transactions`)
+      .send({ type: 'CREDIT', amount: 100, postingDate: '2024-01-01', valueDate: '2024-01-01', actionDate: '2024-01-01', transactionDate: '2024-01-01' })
+    await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transactions`)
+      .send({ type: 'DEBIT', amount: 40, postingDate: '2024-01-02', valueDate: '2024-01-02', actionDate: '2024-01-02', transactionDate: '2024-01-02' })
+    await request(app).post('/za/v1/cards').send({ cardKey, accountId })
+
+    const cardCodeBefore = await request(app).get(`/za/v1/cards/${cardKey}/code`)
+    assert.equal(cardCodeBefore.statusCode, 200)
+    assert.exists(cardCodeBefore.body.data.cardCode)
+
+    // Delete the account.
+    const deleteResponse = await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    assert.equal(deleteResponse.statusCode, 200)
+
+    // The card is gone...
+    const cards = await request(app).get('/za/v1/cards')
+    assert.isUndefined(cards.body.data.cards.find((c: { CardKey: string }) => c.CardKey === cardKey))
+    // ...its code row is gone...
+    const cardCodeAfter = await request(app).get(`/za/v1/cards/${cardKey}/code`)
+    assert.equal(cardCodeAfter.statusCode, 404)
+    // ...and the transactions did not survive (a fresh account of the same id is empty).
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '55555555501' })
+    const txns = await request(app).get(`/za/pb/v1/accounts/${accountId}/transactions?fromDate=2000-01-01`)
+    assert.equal(txns.statusCode, 200)
+    assert.equal(txns.body.data.transactions.length, 0)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
 })
