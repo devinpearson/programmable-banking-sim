@@ -1,5 +1,6 @@
 import request from 'supertest'
-import { app, settings } from '../src/app'
+import { settings } from '../src/app'
+import { app } from './app-server'
 import { assert } from 'chai'
 
 // With auth on: 3-legged tokens only reach the accounts the user consented to
