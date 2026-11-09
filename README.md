@@ -104,7 +104,7 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 
 ### Mock API only endpoints
 - **POST /za/pb/v1/accounts/:accountId/transactions**
-    - Creates and inserts a transaction into the history
+    - Creates and inserts a transaction into the history. Only card transactions (`CardPurchases`, `CardWithdrawals`) can be created with `status: "PENDING"`; other types get a `400` unless you add `?allowNonCardPending=true` for the rare non-card pending case. Card transactions can also be inserted already posted: omit `status` or send `"POSTED"`. A pending transaction with no `transactionType` defaults to `CardPurchases`
 - **DELETE /za/pb/v1/accounts/:accountId/transactions/2023-01-22**
     - Deletes transactions from account for a particular postingDate
 - **POST /za/pb/v1/accounts**
@@ -122,7 +122,7 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 - **DELETE /za/pb/v1/accounts/beneficiaries/:beneficiaryId**
     - Delete a beneficiary
 - **POST /za/v1/cards/:cardKey/code/execute-live**
-    - Used for the POS to execute the code on the card. If the card's `accountId` is a real account, the swipe is declined (`reason: "insufficient_funds"`) when the available balance can't cover it, and an approved swipe places a pending `CardPurchases` hold on the account (returned as `transaction`)
+    - Used for the POS to execute the code on the card. If the card's `accountId` is a real account, the swipe is declined (`reason: "insufficient_funds"`) when the available balance can't cover it, and an approved swipe places a pending `CardPurchases` hold on the account (returned as `transaction`). Send `"settle": true` to post the purchase immediately instead of holding it
 
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
 

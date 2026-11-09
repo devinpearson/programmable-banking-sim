@@ -495,19 +495,22 @@ router.post(
       let posted = null
       if (transactionResult && balance) {
         const now = dayjs().format('YYYY-MM-DD')
+        // By default an approved swipe is a pending hold. Pass settle: true to
+        // post it straight away (an already-settled card purchase).
+        const settleNow = simulationPayload.settle === true
         posted = await prisma.transaction.create({
           data: {
             accountId: card.accountId,
             type: TransactionType.DEBIT,
             transactionType: 'CardPurchases',
-            status: TransactionStatus.PENDING,
+            status: settleNow ? TransactionStatus.POSTED : TransactionStatus.PENDING,
             description: simulationPayload.merchantName ?? 'Card purchase',
             cardNumber: card.cardNumber,
             postedOrder: 0,
-            // Not posted yet: posting/value/action dates are set on settle.
-            postingDate: '',
-            valueDate: '',
-            actionDate: '',
+            // A hold has no posting/value/action dates until it settles.
+            postingDate: settleNow ? now : '',
+            valueDate: settleNow ? now : '',
+            actionDate: settleNow ? now : '',
             transactionDate: now,
             amount: amount,
             runningBalance: 0,

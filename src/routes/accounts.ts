@@ -6,6 +6,7 @@ const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse, emitDatabaseSummary } from '../app.js'
 import { Investec } from 'programmable-banking-faker'
 import {
+  CARD_TRANSACTION_TYPES,
   TransactionStatus,
   TransactionType,
   type BalanceResponse,
@@ -345,7 +346,27 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
 router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   try {
     let randomTx = Investec.transaction(req.params.accountId)
+    // A pending transaction is usually a card hold: default its type to a
+    // card purchase rather than a random one, and refuse non-card types
+    // unless the caller opts in with ?allowNonCardPending=true (for the rare
+    // non-card pending case, e.g. a held EFT).
+    if (req.body.status === TransactionStatus.PENDING) {
+      randomTx.transactionType = 'CardPurchases'
+    }
     randomTx = { ...randomTx, ...req.body }
+    const allowNonCardPending = req.query.allowNonCardPending === 'true'
+    if (
+      randomTx.status === TransactionStatus.PENDING &&
+      !allowNonCardPending &&
+      !CARD_TRANSACTION_TYPES.includes(randomTx.transactionType)
+    ) {
+      return formatErrorResponse(
+        req,
+        res,
+        400,
+        'Only card transactions can be pending',
+      )
+    }
 
     const accountId = req.params.accountId
     // check that the account exists

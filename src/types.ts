@@ -8,6 +8,10 @@ export enum TransactionStatus {
     PENDING = 'PENDING',
 }
 
+// Only card transactions sit in PENDING (an authorisation hold) before they
+// settle; payments, transfers, debit orders and fees post straight away.
+export const CARD_TRANSACTION_TYPES = ['CardPurchases', 'CardWithdrawals']
+
 export interface AccessToken {
   expires_at: string
   scope: string

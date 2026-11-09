@@ -524,7 +524,7 @@ describe('Test the accounts', () => {
     // Add a pending debit of 300.
     await request(app)
       .post(`/za/pb/v1/accounts/${accountId}/transactions`)
-      .send({ type: 'DEBIT', status: 'PENDING', amount: 300, postingDate: '2024-01-02', valueDate: '2024-01-02', actionDate: '2024-01-02', transactionDate: '2024-01-02' })
+      .send({ type: 'DEBIT', transactionType: 'CardPurchases', status: 'PENDING', amount: 300, postingDate: '2024-01-02', valueDate: '2024-01-02', actionDate: '2024-01-02', transactionDate: '2024-01-02' })
 
     // current = posted only (1000); available = posted minus pending debit (700).
     const before = await request(app).get(`/za/pb/v1/accounts/${accountId}/balance`)
@@ -540,6 +540,48 @@ describe('Test the accounts', () => {
     const after = await request(app).get(`/za/pb/v1/accounts/${accountId}/balance`)
     assert.equal(after.body.data.currentBalance, 700)
     assert.equal(after.body.data.availableBalance, 700)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should only allow card transactions to be pending', async () => {
+    const accountId = 'test-pending-card-only-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '77777777702' })
+
+    for (const transactionType of ['OnlineBankingPayments', 'FasterPay', 'DebitOrders', 'FeesAndInterest']) {
+      const rejected = await request(app)
+        .post(`/za/pb/v1/accounts/${accountId}/transactions`)
+        .send({ type: 'DEBIT', transactionType, status: 'PENDING', amount: 50 })
+      assert.equal(rejected.statusCode, 400, transactionType)
+      assert.equal(rejected.body.errorMessage, 'Only card transactions can be pending')
+    }
+
+    const withdrawal = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transactions`)
+      .send({ type: 'DEBIT', transactionType: 'CardWithdrawals', status: 'PENDING', amount: 50 })
+    assert.equal(withdrawal.statusCode, 200)
+
+    // The override allows the rare non-card pending transaction.
+    const overridden = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transactions?allowNonCardPending=true`)
+      .send({ type: 'DEBIT', transactionType: 'OnlineBankingPayments', status: 'PENDING', amount: 50 })
+    assert.equal(overridden.statusCode, 200)
+    assert.equal(overridden.body.data.status, 'PENDING')
+    assert.equal(overridden.body.data.transactionType, 'OnlineBankingPayments')
+
+    // With no type given, a pending transaction defaults to a card purchase.
+    const defaulted = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transactions`)
+      .send({ type: 'DEBIT', status: 'PENDING', amount: 50 })
+    assert.equal(defaulted.statusCode, 200)
+    assert.equal(defaulted.body.data.transactionType, 'CardPurchases')
+
+    // Non-card types still post as before.
+    const posted = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/transactions`)
+      .send({ type: 'DEBIT', transactionType: 'DebitOrders', status: 'POSTED', amount: 50 })
+    assert.equal(posted.statusCode, 200)
 
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })

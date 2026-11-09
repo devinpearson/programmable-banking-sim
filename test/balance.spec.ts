@@ -10,7 +10,7 @@ const APPROVE_CODE =
   'const beforeTransaction = async (authorization) => { return true; };\n' +
   'const afterTransaction = async (transaction) => { console.log(transaction); };'
 
-const swipe = (centsAmount: number, merchantName = 'Corner Cafe') =>
+const swipe = (centsAmount: number, merchantName = 'Corner Cafe', extra = {}) =>
   request(app).post(`/za/v1/cards/${CARD_KEY}/code/execute-live`).send({
     currencyCode: 'ZAR',
     centsAmount,
@@ -18,6 +18,7 @@ const swipe = (centsAmount: number, merchantName = 'Corner Cafe') =>
     merchantName,
     merchantCity: 'Cape Town',
     countryCode: 'ZA',
+    ...extra,
   })
 
 const balanceOf = async (accountId: string) =>
@@ -127,6 +128,39 @@ describe('Balances, card holds and overdrafts', () => {
       `/za/pb/v1/accounts/${ACCOUNT_ID}/pending-transactions/${hold.transactionId}/settle`,
     )
     assert.equal(again.statusCode, 404)
+  })
+
+  it('posts a swipe straight away with settle: true', async () => {
+    const response = await swipe(20000, 'Settled Store', { settle: true })
+    assert.isTrue(response.body.data.result)
+    const transaction = response.body.data.transaction
+    assert.equal(transaction.status, 'POSTED')
+    assert.equal(transaction.transactionType, 'CardPurchases')
+    assert.isNotEmpty(transaction.postingDate)
+
+    const balance = await balanceOf(ACCOUNT_ID)
+    assert.equal(balance.currentBalance, 800)
+    assert.equal(balance.availableBalance, 1300)
+    const pending = await request(app).get(
+      `/za/pb/v1/accounts/${ACCOUNT_ID}/pending-transactions`,
+    )
+    assert.lengthOf(pending.body.data.pendingTransactions, 0)
+  })
+
+  it('inserts posted card transactions through the transactions endpoint', async () => {
+    for (const body of [
+      { type: 'DEBIT', transactionType: 'CardPurchases', amount: 100 },
+      { type: 'DEBIT', transactionType: 'CardPurchases', status: 'POSTED', amount: 100 },
+      { type: 'DEBIT', transactionType: 'CardWithdrawals', status: 'POSTED', amount: 100 },
+    ]) {
+      const response = await request(app)
+        .post(`/za/pb/v1/accounts/${ACCOUNT_ID}/transactions`)
+        .send(body)
+      assert.equal(response.statusCode, 200)
+      assert.equal(response.body.data.status, 'POSTED')
+    }
+    const balance = await balanceOf(ACCOUNT_ID)
+    assert.equal(balance.currentBalance, 700)
   })
 
   it('releases the funds when a hold is reversed', async () => {
