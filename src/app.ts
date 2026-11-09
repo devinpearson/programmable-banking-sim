@@ -9,7 +9,7 @@ import { Server } from 'socket.io'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createServer } from 'node:http'
-import identity from './routes/identity.js'
+import identity, { authenticateSession } from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
 import type {
@@ -98,9 +98,13 @@ app.post('/login', (req, res) => {
   const qsp = req.query.qsp || req.body.qsp // Get qsp from query params or form body
   
   if (email === 'admin@example.com' && password === 'admin') {
+    // Mark the pending OAuth flow as signed in so /approve will accept it.
+    if (qsp) {
+      authenticateSession(qsp as string)
+    }
     // Preserve the qsp parameter when redirecting to oauth consent
-    const redirectUrl = qsp ? 
-      `/wpaas/prog-banking-wpaas/oauth-consent?qsp=${qsp}` : 
+    const redirectUrl = qsp ?
+      `/wpaas/prog-banking-wpaas/oauth-consent?qsp=${qsp}` :
       '/wpaas/prog-banking-wpaas/oauth-consent'
     return res.redirect(redirectUrl)
   } else {
