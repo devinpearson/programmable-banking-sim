@@ -7,6 +7,7 @@ import {
   settings,
   formatErrorResponse,
   formatResponse,
+  webUrl,
 } from '../app.js'
 import dayjs from 'dayjs'
 import { PrismaClient } from '@prisma/client'
@@ -209,7 +210,8 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
   // exchangeable once the user signs in and approves (see /approve).
   sessionTokens.set(hash, { code: authorizationCode, authenticated: false })
 
-  return res.redirect(302, `/login?qsp=${hash}`)
+  // The user signs in on the web app's login page.
+  return res.redirect(302, `${webUrl}/login?qsp=${hash}`)
 })
 
 // What the consent page shows for a signed-in flow: the requested scopes and

@@ -19,27 +19,27 @@ describe('Test the app-level routes', () => {
     assert.property(response.body.data, 'auth')
   })
 
-  it('should serve the root page', async () => {
-    const response = await request(app).get('/')
-    assert.equal(response.statusCode, 200)
-    assert.match(response.headers['content-type'], /html/)
+  // The pages are the Next.js app in web/ (WEB_URL, http://localhost:3001 by
+  // default); the API redirects its old page URLs there.
+  it('should redirect the old page URLs to the web app, keeping the query', async () => {
+    for (const [path, target] of [
+      ['/', 'http://localhost:3001/'],
+      ['/login?qsp=abc', 'http://localhost:3001/login?qsp=abc'],
+      ['/wpaas/prog-banking-wpaas/oauth-consent?qsp=abc', 'http://localhost:3001/consent?qsp=abc'],
+      ['/guide', 'http://localhost:3001/guide'],
+    ]) {
+      const response = await request(app).get(path)
+      assert.equal(response.statusCode, 302, path)
+      assert.equal(response.headers.location, target, path)
+    }
   })
 
-  it('should serve the login page', async () => {
-    const response = await request(app).get('/login')
-    assert.equal(response.statusCode, 200)
-    assert.match(response.headers['content-type'], /html/)
-  })
-
-  it('should redirect to the oauth consent page on successful login', async () => {
+  it('should redirect to the consent page on successful login', async () => {
     const response = await request(app)
       .post('/login')
       .send({ email: 'admin@example.com', password: 'admin' })
     assert.equal(response.statusCode, 302)
-    assert.equal(
-      response.headers.location,
-      '/wpaas/prog-banking-wpaas/oauth-consent',
-    )
+    assert.equal(response.headers.location, 'http://localhost:3001/consent')
   })
 
   it('should preserve the qsp parameter when redirecting after successful login', async () => {
@@ -47,26 +47,26 @@ describe('Test the app-level routes', () => {
       .post('/login?qsp=abc123')
       .send({ email: 'admin@example.com', password: 'admin' })
     assert.equal(response.statusCode, 302)
-    assert.equal(
-      response.headers.location,
-      '/wpaas/prog-banking-wpaas/oauth-consent?qsp=abc123',
-    )
+    assert.equal(response.headers.location, 'http://localhost:3001/consent?qsp=abc123')
   })
 
-  it('should redirect back to login on failed login', async () => {
+  it('should take the qsp from a form post, as the login page sends it', async () => {
     const response = await request(app)
       .post('/login')
-      .send({ email: 'wrong@example.com', password: 'wrong' })
-    assert.equal(response.statusCode, 302)
-    assert.equal(response.headers.location, '/login')
+      .type('form')
+      .send({ email: 'admin@example.com', password: 'admin', qsp: 'from-form' })
+    assert.equal(response.headers.location, 'http://localhost:3001/consent?qsp=from-form')
   })
 
-  it('should serve the oauth consent page', async () => {
-    const response = await request(app).get(
-      '/wpaas/prog-banking-wpaas/oauth-consent',
+  it('should redirect back to login with an error on failed login', async () => {
+    const response = await request(app)
+      .post('/login?qsp=abc123')
+      .send({ email: 'wrong@example.com', password: 'wrong' })
+    assert.equal(response.statusCode, 302)
+    assert.equal(
+      response.headers.location,
+      'http://localhost:3001/login?error=invalid_credentials&qsp=abc123',
     )
-    assert.equal(response.statusCode, 200)
-    assert.match(response.headers['content-type'], /html/)
   })
 
   it('should respond with 404 for legacy /oauth endpoints', async () => {
