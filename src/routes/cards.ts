@@ -9,6 +9,7 @@ import {
   emitDatabaseSummary,
 } from '../app.js'
 import { getAccountBalance } from '../balance.js'
+import { accountAllowed } from '../consent.js'
 import {
   InvestecTransactionType,
   TransactionStatus,
@@ -28,9 +29,25 @@ interface CardResponse {
   AccountId: string
 }
 
+// A 3-legged token only reaches cards on accounts the user consented to.
+// Unknown cards fall through to the route's own 404.
+router.param('cardKey', async (req, res, next, cardKey: string) => {
+  try {
+    const card = await prisma.card.findUnique({ where: { cardKey } })
+    if (card && !accountAllowed(res, card.accountId)) {
+      return formatErrorResponse(req, res, 403, 'Card account not consented for this token')
+    }
+    next()
+  } catch (error) {
+    next(error)
+  }
+})
+
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const result = await prisma.card.findMany()
+    const result = (await prisma.card.findMany()).filter(card =>
+      accountAllowed(res, card.accountId),
+    )
     const cards: CardResponse[] = []
     result.forEach(card => {
       cards.push({

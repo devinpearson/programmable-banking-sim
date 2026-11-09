@@ -59,6 +59,25 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 ### Auth
 - **POST /identity/v2/oauth2/token**
     - Get an access token (only required if auth is turned on)
+- **GET /identity/v2/oauth2/authorize?client_id=…&redirect_uri=…&scope=…&state=…**
+    - Start the 3-legged flow. `redirect_uri` is required. `scope` is space-separated; leave it out to request every scope. `state` is echoed back on the redirect
+
+#### 3-legged consent and scopes
+When auth is turned on, a token from the 3-legged (`authorization_code`) flow only reaches what the user approved:
+- **Accounts:** only the accounts ticked on the consent page (no selection means all accounts). Other accounts, and cards on them, return `403`, and they are left out of the account and card lists.
+- **Scopes:** each route needs a scope; a missing one returns `403 { "errorMessage": "Token is missing scope: …" }`.
+
+| Scope | Unlocks |
+| --- | --- |
+| `accounts` | `GET /za/pb/v1/accounts` |
+| `balances` | `GET …/accounts/:accountId/balance` |
+| `transactions` | `GET …/transactions`, `GET …/pending-transactions` |
+| `transfers` | `POST …/transfermultiple` |
+| `beneficiarypayments` | `POST …/paymultiple`, `GET …/beneficiaries`, `GET …/beneficiarycategories` |
+| `statements` | `GET …/documents` |
+| `cards` | everything under `/za/v1/cards` |
+
+Refreshed tokens keep the original scope and accounts. `client_credentials` tokens are not limited. These scope names are the sandbox's own; Investec's exact scope strings may differ.
 
 ### Accounts
 - **GET /za/pb/v1/accounts**

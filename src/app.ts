@@ -15,9 +15,11 @@ import cards from './routes/cards.js'
 import type {
   AccessToken,
   AuthorizationCode,
+  RefreshGrant,
   Settings,
   ControlMessage,
 } from './types.js'
+import { requiredScope, tokenHasScope } from './consent.js'
 import { seedAccounts } from '../prisma/account.js'
 import { seedTransactions } from '../prisma/transaction.js'
 import { seedBeneficiaries } from '../prisma/beneficiary.js'
@@ -46,7 +48,7 @@ app.use(express.static('public'))
 
 export const accessTokens = {} as Record<string, AccessToken>
 export const authorizationCodes = {} as Record<string, AuthorizationCode>
-export const refreshTokens = [] as string[]
+export const refreshTokens = new Map<string, RefreshGrant>()
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -175,11 +177,21 @@ app.all('/oauth*', (_req: Request, res: Response) => {
 })
 
 app.use('/identity', identity)
-// middleware to check the token
+// Check the bearer token when auth is on, and enforce what it was granted:
+// its scopes here, its consented accounts in the routers (via res.locals).
 app.use('/za', (req, res, next) => {
-  if (!isValidToken(req)) {
+  if (settings.auth !== true) {
+    return next()
+  }
+  const token = validToken(req)
+  if (!token) {
     return formatErrorResponse(req, res, 401)
   }
+  const scope = requiredScope(req.method, req.baseUrl + req.path)
+  if (scope && !tokenHasScope(token, scope)) {
+    return formatErrorResponse(req, res, 403, `Token is missing scope: ${scope}`)
+  }
+  res.locals.token = token
   next()
 })
 
@@ -284,25 +296,17 @@ app.get('/database-summary', async (req: Request, res: Response) => {
   }
 })
 
-function isValidToken(req: Request) {
-  if (settings.auth !== true) {
-    return true
-  }
-  if (!req.get('authorization')) {
-    return false
-  }
+// The unexpired access token named by the Authorization header, or null.
+function validToken(req: Request): AccessToken | null {
   const authorization = req.get('authorization')?.split(' ')[1]
   if (!authorization) {
-    return false
+    return null
   }
-  if (
-    accessTokens[authorization] &&
-    dayjs().isBefore(accessTokens[authorization].expires_at)
-  ) {
-    return true
+  const token = accessTokens[authorization]
+  if (token && dayjs().isBefore(token.expires_at)) {
+    return token
   }
-
-  return false
+  return null
 }
 
 export async function emitDatabaseSummary() {
