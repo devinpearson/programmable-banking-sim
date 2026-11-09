@@ -19,12 +19,12 @@ interface OAuthSession {
   code: AuthorizationCode
   authenticated: boolean
 }
-const sessionTokens: { [key: string]: OAuthSession } = {}
+const sessionTokens = new Map<string, OAuthSession>()
 
 // Marks a pending flow as signed-in. Called by the /login handler after it
 // verifies the user's credentials. Returns false for an unknown qsp.
 export function authenticateSession(qsp: string): boolean {
-  const session = sessionTokens[qsp]
+  const session = sessionTokens.get(qsp)
   if (!session) {
     return false
   }
