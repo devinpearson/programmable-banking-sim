@@ -9,6 +9,7 @@ import YAML from 'yaml'
 import { z } from '../schema/zod.js'
 import * as request from '../schema/requestSchemas.js'
 import * as response from '../schema/responseSchemas.js'
+import { sandboxStateSchema } from '../sandboxState.js'
 
 // The OpenAPI document, generated from the same zod schemas that validate
 // requests. Written to openapi/ by `npm run openapi:generate`, checked by
@@ -623,6 +624,33 @@ register('post', '/scenarios/:id', {
   sandbox: true,
   security: 'none',
   ok: response.envelope(response.ScenarioLoaded),
+})
+register('get', '/export', {
+  tag: 'Sandbox',
+  summary: "Download the sandbox's data as JSON",
+  description:
+    'Profiles, accounts, transactions, beneficiaries, cards with their code, and exchange rates. Settings, fault settings and webhooks are left out.',
+  sandbox: true,
+  security: 'none',
+  ok: sandboxStateSchema,
+})
+register('post', '/import', {
+  tag: 'Sandbox',
+  summary: "Replace the sandbox's data with an export",
+  description: 'Validated first, then applied all or nothing.',
+  sandbox: true,
+  security: 'none',
+  body: sandboxStateSchema,
+  ok: response.envelope(
+    z.object({
+      profiles: z.number().int(),
+      accounts: z.number().int(),
+      transactions: z.number().int(),
+      beneficiaries: z.number().int(),
+      cards: z.number().int(),
+      exchangeRates: z.number().int(),
+    }),
+  ),
 })
 register('get', '/restore', { tag: 'Sandbox', summary: 'Reset to the seed data', sandbox: true, security: 'none', ok: null })
 register('delete', '/clear', { tag: 'Sandbox', summary: 'Remove all data', sandbox: true, security: 'none', ok: null })

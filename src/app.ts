@@ -28,12 +28,14 @@ import { seedBeneficiaries } from '../prisma/beneficiary.js'
 import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
 import { seedProfiles } from '../prisma/profile.js'
+import { seedExchangeRates } from '../prisma/exchange-rate.js'
 import { listScenarios, applyScenario } from './scenarios.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { setupOpenApi } from './config/openapi.js'
 import { validateRequest, validatedBody } from './middleware/validation.js'
 import { authRateLimit } from './middleware/rateLimit.js'
 import { injectFaults, loadFaultConfig } from './faults.js'
+import { exportState, importState, sandboxStateSchema } from './sandboxState.js'
 import { loginBody, settingsBody } from './schema/requestSchemas.js'
 import type { z } from 'zod'
 
@@ -57,7 +59,8 @@ app.use(cors())
 // Configuring body parser middleware
 app.use(express.urlencoded({ extended: false }))
 app.use(morgan('combined'))
-app.use(express.json())
+// Large enough to import an exported sandbox state (POST /import).
+app.use(express.json({ limit: '10mb' }))
 
 export const accessTokens = {} as Record<string, AccessToken>
 export const authorizationCodes = {} as Record<string, AuthorizationCode>
@@ -240,6 +243,8 @@ async function clearDatabase() {
 
 async function restoreDatabase() {
   await clearDatabase()
+  // Back to the seeded rates too (an import may have replaced them).
+  await seedExchangeRates()
   await seedProfiles()
   await seedAccounts()
   await seedTransactions()
@@ -268,6 +273,23 @@ app.get('/restore', async (req, res) => {
     console.log(error)
     return formatErrorResponse(req, res, 500)
   }
+})
+
+// Download the sandbox's data as a JSON file (see src/sandboxState.ts).
+app.get('/export', async (req, res) => {
+  const state = await exportState()
+  const date = state.exportedAt.slice(0, 10)
+  res.setHeader('Content-Disposition', `attachment; filename="sandbox-${date}.json"`)
+  logRequest(req, 200)
+  return res.json(state)
+})
+
+// Replace the sandbox's data with an exported state. Validated first; all
+// or nothing.
+app.post('/import', validateRequest({ body: sandboxStateSchema }), async (req, res) => {
+  const counts = await importState(validatedBody(res, sandboxStateSchema))
+  await emitDatabaseSummary()
+  return formatResponse(counts, req, res)
 })
 
 // List the named starting scenarios available to load.
