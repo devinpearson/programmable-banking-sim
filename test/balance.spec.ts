@@ -218,7 +218,10 @@ describe('Balances, card holds and overdrafts', () => {
       .post(`/za/v1/cards/${CARD_KEY}/status`)
       .send({ status: 'Frozen' })
     assert.equal(bad.statusCode, 400)
-    assert.equal(bad.body.errorMessage, 'status must be one of: Active, Stopped')
+    assert.equal(bad.body.errorMessage, 'status: must be Active or Stopped')
+    assert.deepEqual(bad.body.details, [
+      { location: 'body', path: 'status', message: 'must be Active or Stopped' },
+    ])
     const missing = await request(app)
       .post('/za/v1/cards/does-not-exist/status')
       .send({ status: 'Active' })

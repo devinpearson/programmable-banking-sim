@@ -26,6 +26,7 @@
   "author": "Devin Pearson",
   "license": "MIT",
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.4",
     "@prisma/client": "^5.13.0",
     "@types/express": "^5.0.6",
     "@types/node": "^20.12.7",
@@ -37,10 +38,14 @@
     "programmable-banking-faker": "^1.0.2",
     "programmable-card-code-emulator": "^1.2.0",
     "socket.io": "^4.7.5",
+    "swagger-ui-express": "^5.0.1",
     "typescript": "^5.4.5",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "yaml": "^2.9.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.0.0",
     "@biomejs/biome": "^2.6.4",
     "@stryker-mutator/core": "^10.1.1",
     "@stryker-mutator/jest-runner": "^10.1.1",
@@ -50,6 +55,7 @@
     "@types/jest": "^30.0.0",
     "@types/morgan": "^1.9.9",
     "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
     "chai": "^5.1.1",
     "concurrently": "^10.0.7",

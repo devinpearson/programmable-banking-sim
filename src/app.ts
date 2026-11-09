@@ -25,6 +25,10 @@ import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
 import { seedProfiles } from '../prisma/profile.js'
 import { listScenarios, applyScenario } from './scenarios.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { validateRequest, validatedBody } from './middleware/validation.js'
+import { loginBody, settingsBody } from './schema/requestSchemas.js'
+import type { z } from 'zod'
 
 dotenv.config()
 
@@ -54,10 +58,14 @@ export const refreshTokens = new Map<string, RefreshGrant>()
 const messageQueue = 'logs'
 
 io.on('connection', socket => {
-  socket.on('envs', msg => {
-    console.log(`message: ${msg}`)
-    settings = msg
-    io.emit('envs', settings)
+  // Same rules as POST /envs: validated, saved, and broadcast.
+  socket.on('envs', async msg => {
+    const parsed = settingsBody.safeParse(msg)
+    if (!parsed.success) {
+      console.log('Ignoring invalid settings from the socket:', parsed.error.issues)
+      return
+    }
+    await applySettings(parsed.data)
   })
   socket.on('control', async (msg: ControlMessage) => {
     console.log(`control: ${msg}`)
@@ -101,10 +109,10 @@ app.get('/login', redirectToWeb('/login'))
 app.get('/wpaas/prog-banking-wpaas/oauth-consent', redirectToWeb('/consent'))
 app.get('/guide', redirectToWeb('/guide'))
 
-app.post('/login', (req, res) => {
-  const email = req.body.email
-  const password = req.body.password
-  const qsp = req.query.qsp || req.body.qsp // Get qsp from query params or form body
+app.post('/login', validateRequest({ body: loginBody }), (req, res) => {
+  const { email, password, qsp: formQsp } = validatedBody(res, loginBody)
+  // The qsp comes in the query string or, from the login page, the form body.
+  const qsp = (typeof req.query.qsp === 'string' && req.query.qsp) || formQsp
   
   if (email === 'admin@example.com' && password === 'admin') {
     // Mark the pending OAuth flow as signed in so /approve will accept it.
@@ -124,33 +132,29 @@ app.post('/login', (req, res) => {
   }
 })
 
-app.post('/envs', async (req, res) => {
-  await prisma.setting.update({
-    where: { name: 'client_id' },
-    data: { value: req.body.client_id },
-  })
-  await prisma.setting.update({
-    where: { name: 'client_secret' },
-    data: { value: req.body.client_secret },
-  })
-  await prisma.setting.update({
-    where: { name: 'api_key' },
-    data: { value: req.body.api_key },
-  })
-  await prisma.setting.update({
-    where: { name: 'token_expiry' },
-    data: { value: req.body.token_expiry as unknown as string },
-  })
-  let auth = 'false'
-  if (req.body.auth === true) {
-    auth = 'true'
+// Save the sandbox settings, use them from now on, and tell dashboards.
+async function applySettings(input: z.infer<typeof settingsBody>) {
+  const next: Settings = {
+    client_id: input.client_id,
+    client_secret: input.client_secret,
+    api_key: input.api_key,
+    token_expiry: input.token_expiry,
+    auth: input.auth === true,
   }
-  await prisma.setting.update({
-    where: { name: 'auth' },
-    data: { value: auth },
-  })
-  settings = req.body
-  return res.json(settings)
+  for (const [name, value] of Object.entries(next)) {
+    await prisma.setting.upsert({
+      where: { name },
+      update: { value: String(value) },
+      create: { name, value: String(value) },
+    })
+  }
+  settings = next
+  io.emit('envs', settings)
+  return settings
+}
+
+app.post('/envs', validateRequest({ body: settingsBody }), async (_req, res) => {
+  return res.json(await applySettings(validatedBody(res, settingsBody)))
 })
 
 // Handle legacy /oauth requests
@@ -293,6 +297,9 @@ app.get('/database-summary', async (req, res) => {
   }
 })
 
+// After every route: JSON for anything a handler threw or rejected with.
+app.use(errorHandler)
+
 // The unexpired access token named by the Authorization header, or null.
 function validToken(req: Request): AccessToken | null {
   const authorization = req.get('authorization')?.split(' ')[1]
@@ -360,6 +367,7 @@ export function formatErrorResponse(
   res: Response,
   code: number,
   errorMessage?: string,
+  extra?: Record<string, unknown>,
 ) {
   const date = new Date()
   io.sockets.emit(
@@ -376,7 +384,9 @@ export function formatErrorResponse(
   )
   // Most errors keep an empty body; pass a message when the caller needs to
   // know *why* (e.g. insufficient funds).
-  return res.status(code).json(errorMessage ? { errorMessage } : undefined)
+  return res
+    .status(code)
+    .json(errorMessage ? { errorMessage, ...extra } : undefined)
 }
 
 async function fetchSettings() {

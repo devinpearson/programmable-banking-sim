@@ -14,13 +14,24 @@ import {
 } from '../types.js'
 import { getAccountBalance } from '../balance.js'
 import { accountAllowed } from '../consent.js'
+import { validateRequest, validatedBody, validatedQuery } from '../middleware/validation.js'
+import {
+  allowNonCardPendingQuery,
+  createAccountBody,
+  createBeneficiaryBody,
+  createTransactionBody,
+  payMultipleBody,
+  topUpBody,
+  transactionsQuery,
+  transferMultipleBody,
+} from '../schema/requestSchemas.js'
 
 const INSUFFICIENT_FUNDS = 'Insufficient funds'
 
 // Sum the amounts of a pay/transfer batch in cents, so the whole batch is
 // checked against the available balance before anything is written.
-function batchTotal(items: { amount: unknown }[]) {
-  return items.reduce((cents, item) => cents + Math.round(Number(item.amount) * 100), 0) / 100
+function batchTotal(items: { amount: number }[]) {
+  return items.reduce((cents, item) => cents + Math.round(item.amount * 100), 0) / 100
 }
 
 // A 3-legged token only reaches the accounts the user consented to. Every
@@ -91,7 +102,7 @@ function toTransactionResponse(transaction: TransactionRow) {
   }
 }
 
-router.get('/:accountId/transactions', async (req, res) => {
+router.get('/:accountId/transactions', validateRequest({ query: transactionsQuery }), async (req, res) => {
   try {
     const accountId = req.params.accountId
     // check that the account exists
@@ -114,12 +125,12 @@ router.get('/:accountId/transactions', async (req, res) => {
       orderBy: [{ postingDate: 'asc' }, { transactionId: 'asc' }],
     })
     //    console.log(transactionsArr)
-    const toDate = req.query.toDate ?? dayjs().format('YYYY-MM-DD') // set to today
-    const fromDate =
-      req.query.fromDate ?? dayjs().subtract(180, 'day').format('YYYY-MM-DD') // set to 180 in the passed
-    const transactionType = req.query.transactionType ?? null
+    const query = validatedQuery(res, transactionsQuery)
+    const toDate = query.toDate ?? dayjs().format('YYYY-MM-DD') // today
+    const fromDate = query.fromDate ?? dayjs().subtract(180, 'day').format('YYYY-MM-DD')
+    const transactionType = query.transactionType ?? null
     // Like the real API, pending transactions are only listed on request.
-    const includePending = req.query.includePending === 'true'
+    const includePending = query.includePending ?? false
 
     let postedOrder = 0
     let runningBalance: number = 0
@@ -140,8 +151,8 @@ router.get('/:accountId/transactions', async (req, res) => {
         }
         const pendingDate = dayjs(transactionsArr[j].transactionDate)
         if (
-          pendingDate.isBefore(fromDate as string, 'day') ||
-          pendingDate.isAfter(toDate as string, 'day')
+          pendingDate.isBefore(fromDate, 'day') ||
+          pendingDate.isAfter(toDate, 'day')
         ) {
           continue
         }
@@ -167,10 +178,10 @@ router.get('/:accountId/transactions', async (req, res) => {
       }
       const transactionDate = dayjs(transactionsArr[j].postingDate)
       // compare both dates together
-      if (transactionDate.isBefore(fromDate as string, 'day')) {
+      if (transactionDate.isBefore(fromDate, 'day')) {
         continue
       }
-      if (transactionDate.isAfter(toDate as string, 'day')) {
+      if (transactionDate.isAfter(toDate, 'day')) {
         continue
       }
       transactionsArr[j].postedOrder = new Prisma.Decimal(postedOrder)
@@ -193,6 +204,7 @@ router.get('/:accountId/transactions', async (req, res) => {
 
 // transfer multiple transactions
 router.post('/:accountId/transfermultiple',
+  validateRequest({ body: transferMultipleBody }),
   async (req, res) => {
     try {
       const accountId = req.params.accountId
@@ -206,19 +218,13 @@ router.post('/:accountId/transfermultiple',
         console.log('no account found')
         return formatErrorResponse(req, res, 404) // no account was found
       }
-      const transfers = req.body.transferList
-      if (!Array.isArray(transfers) || transfers.length === 0) {
-        return formatErrorResponse(req, res, 400) // nothing to transfer
-      }
+      // The body is validated (1–50 legs, positive amounts) by the schema.
+      const transfers = validatedBody(res, transferMultipleBody).transferList
 
-      // Validate every leg and confirm each beneficiary account exists before
-      // writing anything, so a bad entry can't leave a half-finished transfer.
+      // Confirm each beneficiary account exists before writing anything, so a
+      // bad entry can't leave a half-finished transfer.
       const writes: Prisma.PrismaPromise<unknown>[] = []
       for (const transfer of transfers) {
-        const amount = Number(transfer.amount)
-        if (!Number.isFinite(amount) || amount <= 0) {
-          return formatErrorResponse(req, res, 400) // invalid amount
-        }
         // Both sides of a transfer must be accounts the token may touch.
         if (!accountAllowed(res, transfer.beneficiaryAccountId)) {
           return formatErrorResponse(req, res, 403, 'Account not consented for this token')
@@ -289,7 +295,7 @@ router.post('/:accountId/transfermultiple',
 )
 
 // beneficiary payment
-router.post('/:accountId/paymultiple', async (req, res) => {
+router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }), async (req, res) => {
   try {
     const accountId = req.params.accountId
     // check that the account exists
@@ -302,19 +308,14 @@ router.post('/:accountId/paymultiple', async (req, res) => {
       console.log('no account found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const transfers = req.body.paymentList
-    if (!Array.isArray(transfers) || transfers.length === 0) {
-      return formatErrorResponse(req, res, 400) // nothing to pay
-    }
+    // The body is validated (1–50 payments, positive amounts) by the schema.
+    const transfers = validatedBody(res, payMultipleBody).paymentList
 
-    // Validate every payment and confirm each beneficiary exists before writing
-    // anything, so a bad entry can't leave a half-finished batch.
+    // Confirm each beneficiary exists before writing anything, so a bad entry
+    // can't leave a half-finished batch.
     const writes: Prisma.PrismaPromise<unknown>[] = []
     for (const payment of transfers) {
-      const amount = Number(payment.amount)
-      if (!Number.isFinite(amount) || amount <= 0) {
-        return formatErrorResponse(req, res, 400) // invalid amount
-      }
+      const amount = payment.amount
       const beneficiary = await prisma.beneficiary.findFirst({
         where: {
           beneficiaryId: payment.beneficiaryId,
@@ -375,18 +376,22 @@ router.post('/:accountId/paymultiple', async (req, res) => {
 })
 
 // function to create transactions for an account
-router.post('/:accountId/transactions', async (req, res) => {
+router.post(
+  '/:accountId/transactions',
+  validateRequest({ body: createTransactionBody, query: allowNonCardPendingQuery }),
+  async (req, res) => {
   try {
-    let randomTx = Investec.transaction(req.params.accountId)
+    const body = validatedBody(res, createTransactionBody)
+    let randomTx: Prisma.TransactionUncheckedCreateInput = Investec.transaction(req.params.accountId)
     // A pending transaction is usually a card hold: default its type to a
     // card purchase rather than a random one, and refuse non-card types
     // unless the caller opts in with ?allowNonCardPending=true (for the rare
     // non-card pending case, e.g. a held EFT).
-    if (req.body.status === TransactionStatus.PENDING) {
+    if (body.status === TransactionStatus.PENDING) {
       randomTx.transactionType = InvestecTransactionType.CardPurchases
     }
-    randomTx = { ...randomTx, ...req.body }
-    const allowNonCardPending = req.query.allowNonCardPending === 'true'
+    randomTx = { ...randomTx, ...body }
+    const allowNonCardPending = validatedQuery(res, allowNonCardPendingQuery).allowNonCardPending ?? false
     if (
       randomTx.status === TransactionStatus.PENDING &&
       !allowNonCardPending &&
@@ -421,18 +426,16 @@ router.post('/:accountId/transactions', async (req, res) => {
     console.log(error)
     return formatErrorResponse(req, res, 500)
   }
-})
+  },
+)
 
 // Sandbox convenience: top up an account's balance with a single CREDIT.
 // Not a real Investec endpoint — it makes "add money to this account" a
 // one-call action instead of hand-crafting a transaction.
-router.post('/:accountId/topup', async (req, res) => {
+router.post('/:accountId/topup', validateRequest({ body: topUpBody }), async (req, res) => {
   try {
     const accountId = req.params.accountId
-    const amount = Number(req.body.amount)
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return formatErrorResponse(req, res, 400) // invalid amount
-    }
+    const { amount, description } = validatedBody(res, topUpBody)
     // check that the account exists
     const account = await prisma.account.findFirst({
       where: {
@@ -450,7 +453,7 @@ router.post('/:accountId/topup', async (req, res) => {
         type: TransactionType.CREDIT,
         transactionType: InvestecTransactionType.Deposits,
         status: 'POSTED',
-        description: req.body.description ?? 'Sandbox top up',
+        description: description ?? 'Sandbox top up',
         cardNumber: '',
         postedOrder: 0,
         postingDate: today,
@@ -545,23 +548,22 @@ router.delete('/:accountId/transactions/:postingDate',
 )
 
 // function to create an account
-router.post('/', async (req, res) => {
+router.post('/', validateRequest({ body: createAccountBody }), async (req, res) => {
   try {
     const baseAccount = Investec.account()
-    
+
     // Get the default profile (or first available profile)
     const defaultProfile = await prisma.profile.findFirst()
     if (!defaultProfile) {
-      console.log('No profile found. Please seed the database first.')
-      return formatErrorResponse(req, res, 500)
+      return formatErrorResponse(req, res, 422, 'No profile exists yet: reset the data or load a scenario first')
     }
-    
-    const account = { 
+
+    const account = {
       ...baseAccount,
       profileId: defaultProfile.profileId,
       profileName: defaultProfile.profileName,
       kycCompliant: true,
-      ...req.body 
+      ...validatedBody(res, createAccountBody),
     }
     // check that the account exists
     const accountcheck = await prisma.account.findFirst({
@@ -645,10 +647,9 @@ router.get('/beneficiaries', async (req, res) => {
   }
 })
 
-router.post('/beneficiaries', async (req, res) => {
+router.post('/beneficiaries', validateRequest({ body: createBeneficiaryBody }), async (req, res) => {
   try {
-    let beneficiary = Investec.beneficiary()
-    beneficiary = { ...beneficiary, ...req.body }
+    const beneficiary = { ...Investec.beneficiary(), ...validatedBody(res, createBeneficiaryBody) }
 
     const existing = await prisma.beneficiary.findUnique({
       where: { beneficiaryId: beneficiary.beneficiaryId },

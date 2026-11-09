@@ -72,7 +72,9 @@ router.post('/v2/oauth2/token', (req, res) => {
         return formatErrorResponse(req, res, 401)
       }
     }
-    if (req.body.grant_type === 'client_credentials') {
+    // Express 5 leaves req.body undefined when nothing was sent.
+    const body = req.body ?? {}
+    if (body.grant_type === 'client_credentials') {
       if (
         settings.api_key !== '' &&
         req.headers['x-api-key'] !== settings.api_key
@@ -94,8 +96,8 @@ router.post('/v2/oauth2/token', (req, res) => {
         expires_in: +settings.token_expiry,
         scope: 'accounts',
       })
-    } else if (req.body.grant_type === 'authorization_code') {
-      const code = req.body.code
+    } else if (body.grant_type === 'authorization_code') {
+      const code = body.code
       const authorizationCode = authorizationCodes[code]
       if (!authorizationCode) {
         return formatErrorResponse(req, res, 401)
@@ -108,8 +110,8 @@ router.post('/v2/oauth2/token', (req, res) => {
       }
       // If a redirect_uri is supplied it must match the one from /authorize.
       if (
-        req.body.redirect_uri &&
-        req.body.redirect_uri !== authorizationCode.redirect_uri
+        body.redirect_uri &&
+        body.redirect_uri !== authorizationCode.redirect_uri
       ) {
         return formatErrorResponse(req, res, 401)
       }
@@ -135,8 +137,8 @@ router.post('/v2/oauth2/token', (req, res) => {
         scope: authorizationCode.scope,
         refresh_token: refreshToken,
       })
-    } else if (req.body.grant_type === 'refresh_token') {
-      const incomingToken = req.body.refresh_token
+    } else if (body.grant_type === 'refresh_token') {
+      const incomingToken = body.refresh_token
       const grant = refreshTokens.get(incomingToken)
       if (!grant) {
         return formatErrorResponse(req, res, 401)
