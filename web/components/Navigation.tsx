@@ -27,6 +27,9 @@ export default function Navigation() {
           <Link href="/" className="hover:text-blue-600">
             Dashboard
           </Link>
+          <Link href="/oauth" className="hover:text-blue-600">
+            OAuth tester
+          </Link>
           <Link href="/guide" className="hover:text-blue-600">
             Quick start
           </Link>

@@ -98,6 +98,9 @@ Investec endpoints ignore unknown fields; the sandbox-only endpoints that create
 
 Sign-in (`POST /login`) and everything under `/identity` are rate limited to `AUTH_RATE_LIMIT` requests per minute per IP (default 300). Over the limit they answer `429` with a `Retry-After` header. The banking endpoints are not limited.
 
+#### Trying the 3-legged flow
+The web app's **OAuth tester** (http://localhost:3001/oauth, in the menu) plays the third-party app: tick the scopes, start the sign-in, sign in and approve on the bank's pages, and you come back to the tester to check the `state`, exchange the code, refresh the tokens and call the API with the access token. It shows the authorize URL too, to copy into your own app or set your own redirect URI. Turn auth on (the tester offers to) to see scopes and chosen accounts enforced.
+
 #### 3-legged consent and scopes
 When auth is turned on, a token from the 3-legged (`authorization_code`) flow only reaches what the user approved:
 - **Accounts:** only the accounts ticked on the consent page (no selection means all accounts). Other accounts, and cards on them, return `403`, and they are left out of the account and card lists.
