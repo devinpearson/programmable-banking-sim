@@ -3284,6 +3284,411 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the sandbox date */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Clock"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clock/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move the sandbox date forward
+         * @description Everything that falls due on the way runs in date order: recurring transactions post on their dates, and card holds settle three days after the swipe.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @example 30 */
+                        days: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ClockAdvanced"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clock/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Back to the real date (what already ran stays) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Clock"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List recurring transactions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                schedules: components["schemas"]["Schedule"][];
+                            };
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Add a recurring transaction
+         * @description A fixed amount (salary, debit order, fee) or monthly interest at an annual rate, monthly or weekly.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        accountId: string;
+                        /** @example Salary */
+                        description: string;
+                        /**
+                         * @description A fixed amount, or monthly interest at an annual rate.
+                         * @enum {string}
+                         */
+                        kind: "fixed" | "interest";
+                        /**
+                         * @description Required for fixed amounts.
+                         * @enum {string}
+                         */
+                        type?: "DEBIT" | "CREDIT";
+                        /** @description Defaults to Deposits (credits), DebitOrders (debits) or FeesAndInterest (interest). */
+                        transactionType?: string;
+                        /**
+                         * @description Required for fixed amounts.
+                         * @example 125.5
+                         */
+                        amount?: number;
+                        /**
+                         * @description Required for interest.
+                         * @example 7.5
+                         */
+                        annualRatePercent?: number;
+                        /** @enum {string} */
+                        frequency: "monthly" | "weekly";
+                        /** @description For monthly; 31 means the last day of every month. */
+                        dayOfMonth?: number;
+                        /** @description For weekly; 0 is Sunday. */
+                        dayOfWeek?: number;
+                        /**
+                         * @description First run on or after this date. Defaults to the sandbox date.
+                         * @example 2026-01-31
+                         */
+                        startDate?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Schedule"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not possible in the current state (e.g. insufficient funds) */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/schedules/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a recurring transaction */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    scheduleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Change, pause or resume a recurring transaction */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    scheduleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        description?: string;
+                        /** @example 125.5 */
+                        amount?: number;
+                        annualRatePercent?: number;
+                        /** @description Pause (false) or resume (true). */
+                        active?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Schedule"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/faults": {
         parameters: {
             query?: never;
@@ -4577,6 +4982,7 @@ export interface paths {
                                 beneficiaries: number;
                                 cards: number;
                                 exchangeRates: number;
+                                schedules: number;
                             };
                             links: {
                                 /** @example http://localhost:3000/za/pb/v1/accounts */
@@ -5220,6 +5626,42 @@ export interface components {
             /** @example 2026-11-09T10:00:00.000Z */
             updatedAt: string;
         };
+        Clock: {
+            /**
+             * @description The sandbox date banking uses.
+             * @example 2026-12-09
+             */
+            today: string;
+            realToday: string;
+            /** @description Days ahead of the real date. */
+            offsetDays: number;
+        };
+        ClockAdvanced: components["schemas"]["Clock"] & {
+            /** @description Recurring transactions posted on the way. */
+            posted: number;
+            /** @description Card holds that settled on the way. */
+            settled: number;
+        };
+        Schedule: {
+            scheduleId: string;
+            accountId: string;
+            description: string;
+            /** @enum {string} */
+            kind: "fixed" | "interest";
+            /** @enum {string} */
+            type: "DEBIT" | "CREDIT";
+            transactionType: string;
+            amount: number | null;
+            annualRatePercent: number | null;
+            /** @enum {string} */
+            frequency: "monthly" | "weekly";
+            dayOfMonth: number | null;
+            dayOfWeek: number | null;
+            nextRunDate: string;
+            active: boolean;
+            /** @example 2026-11-09T10:00:00.000Z */
+            createdAt: string;
+        };
         FaultConfig: {
             errorRate: number;
             /** @enum {integer} */
@@ -5330,6 +5772,7 @@ export interface components {
             accounts: number;
             beneficiaries: number;
             cards: number;
+            schedules: number;
         };
         /** @description Everything GET /export returns and POST /import accepts. */
         SandboxState: {
@@ -5416,6 +5859,30 @@ export interface components {
                 currencyCode: string;
                 zarPerUnit: string | number;
             }[];
+            /** @default [] */
+            schedules: {
+                scheduleId: string;
+                accountId: string;
+                description: string;
+                /** @enum {string} */
+                kind: "fixed" | "interest";
+                /** @enum {string} */
+                type: "DEBIT" | "CREDIT";
+                transactionType: string;
+                amount: string | number | null;
+                annualRatePercent: string | number | null;
+                /** @enum {string} */
+                frequency: "monthly" | "weekly";
+                dayOfMonth: number | null;
+                dayOfWeek: number | null;
+                nextRunDate: string;
+                active: boolean;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            clock?: {
+                offsetDays: number;
+            };
         };
     };
     responses: never;

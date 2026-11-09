@@ -16,6 +16,8 @@ import {
   type TransactionFilters,
   getExchangeRates,
   getFaults,
+  getClock,
+  getSchedules,
   getScenarios,
   getSettings,
   getSummary,
@@ -46,6 +48,8 @@ export const KEYS = {
   // Per webhook: ['webhook-deliveries', webhookId].
   webhookDeliveries: 'webhook-deliveries',
   faults: 'faults',
+  clock: 'clock',
+  schedules: 'schedules',
 } as const;
 
 export function useAccountsOverview() {
@@ -100,6 +104,14 @@ export function useWebhookDeliveries(webhookId: string | null) {
   );
 }
 
+export function useClock() {
+  return useSWR(KEYS.clock, getClock, SWR_CONFIG);
+}
+
+export function useSchedules() {
+  return useSWR(KEYS.schedules, getSchedules, SWR_CONFIG);
+}
+
 export function useFaults() {
   return useSWR(KEYS.faults, getFaults, SWR_CONFIG);
 }
@@ -117,6 +129,7 @@ export function useRefreshSandbox() {
       mutate(KEYS.cards),
       mutate(KEYS.summary),
       mutate(KEYS.beneficiaries),
+      mutate(KEYS.schedules),
       // Every open transaction list, whatever its account and filters.
       mutate(key => Array.isArray(key) && key[0] === KEYS.transactions),
     ]);
@@ -137,6 +150,10 @@ export function useLiveUpdates() {
     socket.on('logs', (line: string) => setLogs(lines => appendLog(lines, line)));
     socket.on('database-summary', () => {
       void refresh();
+    });
+    // The sandbox date moved (here, or e.g. from Postman).
+    socket.on('clock', () => {
+      void mutate(KEYS.clock);
     });
     // Fault settings changed (here, or e.g. from Postman).
     socket.on('faults', () => {

@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
-import dayjs from 'dayjs'
+import { sandboxToday } from './clock.js'
+import { firstRunOnOrAfter } from './schedules.js'
+import { randomUUID } from 'node:crypto'
 import { InvestecTransactionType, TransactionType } from './types.js'
 import { STARTER_CARD_CODE } from './cardCode.js'
 
@@ -34,6 +36,19 @@ interface ScenarioCard {
   accountId: string
 }
 
+// A recurring transaction set up with the scenario (src/schedules.ts).
+interface ScenarioSchedule {
+  accountId: string
+  description: string
+  kind: 'fixed' | 'interest'
+  type?: 'DEBIT' | 'CREDIT'
+  transactionType: string
+  amount?: number
+  annualRatePercent?: number
+  // Monthly, on this day (31 = month end).
+  dayOfMonth: number
+}
+
 interface Scenario {
   id: string
   name: string
@@ -42,6 +57,7 @@ interface Scenario {
   accounts: ScenarioAccount[]
   beneficiaries?: ScenarioBeneficiary[]
   cards?: ScenarioCard[]
+  schedules?: ScenarioSchedule[]
 }
 
 const PROFILE = { profileId: '20000000000001', profileName: 'Sandbox User' }
@@ -71,6 +87,10 @@ const scenarios: Scenario[] = [
     cards: [
       { cardKey: 'scenario-card-001', cardNumber: '402167XXXXXX0001', accountId: '30000000000000000000001' },
     ],
+    schedules: [
+      { accountId: '30000000000000000000001', description: 'Salary', kind: 'fixed', type: 'CREDIT', transactionType: 'Deposits', amount: 18000, dayOfMonth: 25 },
+      { accountId: '30000000000000000000002', description: 'Savings interest', kind: 'interest', transactionType: 'FeesAndInterest', annualRatePercent: 7, dayOfMonth: 31 },
+    ],
   },
   {
     id: 'overdrawn',
@@ -96,6 +116,10 @@ const scenarios: Scenario[] = [
     ],
     cards: [
       { cardKey: 'scenario-card-011', cardNumber: '402167XXXXXX0011', accountId: '30000000000000000000011' },
+    ],
+    schedules: [
+      { accountId: '30000000000000000000011', description: 'Salary', kind: 'fixed', type: 'CREDIT', transactionType: 'Deposits', amount: 12000, dayOfMonth: 25 },
+      { accountId: '30000000000000000000011', description: 'Overdraft interest', kind: 'interest', transactionType: 'FeesAndInterest', annualRatePercent: 21, dayOfMonth: 31 },
     ],
   },
   {
@@ -130,6 +154,13 @@ const scenarios: Scenario[] = [
     cards: [
       { cardKey: 'scenario-card-021', cardNumber: '402167XXXXXX0021', accountId: '30000000000000000000021' },
     ],
+    schedules: [
+      { accountId: '30000000000000000000021', description: 'Salary', kind: 'fixed', type: 'CREDIT', transactionType: 'Deposits', amount: 25000, dayOfMonth: 25 },
+      { accountId: '30000000000000000000021', description: 'Gym membership', kind: 'fixed', type: 'DEBIT', transactionType: 'DebitOrders', amount: 450, dayOfMonth: 1 },
+      { accountId: '30000000000000000000021', description: 'Car insurance', kind: 'fixed', type: 'DEBIT', transactionType: 'DebitOrders', amount: 1200, dayOfMonth: 15 },
+      { accountId: '30000000000000000000022', description: 'Savings interest', kind: 'interest', transactionType: 'FeesAndInterest', annualRatePercent: 7.5, dayOfMonth: 31 },
+      { accountId: '30000000000000000000023', description: 'Credit card interest', kind: 'interest', transactionType: 'FeesAndInterest', annualRatePercent: 19.5, dayOfMonth: 31 },
+    ],
     beneficiaries: [
       {
         beneficiaryId: 'scenario-bene-001',
@@ -155,7 +186,7 @@ export function listScenarios() {
 }
 
 function openingTransaction(accountId: string, openingBalance: number) {
-  const today = dayjs().format('YYYY-MM-DD')
+  const today = sandboxToday().format('YYYY-MM-DD')
   const credit = openingBalance >= 0
   return {
     accountId: accountId,
@@ -257,6 +288,29 @@ export async function applyScenario(id: string) {
     })
   }
 
+  // Accounts were replaced, so their schedules went with them (cascade).
+  for (const schedule of scenario.schedules ?? []) {
+    await prisma.schedule.create({
+      data: {
+        scheduleId: randomUUID(),
+        accountId: schedule.accountId,
+        description: schedule.description,
+        kind: schedule.kind,
+        type: schedule.type ?? 'CREDIT',
+        transactionType: schedule.transactionType,
+        amount: schedule.amount ?? null,
+        annualRatePercent: schedule.annualRatePercent ?? null,
+        frequency: 'monthly',
+        dayOfMonth: schedule.dayOfMonth,
+        dayOfWeek: null,
+        nextRunDate: firstRunOnOrAfter(
+          { frequency: 'monthly', dayOfMonth: schedule.dayOfMonth, dayOfWeek: null },
+          sandboxToday().format('YYYY-MM-DD'),
+        ),
+      },
+    })
+  }
+
   for (const beneficiary of scenario.beneficiaries ?? []) {
     await prisma.beneficiary.create({
       data: {
@@ -282,5 +336,6 @@ export async function applyScenario(id: string) {
     accounts: scenario.accounts.length,
     beneficiaries: scenario.beneficiaries?.length ?? 0,
     cards: scenario.cards?.length ?? 0,
+    schedules: scenario.schedules?.length ?? 0,
   }
 }

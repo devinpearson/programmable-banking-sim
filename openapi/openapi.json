@@ -995,6 +995,140 @@
           "updatedAt"
         ]
       },
+      "Clock": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "description": "The sandbox date banking uses.",
+            "example": "2026-12-09"
+          },
+          "realToday": {
+            "type": "string"
+          },
+          "offsetDays": {
+            "type": "integer",
+            "description": "Days ahead of the real date."
+          }
+        },
+        "required": [
+          "today",
+          "realToday",
+          "offsetDays"
+        ]
+      },
+      "ClockAdvanced": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Clock"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "posted": {
+                "type": "integer",
+                "description": "Recurring transactions posted on the way."
+              },
+              "settled": {
+                "type": "integer",
+                "description": "Card holds that settled on the way."
+              }
+            },
+            "required": [
+              "posted",
+              "settled"
+            ]
+          }
+        ]
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "interest"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT"
+            ]
+          },
+          "transactionType": {
+            "type": "string"
+          },
+          "amount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "annualRatePercent": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "frequency": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "weekly"
+            ]
+          },
+          "dayOfMonth": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "dayOfWeek": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "nextRunDate": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-11-09T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "scheduleId",
+          "accountId",
+          "description",
+          "kind",
+          "type",
+          "transactionType",
+          "amount",
+          "annualRatePercent",
+          "frequency",
+          "dayOfMonth",
+          "dayOfWeek",
+          "nextRunDate",
+          "active",
+          "createdAt"
+        ]
+      },
       "FaultConfig": {
         "type": "object",
         "properties": {
@@ -1359,6 +1493,9 @@
           },
           "cards": {
             "type": "integer"
+          },
+          "schedules": {
+            "type": "integer"
           }
         },
         "required": [
@@ -1366,7 +1503,8 @@
           "name",
           "accounts",
           "beneficiaries",
-          "cards"
+          "cards",
+          "schedules"
         ]
       },
       "SandboxState": {
@@ -1748,6 +1886,129 @@
                 "zarPerUnit"
               ]
             }
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scheduleId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "accountId": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "fixed",
+                    "interest"
+                  ]
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "DEBIT",
+                    "CREDIT"
+                  ]
+                },
+                "transactionType": {
+                  "type": "string"
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "annualRatePercent": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "frequency": {
+                  "type": "string",
+                  "enum": [
+                    "monthly",
+                    "weekly"
+                  ]
+                },
+                "dayOfMonth": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 31
+                },
+                "dayOfWeek": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "nextRunDate": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "scheduleId",
+                "accountId",
+                "description",
+                "kind",
+                "type",
+                "transactionType",
+                "amount",
+                "annualRatePercent",
+                "frequency",
+                "dayOfMonth",
+                "dayOfWeek",
+                "nextRunDate",
+                "active",
+                "createdAt"
+              ]
+            },
+            "default": []
+          },
+          "clock": {
+            "type": "object",
+            "properties": {
+              "offsetDays": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "offsetDays"
+            ]
           }
         },
         "required": [
@@ -6520,6 +6781,591 @@
         }
       }
     },
+    "/clock": {
+      "get": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "Get the sandbox date",
+        "security": [],
+        "x-sandbox-only": true,
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Clock"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clock/advance": {
+      "post": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "Move the sandbox date forward",
+        "description": "Everything that falls due on the way runs in date order: recurring transactions post on their dates, and card holds settle three days after the swipe.",
+        "security": [],
+        "x-sandbox-only": true,
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 366,
+                    "example": 30
+                  }
+                },
+                "required": [
+                  "days"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ClockAdvanced"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clock/reset": {
+      "post": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "Back to the real date (what already ran stays)",
+        "security": [],
+        "x-sandbox-only": true,
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Clock"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schedules": {
+      "get": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "List recurring transactions",
+        "security": [],
+        "x-sandbox-only": true,
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "schedules": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Schedule"
+                          }
+                        }
+                      },
+                      "required": [
+                        "schedules"
+                      ]
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "Add a recurring transaction",
+        "description": "A fixed amount (salary, debit order, fee) or monthly interest at an annual rate, monthly or weekly.",
+        "security": [],
+        "x-sandbox-only": true,
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "example": "Salary"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "fixed",
+                      "interest"
+                    ],
+                    "description": "A fixed amount, or monthly interest at an annual rate."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "DEBIT",
+                      "CREDIT"
+                    ],
+                    "description": "Required for fixed amounts."
+                  },
+                  "transactionType": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Defaults to Deposits (credits), DebitOrders (debits) or FeesAndInterest (interest)."
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Required for fixed amounts.",
+                    "example": 125.5
+                  },
+                  "annualRatePercent": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100,
+                    "description": "Required for interest.",
+                    "example": 7.5
+                  },
+                  "frequency": {
+                    "type": "string",
+                    "enum": [
+                      "monthly",
+                      "weekly"
+                    ]
+                  },
+                  "dayOfMonth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31,
+                    "description": "For monthly; 31 means the last day of every month."
+                  },
+                  "dayOfWeek": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "For weekly; 0 is Sunday."
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First run on or after this date. Defaults to the sandbox date.",
+                    "example": "2026-01-31"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "description",
+                  "kind",
+                  "frequency"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Schedule"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not possible in the current state (e.g. insufficient funds)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schedules/{scheduleId}": {
+      "patch": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "Change, pause or resume a recurring transaction",
+        "security": [],
+        "x-sandbox-only": true,
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "scheduleId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "amount": {
+                    "type": "number",
+                    "example": 125.5
+                  },
+                  "annualRatePercent": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100
+                  },
+                  "active": {
+                    "type": "boolean",
+                    "description": "Pause (false) or resume (true)."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Schedule"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clock and schedules"
+        ],
+        "summary": "Delete a recurring transaction",
+        "security": [],
+        "x-sandbox-only": true,
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "scheduleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/faults": {
       "get": {
         "tags": [
@@ -8179,6 +9025,9 @@
                         },
                         "exchangeRates": {
                           "type": "integer"
+                        },
+                        "schedules": {
+                          "type": "integer"
                         }
                       },
                       "required": [
@@ -8187,7 +9036,8 @@
                         "transactions",
                         "beneficiaries",
                         "cards",
-                        "exchangeRates"
+                        "exchangeRates",
+                        "schedules"
                       ]
                     },
                     "links": {

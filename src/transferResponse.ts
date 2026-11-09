@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto'
-import dayjs from 'dayjs'
+import { sandboxToday } from './clock.js'
 
 // The shape Investec's transfermultiple and paymultiple endpoints return:
 // { data: { TransferResponses: [...], ErrorMessage: null } }, one entry per
@@ -20,7 +20,7 @@ function paymentReference(): string {
 }
 
 export function transferResult(beneficiaryName: string, beneficiaryAccountId: string): TransferResult {
-  const date = dayjs().format('DD/MM/YYYY')
+  const date = sandboxToday().format('DD/MM/YYYY')
   return {
     PaymentReferenceNumber: paymentReference(),
     PaymentDate: date,

@@ -291,6 +291,71 @@ export const faultConfigBody = z
   .strict()
   .openapi({ description: 'Fields left out are off (0, or 503 and all paths).' })
 
+// --- Clock and schedules ----------------------------------------------------
+
+export const advanceClockBody = z
+  .object({
+    days: z
+      .number()
+      .int('must be a whole number of days')
+      .min(1, 'must be at least 1')
+      .max(366, 'must be at most 366')
+      .openapi({ example: 30 }),
+  })
+  .strict()
+
+export const createScheduleBody = z
+  .object({
+    accountId: z.string().min(1),
+    description: z.string().min(1).openapi({ example: 'Salary' }),
+    kind: z.enum(['fixed', 'interest']).openapi({ description: 'A fixed amount, or monthly interest at an annual rate.' }),
+    type: z.enum(['DEBIT', 'CREDIT']).optional().openapi({ description: 'Required for fixed amounts.' }),
+    transactionType: z.string().min(1).optional().openapi({
+      description: 'Defaults to Deposits (credits), DebitOrders (debits) or FeesAndInterest (interest).',
+    }),
+    amount: amount.optional().openapi({ description: 'Required for fixed amounts.' }),
+    annualRatePercent: z
+      .number()
+      .positive('must be greater than zero')
+      .max(100, 'must be at most 100')
+      .optional()
+      .openapi({ description: 'Required for interest.', example: 7.5 }),
+    frequency: z.enum(['monthly', 'weekly']),
+    dayOfMonth: z
+      .number()
+      .int()
+      .min(1)
+      .max(31)
+      .optional()
+      .openapi({ description: 'For monthly; 31 means the last day of every month.' }),
+    dayOfWeek: z.number().int().min(0).max(6).optional().openapi({ description: 'For weekly; 0 is Sunday.' }),
+    startDate: date.optional().openapi({ description: 'First run on or after this date. Defaults to the sandbox date.' }),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const need = (field: string, message: string) =>
+      context.addIssue({ code: z.ZodIssueCode.custom, path: [field], message })
+    if (value.kind === 'fixed') {
+      if (!value.type) need('type', 'is required for a fixed amount')
+      if (value.amount === undefined) need('amount', 'is required for a fixed amount')
+    } else if (value.annualRatePercent === undefined) {
+      need('annualRatePercent', 'is required for interest')
+    }
+    if (value.frequency === 'monthly' && value.dayOfMonth === undefined) need('dayOfMonth', 'is required for monthly')
+    if (value.frequency === 'weekly' && value.dayOfWeek === undefined) need('dayOfWeek', 'is required for weekly')
+  })
+
+export const updateScheduleBody = z
+  .object({
+    description: z.string().min(1).optional(),
+    amount: amount.optional(),
+    annualRatePercent: z.number().positive().max(100).optional(),
+    active: z.boolean().optional().openapi({ description: 'Pause (false) or resume (true).' }),
+  })
+  .strict()
+
+export const scheduleIdParams = z.object({ scheduleId: z.string().min(1) })
+
 // --- Sandbox and identity ---------------------------------------------------
 
 export const settingsBody = z.object({

@@ -14,6 +14,8 @@ import exchangeRates from './routes/exchangeRates.js'
 import webhooks from './routes/webhooks.js'
 import faults from './routes/faults.js'
 import profiles from './routes/profiles.js'
+import clock from './routes/clock.js'
+import schedules from './routes/schedules.js'
 import type {
   AccessToken,
   AuthorizationCode,
@@ -35,6 +37,7 @@ import { setupOpenApi } from './config/openapi.js'
 import { validateRequest, validatedBody } from './middleware/validation.js'
 import { authRateLimit } from './middleware/rateLimit.js'
 import { injectFaults, loadFaultConfig } from './faults.js'
+import { loadClock, onClockChange } from './clock.js'
 import { exportState, importState, sandboxStateSchema } from './sandboxState.js'
 import { loginBody, settingsBody } from './schema/requestSchemas.js'
 import type { z } from 'zod'
@@ -54,6 +57,8 @@ const io = new Server(server, { cors: { origin: '*' } })
 export let settings = {} as Settings
 await fetchSettings()
 await loadFaultConfig()
+await loadClock()
+onClockChange(clock => emitSocketEvent('clock', clock))
 
 app.use(cors())
 // Configuring body parser middleware
@@ -197,6 +202,8 @@ export const routerMounts = {
   '/exchange-rates': exchangeRates,
   '/webhooks': webhooks,
   '/faults': faults,
+  '/clock': clock,
+  '/schedules': schedules,
 } as const
 
 // Token requests check client secrets and the OAuth pages sign users in.
@@ -229,6 +236,8 @@ app.use('/za/pb/v1/profiles', routerMounts['/za/pb/v1/profiles'])
 app.use('/exchange-rates', routerMounts['/exchange-rates'])
 app.use('/webhooks', routerMounts['/webhooks'])
 app.use('/faults', routerMounts['/faults'])
+app.use('/clock', routerMounts['/clock'])
+app.use('/schedules', routerMounts['/schedules'])
 
 // Shared database lifecycle helpers, used by the control socket and the
 // /clear and /restore routes so every entry point behaves identically.

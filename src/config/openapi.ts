@@ -403,6 +403,66 @@ register('delete', '/exchange-rates/:currencyCode', {
   ok: z.object({}),
 })
 
+// --- Clock and schedules ----------------------------------------------------
+register('get', '/clock', {
+  tag: 'Clock and schedules',
+  summary: 'Get the sandbox date',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(response.Clock),
+})
+register('post', '/clock/advance', {
+  tag: 'Clock and schedules',
+  summary: 'Move the sandbox date forward',
+  description:
+    'Everything that falls due on the way runs in date order: recurring transactions post on their dates, and card holds settle three days after the swipe.',
+  sandbox: true,
+  security: 'none',
+  body: request.advanceClockBody,
+  ok: response.envelope(response.ClockAdvanced),
+})
+register('post', '/clock/reset', {
+  tag: 'Clock and schedules',
+  summary: 'Back to the real date (what already ran stays)',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(response.Clock),
+})
+register('get', '/schedules', {
+  tag: 'Clock and schedules',
+  summary: 'List recurring transactions',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(z.object({ schedules: z.array(response.Schedule) })),
+})
+register('post', '/schedules', {
+  tag: 'Clock and schedules',
+  summary: 'Add a recurring transaction',
+  description: 'A fixed amount (salary, debit order, fee) or monthly interest at an annual rate, monthly or weekly.',
+  sandbox: true,
+  security: 'none',
+  body: request.createScheduleBody,
+  ok: response.envelope(response.Schedule),
+  errors: [422],
+})
+register('patch', '/schedules/:scheduleId', {
+  tag: 'Clock and schedules',
+  summary: 'Change, pause or resume a recurring transaction',
+  sandbox: true,
+  security: 'none',
+  params: request.scheduleIdParams,
+  body: request.updateScheduleBody,
+  ok: response.envelope(response.Schedule),
+})
+register('delete', '/schedules/:scheduleId', {
+  tag: 'Clock and schedules',
+  summary: 'Delete a recurring transaction',
+  sandbox: true,
+  security: 'none',
+  params: request.scheduleIdParams,
+  ok: z.object({}),
+})
+
 // --- Fault injection --------------------------------------------------------
 const FAULT_HEADERS =
   'Per request, on /za and the token endpoint: X-Sandbox-Fault: 429 | 500 | 502 | 503 | 504 | timeout | timeout:<ms> | reset, and X-Sandbox-Latency: <ms>.'
@@ -650,6 +710,7 @@ register('post', '/import', {
       beneficiaries: z.number().int(),
       cards: z.number().int(),
       exchangeRates: z.number().int(),
+      schedules: z.number().int(),
     }),
   ),
 })

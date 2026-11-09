@@ -1,5 +1,6 @@
 import express from 'express'
 import dayjs from 'dayjs'
+import { sandboxToday } from '../clock.js'
 const router = express.Router()
 import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
@@ -129,8 +130,8 @@ router.get('/:accountId/transactions', validateRequest({ query: transactionsQuer
     })
     //    console.log(transactionsArr)
     const query = validatedQuery(res, transactionsQuery)
-    const toDate = query.toDate ?? dayjs().format('YYYY-MM-DD') // today
-    const fromDate = query.fromDate ?? dayjs().subtract(180, 'day').format('YYYY-MM-DD')
+    const toDate = query.toDate ?? sandboxToday().format('YYYY-MM-DD') // today
+    const fromDate = query.fromDate ?? sandboxToday().subtract(180, 'day').format('YYYY-MM-DD')
     const transactionType = query.transactionType ?? null
     // Like the real API, pending transactions are only listed on request.
     const includePending = query.includePending ?? false
@@ -243,7 +244,7 @@ router.post('/:accountId/transfermultiple',
           return formatErrorResponse(req, res, 404) // no account was found
         }
         results.push(transferResult(beneficiary.accountName, beneficiary.accountId))
-        const today = dayjs().format('YYYY-MM-DD')
+        const today = sandboxToday().format('YYYY-MM-DD')
         writes.push(
           prisma.transaction.create({
             data: {
@@ -335,7 +336,7 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
         return formatErrorResponse(req, res, 404) // no account was found
       }
       responses.push(transferResult(beneficiary.beneficiaryName, beneficiary.beneficiaryId))
-      const today = dayjs().format('YYYY-MM-DD')
+      const today = sandboxToday().format('YYYY-MM-DD')
       writes.push(
         prisma.transaction.create({
           data: {
@@ -363,7 +364,7 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             }),
-            lastPaymentDate: dayjs().format('DD/MM/YYYY'),
+            lastPaymentDate: sandboxToday().format('DD/MM/YYYY'),
           },
         }),
       )
@@ -467,7 +468,7 @@ router.post('/:accountId/topup', validateRequest({ body: topUpBody }), async (re
       console.log('no account found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const today = dayjs().format('YYYY-MM-DD')
+    const today = sandboxToday().format('YYYY-MM-DD')
     const transaction = await prisma.transaction.create({
       data: {
         accountId: accountId,
@@ -510,7 +511,7 @@ router.post('/:accountId/transactions/settle', async (req, res) => {
     }
     // Card holds have no posting date until they settle: they post today.
     // Pending items created with explicit dates keep them.
-    const today = dayjs().format('YYYY-MM-DD')
+    const today = sandboxToday().format('YYYY-MM-DD')
     // Which ones settle, to publish each afterwards.
     const settling = await prisma.transaction.findMany({
       where: { accountId, status: TransactionStatus.PENDING },
@@ -780,7 +781,7 @@ router.post(
       if (!pending) {
         return formatErrorResponse(req, res, 404)
       }
-      const today = dayjs().format('YYYY-MM-DD')
+      const today = sandboxToday().format('YYYY-MM-DD')
       const transaction = await prisma.transaction.update({
         where: { transactionId: pending.transactionId },
         data: {
@@ -844,7 +845,7 @@ const MAX_STATEMENTS = 24
 
 function statementDocuments(fromDate: string, toDate: string) {
   const documents = []
-  let month = dayjs().subtract(1, 'month').endOf('month')
+  let month = sandboxToday().subtract(1, 'month').endOf('month')
   while (documents.length < MAX_STATEMENTS) {
     const documentDate = month.format('YYYY-MM-DD')
     if (documentDate < fromDate) break
@@ -871,8 +872,8 @@ router.get('/:accountId/documents', validateRequest({ query: documentsQuery }), 
       return formatErrorResponse(req, res, 404)
     }
     const query = validatedQuery(res, documentsQuery)
-    const fromDate = query.fromDate ?? dayjs().subtract(3, 'month').startOf('month').format('YYYY-MM-DD')
-    const toDate = query.toDate ?? dayjs().format('YYYY-MM-DD')
+    const fromDate = query.fromDate ?? sandboxToday().subtract(3, 'month').startOf('month').format('YYYY-MM-DD')
+    const toDate = query.toDate ?? sandboxToday().format('YYYY-MM-DD')
     return formatResponse({ documents: statementDocuments(fromDate, toDate) }, req, res)
   } catch (error) {
     console.log(error)

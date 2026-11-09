@@ -11,6 +11,7 @@ import PendingHoldsPanel from './PendingHoldsPanel';
 import ServerLogs from './ServerLogs';
 import SettingsPanel from './SettingsPanel';
 import SummaryCards from './SummaryCards';
+import TimePanel, { ClockBanner } from './TimePanel';
 import TransactionsPanel from './TransactionsPanel';
 import WebhooksPanel from './WebhooksPanel';
 
@@ -19,10 +20,12 @@ export default function Dashboard() {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <FaultBanner />
+      <ClockBanner />
       <ControlBar />
       <SummaryCards />
       <AccountsPanel />
       <TransactionsPanel />
+      <TimePanel />
       <BeneficiariesPanel />
       <CardsPanel />
       <ExchangeRatesPanel />

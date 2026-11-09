@@ -20,6 +20,9 @@ import type {
   WebhookDelivery,
   FaultConfig,
   TransferResponses,
+  Clock,
+  ClockAdvanced,
+  Schedule,
 } from './types';
 import { buildSwipeRequest, newestFirst, type SwipeInput } from '../banking';
 
@@ -232,6 +235,46 @@ export async function exportState(): Promise<{ fileName: string; json: string }>
 
 export function importState(state: unknown) {
   return fetchData<Record<string, number>>('/import', postJSON(state));
+}
+
+export function getClock() {
+  return fetchData<Clock>('/clock');
+}
+
+export function advanceClock(days: number) {
+  return fetchData<ClockAdvanced>('/clock/advance', postJSON({ days }));
+}
+
+export function resetClock() {
+  return fetchData<Clock>('/clock/reset', { method: 'POST' });
+}
+
+export async function getSchedules(): Promise<Schedule[]> {
+  return (await fetchData<{ schedules: Schedule[] }>('/schedules')).schedules;
+}
+
+export interface NewSchedule {
+  accountId: string;
+  description: string;
+  kind: 'fixed' | 'interest';
+  type?: 'DEBIT' | 'CREDIT';
+  amount?: number;
+  annualRatePercent?: number;
+  frequency: 'monthly' | 'weekly';
+  dayOfMonth?: number;
+  dayOfWeek?: number;
+}
+
+export function createSchedule(schedule: NewSchedule) {
+  return fetchData<Schedule>('/schedules', postJSON(schedule));
+}
+
+export function setScheduleActive(scheduleId: string, active: boolean) {
+  return fetchData<Schedule>(`/schedules/${scheduleId}`, { method: 'PATCH', body: JSON.stringify({ active }) });
+}
+
+export function deleteSchedule(scheduleId: string) {
+  return fetchAPI(`/schedules/${scheduleId}`, { method: 'DELETE' });
 }
 
 export function getSettings() {

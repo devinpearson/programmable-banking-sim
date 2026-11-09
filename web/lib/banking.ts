@@ -202,3 +202,37 @@ export function referenceSuffix(response: { TransferResponses: { PaymentReferenc
   const reference = response?.TransferResponses[0]?.PaymentReferenceNumber;
   return reference ? ` (ref ${reference})` : '';
 }
+
+// --- Time and recurring transactions ----------------------------------------
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function ordinal(n: number): string {
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
+  return `${n}${suffix}`;
+}
+
+// "Monthly on the 25th", "Monthly on the last day", "Weekly on Monday".
+export function describeFrequency(schedule: { frequency: string; dayOfMonth: number | null; dayOfWeek: number | null }): string {
+  if (schedule.frequency === 'weekly') return `Weekly on ${WEEKDAYS[schedule.dayOfWeek ?? 0]}`;
+  const day = schedule.dayOfMonth ?? 1;
+  return day === 31 ? 'Monthly on the last day' : `Monthly on the ${ordinal(day)}`;
+}
+
+// Days from a YYYY-MM-DD date to the same day next month (clamped to the
+// month's end), for a "+1 month" button.
+export function daysToNextMonth(today: string): number {
+  const [y, m, d] = today.split('-').map(Number);
+  const start = Date.UTC(y, m - 1, d);
+  const lastDayNext = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const end = Date.UTC(y, m, Math.min(d, lastDayNext));
+  return Math.round((end - start) / 86_400_000);
+}
+
+// "Moved to 2026-12-09: 3 transactions posted, 1 card hold settled".
+export function describeAdvance(result: { today: string; posted: number; settled: number }): string {
+  const parts: string[] = [];
+  if (result.posted > 0) parts.push(`${result.posted} transaction${result.posted === 1 ? '' : 's'} posted`);
+  if (result.settled > 0) parts.push(`${result.settled} card hold${result.settled === 1 ? '' : 's'} settled`);
+  return `Moved to ${result.today}${parts.length > 0 ? `: ${parts.join(', ')}` : ''}`;
+}
