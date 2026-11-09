@@ -24,6 +24,7 @@ import { seedBeneficiaries } from '../prisma/beneficiary.js'
 import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
 import { seedProfiles } from '../prisma/profile.js'
+import { listScenarios, applyScenario } from './scenarios.js'
 
 dotenv.config()
 
@@ -218,6 +219,26 @@ app.get('/restore', async (req: Request, res: Response) => {
     await restoreDatabase()
 
     return res.status(200).json()
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
+// List the named starting scenarios available to load.
+app.get('/scenarios', (req: Request, res: Response) => {
+  return formatResponse(listScenarios(), req, res)
+})
+
+// Load a named scenario, replacing the current account data.
+app.post('/scenarios/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await applyScenario(req.params.id)
+    if (!result) {
+      return formatErrorResponse(req, res, 404) // unknown scenario
+    }
+    await emitDatabaseSummary()
+    return formatResponse(result, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)

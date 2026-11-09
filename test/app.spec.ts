@@ -95,4 +95,37 @@ describe('Test the app-level routes', () => {
     assert.isAbove(restored.body.data.cards, 0)
     assert.isAbove(restored.body.data.transactions, 0)
   })
+
+  it('should list the available scenarios', async () => {
+    const response = await request(app).get('/scenarios')
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data)
+    assert.isAbove(response.body.data.length, 0)
+    const starter = response.body.data.find((s: { id: string }) => s.id === 'starter')
+    assert.exists(starter)
+    assert.exists(starter.name)
+    assert.exists(starter.description)
+  })
+
+  it('should respond with 404 for an unknown scenario', async () => {
+    const response = await request(app).post('/scenarios/does-not-exist')
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should load a scenario and set its opening balances', async () => {
+    const response = await request(app).post('/scenarios/overdrawn')
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.id, 'overdrawn')
+    assert.equal(response.body.data.accounts, 2)
+
+    // overdrawn scenario: current account -2500, savings 15000
+    const current = await request(app).get('/za/pb/v1/accounts/30000000000000000000011/balance')
+    assert.equal(current.body.data.currentBalance, -2500)
+    const savings = await request(app).get('/za/pb/v1/accounts/30000000000000000000012/balance')
+    assert.equal(savings.body.data.currentBalance, 15000)
+
+    // Restore the canonical seed so later tests see normal data.
+    const restoreResponse = await request(app).get('/restore')
+    assert.equal(restoreResponse.statusCode, 200)
+  })
 })

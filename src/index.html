@@ -74,6 +74,15 @@
             <!-- Top Right Action Buttons -->
             <div class="pt-4 sm:flex sm:items-center">
                 <div class="sm:flex-auto">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label for="scenario" class="text-sm font-medium text-gray-700">Scenario</label>
+                        <select v-model="selectedScenario" id="scenario" class="rounded-md border-0 py-1.5 pl-3 pr-8 text-sm text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900">
+                            <option value="">Select a scenario</option>
+                            <option v-for="s in scenarios" :key="s.id" :value="s.id">{{ s.name }}</option>
+                        </select>
+                        <button type="button" @click="loadScenario" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">Load scenario</button>
+                    </div>
+                    <p v-if="selectedScenarioDescription" class="mt-1 text-xs text-gray-500">{{ selectedScenarioDescription }}</p>
                 </div>
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
                   <button type="button" @click="clearMethod" class="block rounded-md bg-gray-900 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">Clear DB</button>
@@ -96,6 +105,72 @@
                         <span class="font-medium">Cards:</span> <span class="font-semibold text-gray-900">{{ summary.cards || 0 }}</span>
                         <span style="margin: 0 2rem;"></span>
                         <span class="font-medium">Transactions:</span> <span class="font-semibold text-gray-900">{{ summary.transactions || 0 }}</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Accounts -->
+            <div class="mt-4 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow">
+                <div class="px-4 py-5 sm:p-6 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold leading-6 text-gray-900">Accounts</h2>
+                    <button type="button" @click="fetchAccounts" class="rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">Refresh</button>
+                </div>
+                <div class="px-4 py-4 sm:px-6">
+                    <p v-if="!accounts || accounts.length === 0" class="text-sm text-gray-500">No accounts yet. Use <span class="font-medium">Reset DB</span> above to seed some.</p>
+                    <div v-else class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-500">
+                                    <th class="py-2 pr-4 font-medium">Name</th>
+                                    <th class="py-2 pr-4 font-medium">Account Number</th>
+                                    <th class="py-2 pr-4 font-medium text-right">Balance</th>
+                                    <th class="py-2 pr-4 font-medium">Top up</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="account in accounts" :key="account.accountId">
+                                    <td class="py-2 pr-4 text-gray-900">{{ account.accountName }}</td>
+                                    <td class="py-2 pr-4 text-gray-600">{{ account.accountNumber }}</td>
+                                    <td class="py-2 pr-4 text-right font-semibold" :class="account.currentBalance < 0 ? 'text-red-600' : 'text-gray-900'">{{ formatMoney(account.currentBalance) }}</td>
+                                    <td class="py-2 pr-4">
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" min="0" step="0.01" v-model="topupAmounts[account.accountId]" placeholder="0.00" class="w-24 rounded-md border-0 px-2 py-1 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm" />
+                                            <button type="button" @click="topUp(account)" class="rounded-md bg-emerald-600 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500">Top up</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Transfer between accounts -->
+                    <div v-if="accounts && accounts.length > 1" class="mt-6 border-t border-gray-100 pt-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Transfer between accounts</h3>
+                        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-5 sm:items-end">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600">From</label>
+                                <select v-model="transferForm.from" class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm">
+                                    <option value="">Select account</option>
+                                    <option v-for="a in accounts" :key="a.accountId" :value="a.accountId">{{ a.accountName }} ({{ a.accountNumber }})</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600">To</label>
+                                <select v-model="transferForm.to" class="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm">
+                                    <option value="">Select account</option>
+                                    <option v-for="a in accounts" :key="a.accountId" :value="a.accountId">{{ a.accountName }} ({{ a.accountNumber }})</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600">Amount</label>
+                                <input type="number" min="0" step="0.01" v-model="transferForm.amount" placeholder="0.00" class="mt-1 block w-full rounded-md border-0 px-2 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600">Reference</label>
+                                <input type="text" v-model="transferForm.reference" placeholder="Transfer" class="mt-1 block w-full rounded-md border-0 px-2 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm" />
+                            </div>
+                            <div>
+                                <button type="button" @click="submitTransfer" class="w-full rounded-md bg-slate-800 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">Transfer</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -209,7 +284,18 @@
                     accounts: 0,
                     cards: 0,
                     transactions: 0
-                }
+                },
+                accounts: [],
+                topupAmounts: {},
+                transferForm: { from: '', to: '', amount: '', reference: '' },
+                scenarios: [],
+                selectedScenario: ''
+            }
+          },
+          computed: {
+            selectedScenarioDescription() {
+              const scenario = this.scenarios.find(s => s.id === this.selectedScenario);
+              return scenario ? scenario.description : '';
             }
           },
             mounted() {
@@ -239,9 +325,14 @@
                 });
                 this.socket.on('database-summary', (msg) => {
                     this.summary = msg;
+                    // Balances may have changed (a transaction, transfer or
+                    // top up happened), so refresh the accounts view too.
+                    this.fetchAccounts();
                 });
                 this.fetchEnv();
                 this.fetchSummary();
+                this.fetchAccounts();
+                this.fetchScenarios();
             },
           methods: {
             fetchEnv() {
@@ -265,6 +356,107 @@
                 .then(data => {
                   this.summary = data.data;
                 });
+            },
+            fetchAccounts() {
+              fetch('/za/pb/v1/accounts')
+                .then(response => response.json())
+                .then(async data => {
+                  const accounts = (data.data && data.data.accounts) || [];
+                  // Pull each account's balance in parallel.
+                  await Promise.all(accounts.map(async account => {
+                    try {
+                      const res = await fetch('/za/pb/v1/accounts/' + account.accountId + '/balance');
+                      const body = await res.json();
+                      account.currentBalance = body.data ? body.data.currentBalance : 0;
+                    } catch (e) {
+                      account.currentBalance = 0;
+                    }
+                  }));
+                  this.accounts = accounts;
+                })
+                .catch(() => { this.accounts = []; });
+            },
+            topUp(account) {
+              const amount = Number(this.topupAmounts[account.accountId]);
+              if (!amount || amount <= 0) {
+                this.toast('Enter a top-up amount first');
+                return;
+              }
+              fetch('/za/pb/v1/accounts/' + account.accountId + '/topup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount }),
+              })
+                .then(response => {
+                  if (!response.ok) throw new Error('top up failed');
+                  return response.json();
+                })
+                .then(() => {
+                  this.topupAmounts[account.accountId] = '';
+                  this.toast('Topped up ' + account.accountName);
+                  this.fetchAccounts();
+                  this.fetchSummary();
+                })
+                .catch(() => this.toast('Top up failed'));
+            },
+            submitTransfer() {
+              const from = this.transferForm.from;
+              const to = this.transferForm.to;
+              const amount = Number(this.transferForm.amount);
+              const reference = this.transferForm.reference || 'Transfer';
+              if (!from || !to || from === to) {
+                this.toast('Pick two different accounts');
+                return;
+              }
+              if (!amount || amount <= 0) {
+                this.toast('Enter a transfer amount');
+                return;
+              }
+              fetch('/za/pb/v1/accounts/' + from + '/transfermultiple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  transferList: [{ beneficiaryAccountId: to, amount, myReference: reference, theirReference: reference }],
+                }),
+              })
+                .then(response => {
+                  if (!response.ok) throw new Error('transfer failed');
+                  return response.json();
+                })
+                .then(() => {
+                  this.transferForm.amount = '';
+                  this.toast('Transfer complete');
+                  this.fetchAccounts();
+                  this.fetchSummary();
+                })
+                .catch(() => this.toast('Transfer failed'));
+            },
+            formatMoney(value) {
+              const n = Number(value || 0);
+              return 'R ' + n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            },
+            fetchScenarios() {
+              fetch('/scenarios')
+                .then(response => response.json())
+                .then(data => { this.scenarios = data.data || []; })
+                .catch(() => { this.scenarios = []; });
+            },
+            loadScenario() {
+              if (!this.selectedScenario) {
+                this.toast('Pick a scenario first');
+                return;
+              }
+              fetch('/scenarios/' + this.selectedScenario, { method: 'POST' })
+                .then(response => {
+                  if (!response.ok) throw new Error('load failed');
+                  return response.json();
+                })
+                .then(data => {
+                  this.toast('Loaded scenario: ' + (data.data ? data.data.name : this.selectedScenario));
+                  this.fetchAccounts();
+                  this.fetchSummary();
+                })
+                .catch(() => this.toast('Failed to load scenario'));
             },
             mySubmitMethod() {
               if (this.client_id && this.client_secret && this.api_key) {

@@ -388,6 +388,44 @@ describe('Test the accounts', () => {
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
 
+  it('should top up an account balance', async () => {
+    const accountId = 'test-topup-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '66666666601' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/topup`)
+      .send({ amount: 250 })
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.type, 'CREDIT')
+    assert.equal(response.body.data.transactionType, 'Deposit')
+
+    const balance = await request(app).get(`/za/pb/v1/accounts/${accountId}/balance`)
+    assert.equal(balance.body.data.currentBalance, 250)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should respond with 400 when topup amount is invalid', async () => {
+    const accountId = 'test-topup-bad-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '66666666602' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/topup`)
+      .send({ amount: 0 })
+    assert.equal(response.statusCode, 400)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should respond with 404 when topping up a non-existent account', async () => {
+    const response = await request(app)
+      .post('/za/pb/v1/accounts/does-not-exist/topup')
+      .send({ amount: 100 })
+    assert.equal(response.statusCode, 404)
+  })
+
   it('should cascade-delete an account\'s transactions, cards and card codes', async () => {
     const accountId = 'test-cascade-account-001'
     const cardKey = 'test-cascade-card-001'
