@@ -124,7 +124,7 @@ app.post('/login', (req, res) => {
   }
 })
 
-app.post('/envs', async (req: Request, res: Response) => {
+app.post('/envs', async (req, res) => {
   await prisma.setting.update({
     where: { name: 'client_id' },
     data: { value: req.body.client_id },
@@ -154,7 +154,8 @@ app.post('/envs', async (req: Request, res: Response) => {
 })
 
 // Handle legacy /oauth requests
-app.all('/oauth*', (_req: Request, res: Response) => {
+// Express 5 wildcards are named: matches /oauth, /oauth/... and /oauthX.
+app.all('/oauth{*rest}', (_req, res) => {
   return res.status(404).json({
     error: 'endpoint_not_found',
     message: 'OAuth endpoints have moved. Use the correct endpoints below.',
@@ -215,7 +216,7 @@ async function restoreDatabase() {
   await seedCardCodes()
 }
 
-app.delete('/clear', async (req: Request, res: Response) => {
+app.delete('/clear', async (req, res) => {
   try {
     await clearDatabase()
 
@@ -226,7 +227,7 @@ app.delete('/clear', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/restore', async (req: Request, res: Response) => {
+app.get('/restore', async (req, res) => {
   try {
     await restoreDatabase()
 
@@ -238,12 +239,12 @@ app.get('/restore', async (req: Request, res: Response) => {
 })
 
 // List the named starting scenarios available to load.
-app.get('/scenarios', (req: Request, res: Response) => {
+app.get('/scenarios', (req, res) => {
   return formatResponse(listScenarios(), req, res)
 })
 
 // Load a named scenario, replacing the current account data.
-app.post('/scenarios/:id', async (req: Request, res: Response) => {
+app.post('/scenarios/:id', async (req, res) => {
   try {
     const result = await applyScenario(req.params.id)
     if (!result) {
@@ -257,7 +258,7 @@ app.post('/scenarios/:id', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/envs', async (req: Request, res: Response) => {
+app.get('/envs', async (req, res) => {
   try {
     return formatResponse(settings, req, res)
   } catch (error) {
@@ -266,10 +267,10 @@ app.get('/envs', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' })
 })
-app.get('/database-summary', async (req: Request, res: Response) => {
+app.get('/database-summary', async (req, res) => {
   try {
     const [profileCount, accountCount, cardCount, transactionCount] = await Promise.all([
       prisma.profile.count(),

@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express'
+import express from 'express'
 const router = express.Router()
 import {
   accessTokens,
@@ -39,7 +39,7 @@ export function authenticateSession(qsp: string): boolean {
 }
 
 // Redirect legacy /oauth requests to correct endpoint
-router.all('/oauth', (_req: Request, res: Response) => {
+router.all('/oauth', (_req, res) => {
   return res.status(404).json({
     error: 'endpoint_not_found',
     message: 'OAuth endpoints have moved. Use /identity/v2/oauth2/token for token requests ' +
@@ -53,7 +53,7 @@ router.all('/oauth', (_req: Request, res: Response) => {
   })
 })
 
-router.post('/v2/oauth2/token', (req: Request, res: Response) => {
+router.post('/v2/oauth2/token', (req, res) => {
   try {
     if (req.headers.authorization === undefined) {
       return formatErrorResponse(req, res, 422)
@@ -170,7 +170,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
   }
 })
 
-router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
+router.get('/v2/oauth2/authorize', (req, res) => {
   if (settings.client_id !== req.query.client_id) {
     return formatErrorResponse(req, res, 401)
   }
@@ -217,7 +217,7 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
 // What the consent page shows for a signed-in flow: the requested scopes and
 // the accounts the user can choose from. Served here (not from /za) because
 // the browser has no access token yet.
-router.get('/consent', async (req: Request, res: Response) => {
+router.get('/consent', async (req, res) => {
   try {
     const session = sessionTokens.get(req.query.qsp as string)
     if (!session) {
@@ -294,7 +294,7 @@ function redirectWith(code: AuthorizationCode, status: 'SUCCESS' | 'DECLINED') {
   return url.toString()
 }
 
-router.get('/approve', async (req: Request, res: Response) => {
+router.get('/approve', async (req, res) => {
   try {
     const qsp = req.query.qsp as string
     const session = sessionTokens.get(qsp)
@@ -323,7 +323,7 @@ router.get('/approve', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/decline', (req: Request, res: Response) => {
+router.get('/decline', (req, res) => {
   const qsp = req.query.qsp as string
   const session = sessionTokens.get(qsp)
   if (!qsp || !session) {

@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express'
+import express from 'express'
 import dayjs from 'dayjs'
 const router = express.Router()
 import { Prisma, PrismaClient } from '@prisma/client'
@@ -32,7 +32,7 @@ router.param('accountId', (req, res, next, accountId: string) => {
   next()
 })
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req, res) => {
   try {
     // overdraftLimit is sandbox-internal, so keep the list in the real API's
     // shape, and list only the accounts this token may see.
@@ -47,7 +47,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:accountId/balance', async (req: Request, res: Response) => {
+router.get('/:accountId/balance', async (req, res) => {
   try {
     const accountId = req.params.accountId
     const balance = await getAccountBalance(accountId)
@@ -91,7 +91,7 @@ function toTransactionResponse(transaction: TransactionRow) {
   }
 }
 
-router.get('/:accountId/transactions', async (req: Request, res: Response) => {
+router.get('/:accountId/transactions', async (req, res) => {
   try {
     const accountId = req.params.accountId
     // check that the account exists
@@ -193,7 +193,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
 
 // transfer multiple transactions
 router.post('/:accountId/transfermultiple',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const accountId = req.params.accountId
       // check that the account exists
@@ -289,7 +289,7 @@ router.post('/:accountId/transfermultiple',
 )
 
 // beneficiary payment
-router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
+router.post('/:accountId/paymultiple', async (req, res) => {
   try {
     const accountId = req.params.accountId
     // check that the account exists
@@ -375,7 +375,7 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
 })
 
 // function to create transactions for an account
-router.post('/:accountId/transactions', async (req: Request, res: Response) => {
+router.post('/:accountId/transactions', async (req, res) => {
   try {
     let randomTx = Investec.transaction(req.params.accountId)
     // A pending transaction is usually a card hold: default its type to a
@@ -426,7 +426,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
 // Sandbox convenience: top up an account's balance with a single CREDIT.
 // Not a real Investec endpoint — it makes "add money to this account" a
 // one-call action instead of hand-crafting a transaction.
-router.post('/:accountId/topup', async (req: Request, res: Response) => {
+router.post('/:accountId/topup', async (req, res) => {
   try {
     const accountId = req.params.accountId
     const amount = Number(req.body.amount)
@@ -471,7 +471,7 @@ router.post('/:accountId/topup', async (req: Request, res: Response) => {
 
 // Sandbox convenience: settle an account's pending transactions (flip them to
 // POSTED), simulating the pending → posted lifecycle for scenario testing.
-router.post('/:accountId/transactions/settle', async (req: Request, res: Response) => {
+router.post('/:accountId/transactions/settle', async (req, res) => {
   try {
     const accountId = req.params.accountId
     const account = await prisma.account.findFirst({
@@ -513,7 +513,7 @@ router.post('/:accountId/transactions/settle', async (req: Request, res: Respons
 
 
 router.delete('/:accountId/transactions/:postingDate',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const accountId = req.params.accountId
       const postingDate = req.params.postingDate
@@ -545,7 +545,7 @@ router.delete('/:accountId/transactions/:postingDate',
 )
 
 // function to create an account
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req, res) => {
   try {
     const baseAccount = Investec.account()
     
@@ -587,7 +587,7 @@ router.post('/', async (req: Request, res: Response) => {
 })
 
 // function to delete an account
-router.delete('/:accountId', async (req: Request, res: Response) => {
+router.delete('/:accountId', async (req, res) => {
   try {
     const accountId = req.params.accountId
     // check that the account exists
@@ -634,7 +634,7 @@ router.delete('/:accountId', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/beneficiaries', async (req: Request, res: Response) => {
+router.get('/beneficiaries', async (req, res) => {
   try {
     const result = await prisma.beneficiary.findMany()
     const data = { result }
@@ -645,7 +645,7 @@ router.get('/beneficiaries', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/beneficiaries', async (req: Request, res: Response) => {
+router.post('/beneficiaries', async (req, res) => {
   try {
     let beneficiary = Investec.beneficiary()
     beneficiary = { ...beneficiary, ...req.body }
@@ -666,7 +666,7 @@ router.post('/beneficiaries', async (req: Request, res: Response) => {
 })
 
 // Delete a beneficiary
-router.delete('/beneficiaries/:beneficiaryId', async (req: Request, res: Response) => {
+router.delete('/beneficiaries/:beneficiaryId', async (req, res) => {
   try {
     const { beneficiaryId } = req.params
 
@@ -697,7 +697,7 @@ router.delete('/beneficiaries/:beneficiaryId', async (req: Request, res: Respons
 // Pending transactions (card holds that have not settled yet), with the
 // reduced set of fields the real pending-transactions endpoint returns.
 // transactionId is a sandbox addition so a hold can be settled or reversed.
-router.get('/:accountId/pending-transactions', async (req: Request, res: Response) => {
+router.get('/:accountId/pending-transactions', async (req, res) => {
   try {
     const accountId = req.params.accountId
     const account = await prisma.account.findFirst({ where: { accountId } })
@@ -741,7 +741,7 @@ async function findPending(accountId: string, transactionId: string) {
 // towards the current balance. Not a real Investec endpoint.
 router.post(
   '/:accountId/pending-transactions/:transactionId/settle',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const { accountId, transactionId } = req.params
       const pending = await findPending(accountId, transactionId)
@@ -771,7 +771,7 @@ router.post(
 // Not a real Investec endpoint.
 router.delete(
   '/:accountId/pending-transactions/:transactionId',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const { accountId, transactionId } = req.params
       const pending = await findPending(accountId, transactionId)
@@ -798,7 +798,7 @@ const beneficiaryCategories = [
   { categoryId: '10189603223004', isDefault: false, name: 'Businesses' },
 ]
 
-router.get('/beneficiarycategories', (req: Request, res: Response) => {
+router.get('/beneficiarycategories', (req, res) => {
   return formatResponse(beneficiaryCategories, req, res)
 })
 
@@ -817,7 +817,7 @@ function statementDocuments() {
 }
 
 // List the documents (statements) available for an account.
-router.get('/:accountId/documents', async (req: Request, res: Response) => {
+router.get('/:accountId/documents', async (req, res) => {
   try {
     const accountId = req.params.accountId
     const account = await prisma.account.findFirst({
@@ -837,7 +837,7 @@ router.get('/:accountId/documents', async (req: Request, res: Response) => {
 // rather than a real statement file.
 router.get(
   '/:accountId/documents/:documentType/:documentDate',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const { accountId, documentType, documentDate } = req.params
       const account = await prisma.account.findFirst({

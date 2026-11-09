@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express'
+import express from 'express'
 const router = express.Router()
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
@@ -43,7 +43,7 @@ router.param('cardKey', async (req, res, next, cardKey: string) => {
   }
 })
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req, res) => {
   try {
     const result = (await prisma.card.findMany()).filter(card =>
       accountAllowed(res, card.accountId),
@@ -67,7 +67,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req, res) => {
   try {
     const savedCodeId = uuidv4()
     const publishedCodeId = uuidv4()
@@ -106,7 +106,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 })
 
-router.delete('/:cardKey', async (req: Request, res: Response) => {
+router.delete('/:cardKey', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the account exists
@@ -129,7 +129,7 @@ router.delete('/:cardKey', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:cardKey/code', async (req: Request, res: Response) => {
+router.get('/:cardKey/code', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -154,7 +154,7 @@ router.get('/:cardKey/code', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/:cardKey/code', async (req: Request, res: Response) => {
+router.post('/:cardKey/code', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -186,7 +186,7 @@ router.post('/:cardKey/code', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
+router.get('/:cardKey/publishedcode', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -211,7 +211,7 @@ router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
+router.post('/:cardKey/publishedcode', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -248,7 +248,7 @@ router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
 // Sandbox control: stop or reactivate a card. Not a real Investec endpoint.
 // Body: { "status": "Active" | "Stopped" }.
 const CARD_STATUSES = ['Active', 'Stopped']
-router.post('/:cardKey/status', async (req: Request, res: Response) => {
+router.post('/:cardKey/status', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     const card = await prisma.card.findFirst({ where: { cardKey } })
@@ -276,7 +276,7 @@ router.post('/:cardKey/status', async (req: Request, res: Response) => {
 
 router.post(
   '/:cardKey/toggle-programmable-feature',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -311,7 +311,7 @@ router.post(
 
 router.get(
   '/:cardKey/environmentvariables',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -346,7 +346,7 @@ router.get(
 
 router.post(
   '/:cardKey/environmentvariables',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -387,7 +387,7 @@ router.post(
   },
 )
 
-router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
+router.post('/:cardKey/code/execute', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -458,7 +458,7 @@ router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
 
 router.post(
   '/:cardKey/code/execute-live',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -587,7 +587,7 @@ router.post(
   },
 )
 
-router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
+router.get('/:cardKey/code/executions', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -623,7 +623,7 @@ router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/countries', async (req: Request, res: Response) => {
+router.get('/countries', async (req, res) => {
   try {
     const result = await prisma.country.findMany()
     const data = { result }
@@ -634,7 +634,7 @@ router.get('/countries', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/currencies', async (req: Request, res: Response) => {
+router.get('/currencies', async (req, res) => {
   try {
     const result = await prisma.currency.findMany()
     const data = { result }
@@ -645,7 +645,7 @@ router.get('/currencies', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/merchants', async (req: Request, res: Response) => {
+router.get('/merchants', async (req, res) => {
   try {
     const result = await prisma.merchant.findMany()
     const data = { result }
