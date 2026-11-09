@@ -579,6 +579,8 @@ for (const [event, summary, data] of WEBHOOK_PAYLOADS) {
       body: { content: { 'application/json': { schema: response.webhookEnvelope(event, data) } } },
     },
     responses: { 200: { description: 'Any 2xx marks the delivery as delivered.' } },
+    // Investec has no webhooks; these are the sandbox's own.
+    'x-sandbox-only': true,
   })
 }
 
