@@ -126,7 +126,7 @@ test('a new card can be added and swiped in another currency', async ({ page }) 
 });
 
 test('transaction history filters by type and period, with holds on top', async ({ page }) => {
-  const history = page.getByRole('region', { name: 'Transactions' });
+  const history = page.getByRole('region', { name: 'Transactions', exact: true });
   const rows = history.locator('tbody tr');
   // The 13 seeded transactions on the main account (all from 2022–2023).
   await expect(rows).toHaveCount(13);
@@ -157,7 +157,7 @@ test('paying a beneficiary updates the beneficiary and the history', async ({ pa
   await expect(page.getByText(/Paid R 250[.,]00 to S Jones \(ref UBP\d{10}\)/)).toBeVisible();
 
   await expect(beneficiaries.getByRole('row', { name: /S Jones/ })).toContainText('R 250.00');
-  const latest = page.getByRole('region', { name: 'Transactions' }).locator('tbody tr').first();
+  const latest = page.getByRole('region', { name: 'Transactions', exact: true }).locator('tbody tr').first();
   await expect(latest).toContainText('Rent share');
   await expect(latest).toContainText('OnlineBankingPayments');
   await expect(latest).toContainText(/-R 250[.,]00/);

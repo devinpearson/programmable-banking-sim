@@ -22,6 +22,9 @@ export type Webhook = Schemas['Webhook'];
 export type WebhookDelivery = Schemas['WebhookDelivery'];
 export type FaultConfig = Schemas['FaultConfig'];
 export type TransferResponses = Schemas['TransferResponses'];
+export type Clock = Schemas['Clock'];
+export type ClockAdvanced = Schemas['ClockAdvanced'];
+export type Schedule = Schemas['Schedule'];
 export type CreatedCard = Schemas['CreatedCard'];
 export type CardStatus = 'Active' | 'Stopped';
 

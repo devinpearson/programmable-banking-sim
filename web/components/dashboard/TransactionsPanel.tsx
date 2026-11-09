@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button, EmptyState, Field, Panel, Select, Table, Th } from '@/components/ui';
 import { ErrorState, LoadingState } from '@/components/StateViews';
-import { useAccountsOverview, useTransactions } from '@/hooks/useSandbox';
+import { useAccountsOverview, useClock, useTransactions } from '@/hooks/useSandbox';
 import type { Transaction } from '@/lib/api/types';
 import { PERIODS, type PeriodId, TRANSACTION_TYPES, formatMoney, periodRange, signedAmount } from '@/lib/banking';
 
@@ -41,6 +41,7 @@ function Row({ transaction }: { transaction: Transaction }) {
 
 export default function TransactionsPanel() {
   const { data: overview } = useAccountsOverview();
+  const { data: clock } = useClock();
   const accounts = overview?.accounts ?? [];
   const [chosenAccount, setChosenAccount] = useState('');
   const [period, setPeriod] = useState<PeriodId>('all');
@@ -50,9 +51,16 @@ export default function TransactionsPanel() {
   // Until one is picked, show the first account.
   const accountId = chosenAccount || accounts[0]?.accountId || null;
   // The date range is fixed per period choice, so the SWR key stays stable.
+  // Periods end on the sandbox date, so transactions on days the clock has
+  // moved to are included.
+  const sandboxToday = clock?.today;
   const filters = useMemo(
-    () => ({ ...periodRange(period), transactionType: transactionType || undefined, includePending }),
-    [period, transactionType, includePending],
+    () => ({
+      ...periodRange(period, sandboxToday ? new Date(`${sandboxToday}T12:00:00Z`) : new Date()),
+      transactionType: transactionType || undefined,
+      includePending,
+    }),
+    [period, transactionType, includePending, sandboxToday],
   );
   const { data: transactions, error, isLoading, mutate } = useTransactions(accountId, filters);
 

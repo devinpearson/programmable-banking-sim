@@ -310,6 +310,38 @@ export const FaultConfig = z
   })
   .openapi('FaultConfig')
 
+export const Clock = z
+  .object({
+    today: z.string().openapi({ description: 'The sandbox date banking uses.', example: '2026-12-09' }),
+    realToday: z.string(),
+    offsetDays: z.number().int().openapi({ description: 'Days ahead of the real date.' }),
+  })
+  .openapi('Clock')
+
+export const ClockAdvanced = Clock.extend({
+  posted: z.number().int().openapi({ description: 'Recurring transactions posted on the way.' }),
+  settled: z.number().int().openapi({ description: 'Card holds that settled on the way.' }),
+}).openapi('ClockAdvanced')
+
+export const Schedule = z
+  .object({
+    scheduleId: z.string(),
+    accountId: z.string(),
+    description: z.string(),
+    kind: z.enum(['fixed', 'interest']),
+    type: z.enum(['DEBIT', 'CREDIT']),
+    transactionType: z.string(),
+    amount: z.number().nullable(),
+    annualRatePercent: z.number().nullable(),
+    frequency: z.enum(['monthly', 'weekly']),
+    dayOfMonth: z.number().int().nullable(),
+    dayOfWeek: z.number().int().nullable(),
+    nextRunDate: z.string(),
+    active: z.boolean(),
+    createdAt: isoDateTime,
+  })
+  .openapi('Schedule')
+
 export const ExchangeRate = z
   .object({
     currencyCode: z.string().openapi({ example: 'USD' }),
@@ -345,7 +377,14 @@ export const Scenario = z
   .openapi('Scenario')
 
 export const ScenarioLoaded = z
-  .object({ id: z.string(), name: z.string(), accounts: z.number().int(), beneficiaries: z.number().int(), cards: z.number().int() })
+  .object({
+    id: z.string(),
+    name: z.string(),
+    accounts: z.number().int(),
+    beneficiaries: z.number().int(),
+    cards: z.number().int(),
+    schedules: z.number().int(),
+  })
   .openapi('ScenarioLoaded')
 
 export const DatabaseSummary = z

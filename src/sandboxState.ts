@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client'
 import { z } from './schema/zod.js'
+import { getClock, setOffsetDays } from './clock.js'
 
 const prisma = new PrismaClient()
 
 // Export and import the sandbox's data as one JSON document, so a setup can
-// be saved, shared and loaded again. Covers the banking data and exchange
-// rates; settings (which hold secrets), fault settings and webhooks are
+// be saved, shared and loaded again. Covers the banking data, exchange
+// rates, recurring transactions and the sandbox clock; settings (which hold secrets), fault settings and webhooks are
 // configuration and are left out. Card execution logs are not included.
 
 const STATE_VERSION = 1
@@ -93,10 +94,41 @@ export const sandboxStateSchema = z
       }),
     ),
     exchangeRates: z.array(z.object({ currencyCode: z.string().length(3), zarPerUnit: decimal })),
+    // Optional, so files exported before schedules existed still import.
+    schedules: z
+      .array(
+        z.object({
+          scheduleId: z.string().min(1),
+          accountId: z.string(),
+          description: z.string(),
+          kind: z.enum(['fixed', 'interest']),
+          type: z.enum(['DEBIT', 'CREDIT']),
+          transactionType: z.string(),
+          amount: decimal.nullable(),
+          annualRatePercent: decimal.nullable(),
+          frequency: z.enum(['monthly', 'weekly']),
+          dayOfMonth: z.number().int().min(1).max(31).nullable(),
+          dayOfWeek: z.number().int().min(0).max(6).nullable(),
+          nextRunDate: z.string(),
+          active: z.boolean(),
+          createdAt: dateTime,
+        }),
+      )
+      .default([]),
+    clock: z.object({ offsetDays: z.number().int().min(0) }).optional(),
   })
   // Transactions belong to accounts (a database foreign key).
   .superRefine((state, context) => {
     const accountIds = new Set(state.accounts.map(a => a.accountId))
+    state.schedules.forEach((schedule, i) => {
+      if (!accountIds.has(schedule.accountId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['schedules', i, 'accountId'],
+          message: `no account ${schedule.accountId} in this file`,
+        })
+      }
+    })
     state.transactions.forEach((t, i) => {
       if (!accountIds.has(t.accountId)) {
         context.addIssue({
@@ -112,7 +144,7 @@ export const sandboxStateSchema = z
 export type SandboxState = z.infer<typeof sandboxStateSchema>
 
 export async function exportState() {
-  const [profiles, accounts, transactions, beneficiaries, cards, cardCodes, exchangeRates] = await Promise.all([
+  const [profiles, accounts, transactions, beneficiaries, cards, cardCodes, exchangeRates, schedules] = await Promise.all([
     prisma.profile.findMany(),
     prisma.account.findMany(),
     prisma.transaction.findMany({ orderBy: { transactionId: 'asc' } }),
@@ -120,6 +152,7 @@ export async function exportState() {
     prisma.card.findMany(),
     prisma.cardCode.findMany(),
     prisma.exchangeRate.findMany({ orderBy: { currencyCode: 'asc' } }),
+    prisma.schedule.findMany({ orderBy: { createdAt: 'asc' } }),
   ])
   return {
     version: STATE_VERSION,
@@ -145,6 +178,13 @@ export async function exportState() {
       publishedAt: c.publishedAt?.toISOString() ?? null,
     })),
     exchangeRates: exchangeRates.map(r => ({ currencyCode: r.currencyCode, zarPerUnit: r.zarPerUnit.toString() })),
+    schedules: schedules.map(schedule => ({
+      ...schedule,
+      amount: schedule.amount?.toString() ?? null,
+      annualRatePercent: schedule.annualRatePercent?.toString() ?? null,
+      createdAt: schedule.createdAt.toISOString(),
+    })),
+    clock: { offsetDays: getClock().offsetDays },
   }
 }
 
@@ -165,7 +205,9 @@ export async function importState(state: SandboxState) {
     prisma.cardCode.createMany({ data: state.cardCodes }),
     prisma.card.createMany({ data: state.cards }),
     prisma.exchangeRate.createMany({ data: state.exchangeRates }),
+    prisma.schedule.createMany({ data: state.schedules }),
   ])
+  if (state.clock) await setOffsetDays(state.clock.offsetDays)
   return {
     profiles: state.profiles.length,
     accounts: state.accounts.length,
@@ -173,5 +215,6 @@ export async function importState(state: SandboxState) {
     beneficiaries: state.beneficiaries.length,
     cards: state.cards.length,
     exchangeRates: state.exchangeRates.length,
+    schedules: state.schedules.length,
   }
 }

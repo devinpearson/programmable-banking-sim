@@ -2,7 +2,7 @@ import express from 'express'
 const router = express.Router()
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
-import dayjs from 'dayjs'
+import { sandboxToday } from '../clock.js'
 import {
   formatResponse,
   formatErrorResponse,
@@ -589,7 +589,7 @@ router.post(
 
       let posted = null
       if (transactionResult && balance) {
-        const now = dayjs().format('YYYY-MM-DD')
+        const now = sandboxToday().format('YYYY-MM-DD')
         // By default an approved swipe is a pending hold. Pass settle: true to
         // post it straight away (an already-settled card purchase).
         const settleNow = simulationPayload.settle

@@ -4,6 +4,9 @@ import {
   accountLabel,
   appendLog,
   buildSwipeRequest,
+  daysToNextMonth,
+  describeAdvance,
+  describeFrequency,
   describeFaults,
   describeSwipe,
   formatCurrency,
@@ -228,5 +231,35 @@ describe('referenceSuffix', () => {
   it('is empty without one', () => {
     expect(referenceSuffix({ TransferResponses: [] })).toBe('');
     expect(referenceSuffix(undefined)).toBe('');
+  });
+});
+
+describe('describeFrequency', () => {
+  it('describes monthly and weekly schedules', () => {
+    expect(describeFrequency({ frequency: 'monthly', dayOfMonth: 25, dayOfWeek: null })).toBe('Monthly on the 25th');
+    expect(describeFrequency({ frequency: 'monthly', dayOfMonth: 1, dayOfWeek: null })).toBe('Monthly on the 1st');
+    expect(describeFrequency({ frequency: 'monthly', dayOfMonth: 22, dayOfWeek: null })).toBe('Monthly on the 22nd');
+    expect(describeFrequency({ frequency: 'monthly', dayOfMonth: 13, dayOfWeek: null })).toBe('Monthly on the 13th');
+    expect(describeFrequency({ frequency: 'monthly', dayOfMonth: 31, dayOfWeek: null })).toBe('Monthly on the last day');
+    expect(describeFrequency({ frequency: 'weekly', dayOfMonth: null, dayOfWeek: 1 })).toBe('Weekly on Monday');
+  });
+});
+
+describe('daysToNextMonth', () => {
+  it('counts to the same day next month', () => {
+    expect(daysToNextMonth('2026-11-09')).toBe(30);
+    expect(daysToNextMonth('2026-12-15')).toBe(31);
+  });
+  it('clamps to the end of a shorter month', () => {
+    expect(daysToNextMonth('2027-01-31')).toBe(28); // to 28 February
+  });
+});
+
+describe('describeAdvance', () => {
+  it('says where the clock moved and what ran', () => {
+    expect(describeAdvance({ today: '2026-12-09', posted: 3, settled: 1 })).toBe(
+      'Moved to 2026-12-09: 3 transactions posted, 1 card hold settled',
+    );
+    expect(describeAdvance({ today: '2026-11-10', posted: 0, settled: 0 })).toBe('Moved to 2026-11-10');
   });
 });

@@ -23,6 +23,7 @@ model Account {
     profileId String
     profileName String
     transactions Transaction[]
+    schedules Schedule[]
 }
 
 model Transaction {
@@ -181,4 +182,31 @@ model WebhookDelivery {
     webhook Webhook @relation(fields: [webhookId], references: [webhookId], onDelete: Cascade)
 
     @@index([webhookId])
+}
+
+// A recurring transaction on an account: a fixed amount (salary, debit
+// order, fee) or monthly interest at an annual rate. Runs when the sandbox
+// clock reaches nextRunDate (src/schedules.ts).
+model Schedule {
+    scheduleId String @id
+    accountId String
+    description String
+    // fixed | interest
+    kind String
+    // DEBIT | CREDIT for fixed amounts; interest follows the balance's sign.
+    type String
+    transactionType String
+    amount Decimal?
+    annualRatePercent Decimal?
+    // monthly (on dayOfMonth, clamped to the month's last day) | weekly (on dayOfWeek, 0 = Sunday)
+    frequency String
+    dayOfMonth Int?
+    dayOfWeek Int?
+    // YYYY-MM-DD
+    nextRunDate String
+    active Boolean @default(true)
+    createdAt DateTime @default(now())
+    account Account @relation(fields: [accountId], references: [accountId], onDelete: Cascade)
+
+    @@index([accountId])
 }

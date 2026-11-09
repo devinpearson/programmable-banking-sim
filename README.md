@@ -167,6 +167,13 @@ The seed has illustrative (not live) rates for the 22 seeded currencies. Manage 
 - **PUT /exchange-rates/:currencyCode** `{ "zarPerUnit": 17.6 }`: add a currency or change its rate
 - **DELETE /exchange-rates/:currencyCode**: remove one
 
+### Time travel and recurring transactions
+Test a month of banking in seconds. The sandbox has its own date: `POST /clock/advance` with `{ "days": 30 }` moves it forward (the dashboard has +1 day, +1 week and +1 month buttons), and everything due on the way runs in date order:
+- **Recurring transactions** post on their dates: fixed amounts (salary, debit orders, fees) or monthly interest at an annual rate (credit interest on a positive balance, debit interest when overdrawn). Monthly on a day of the month (31 = month end) or weekly on a weekday. Manage them under `/schedules` or on the dashboard; the scenarios come with salary, debit orders and interest.
+- **Card holds settle** three days after the swipe.
+
+All banking dates follow the sandbox date (posting dates, the transaction list's default range, statements, payment dates); token expiry stays on real time. `POST /clock/reset` goes back to the real date, keeping what already ran, and the clock never moves backwards. Real days count too: anything due runs at startup and every minute. Export and import include schedules and the clock.
+
 ### Fault injection
 Make the bank misbehave on purpose to test your app's error handling, retries and timeouts. Faults apply to the emulated Investec API (`/za/...`) and the token endpoint, never to the sandbox's own controls.
 
