@@ -191,7 +191,7 @@ Make the bank misbehave on purpose to test your app's error handling, retries an
 Faulted responses carry `X-Sandbox-Fault-Injected` and appear in the live server log. The dashboard's own requests (`X-Sandbox-Client: dashboard`) are exempt from random faults, so it keeps working while your app sees errors.
 
 ### Webhooks
-Register a URL and the sandbox POSTs events to it as they happen, so you can build and test an integration that reacts to the bank (the dashboard has a Webhooks panel too):
+Register a URL and the sandbox POSTs events to it as they happen, so you can build and test an integration that reacts to the bank (the dashboard has a Webhooks panel too). Webhooks are sandbox-only: the Investec API has no equivalent, so in the spec the `/webhooks` routes and the event payloads are marked `x-sandbox-only`. The events:
 
 | Event | When |
 | --- | --- |

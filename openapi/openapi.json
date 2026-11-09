@@ -9125,6 +9125,7 @@
           "Webhooks"
         ],
         "summary": "A transaction posted (top-up, transfer or payment leg, posted swipe, settled hold).",
+        "x-sandbox-only": true,
         "parameters": [
           {
             "schema": {
@@ -9209,6 +9210,7 @@
           "Webhooks"
         ],
         "summary": "A card hold was placed.",
+        "x-sandbox-only": true,
         "parameters": [
           {
             "schema": {
@@ -9293,6 +9295,7 @@
           "Webhooks"
         ],
         "summary": "A pending hold was reversed.",
+        "x-sandbox-only": true,
         "parameters": [
           {
             "schema": {
@@ -9377,6 +9380,7 @@
           "Webhooks"
         ],
         "summary": "A live card swipe was approved or declined.",
+        "x-sandbox-only": true,
         "parameters": [
           {
             "schema": {
@@ -9461,6 +9465,7 @@
           "Webhooks"
         ],
         "summary": "Sent by POST /webhooks/{webhookId}/test.",
+        "x-sandbox-only": true,
         "parameters": [
           {
             "schema": {
