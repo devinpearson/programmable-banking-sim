@@ -125,8 +125,8 @@ export async function injectFaults(req: Request, res: Response, next: NextFuncti
   }
   let latencyMs = 0
   if (latencyHeader !== undefined) {
-    latencyMs = Number(latencyHeader)
-    if (!Number.isInteger(latencyMs) || latencyMs < 0 || latencyMs > MAX_LATENCY_MS) {
+    const requestedLatencyMs = Number(latencyHeader)
+    if (!Number.isInteger(requestedLatencyMs) || requestedLatencyMs < 0 || requestedLatencyMs > MAX_LATENCY_MS) {
       return formatErrorResponse(req, res, 400, `X-Sandbox-Latency must be milliseconds from 0 to ${MAX_LATENCY_MS}`)
     }
   }
