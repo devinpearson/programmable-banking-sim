@@ -11,6 +11,7 @@ import identity, { authenticateSession } from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
 import exchangeRates from './routes/exchangeRates.js'
+import webhooks from './routes/webhooks.js'
 import type {
   AccessToken,
   AuthorizationCode,
@@ -186,6 +187,7 @@ export const routerMounts = {
   '/za/pb/v1/accounts': accounts,
   '/za/v1/cards': cards,
   '/exchange-rates': exchangeRates,
+  '/webhooks': webhooks,
 } as const
 
 // Token requests check client secrets and the OAuth pages sign users in.
@@ -212,6 +214,7 @@ app.use('/za/pb/v1/accounts', routerMounts['/za/pb/v1/accounts'])
 app.use('/za/v1/cards', routerMounts['/za/v1/cards'])
 // Sandbox control, outside /za so it needs no token.
 app.use('/exchange-rates', routerMounts['/exchange-rates'])
+app.use('/webhooks', routerMounts['/webhooks'])
 
 // Shared database lifecycle helpers, used by the control socket and the
 // /clear and /restore routes so every entry point behaves identically.
@@ -328,6 +331,11 @@ function validToken(req: Request): AccessToken | null {
     return token
   }
   return null
+}
+
+// Push a named event to every connected dashboard.
+export function emitSocketEvent(name: string, payload: unknown) {
+  io.sockets.emit(name, payload)
 }
 
 export async function emitDatabaseSummary() {

@@ -144,3 +144,33 @@ model ExchangeRate {
     zarPerUnit Decimal
     updatedAt DateTime @updatedAt
 }
+
+// A URL the sandbox POSTs events to (sandbox-only; see src/webhooks.ts).
+model Webhook {
+    webhookId String @id
+    url String
+    // Comma-separated event names, or "*" for every event.
+    events String
+    // Signs deliveries (X-Sandbox-Signature) when set.
+    secret String?
+    active Boolean @default(true)
+    createdAt DateTime @default(now())
+    deliveries WebhookDelivery[]
+}
+
+// One attempt to deliver an event to a webhook.
+model WebhookDelivery {
+    deliveryId String @id
+    webhookId String
+    event String
+    payload String
+    // delivered (2xx response) or failed (other status, error or timeout)
+    status String
+    responseStatus Int?
+    error String?
+    durationMs Int
+    createdAt DateTime @default(now())
+    webhook Webhook @relation(fields: [webhookId], references: [webhookId], onDelete: Cascade)
+
+    @@index([webhookId])
+}

@@ -18,6 +18,93 @@ components:
       scheme: basic
       description: client_id:client_secret
   schemas:
+    Exchange:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: USD
+        amount:
+          type: number
+          description: In the purchase currency.
+          example: 12.5
+        zarPerUnit:
+          type: number
+          example: 17.6
+        zarAmount:
+          type: number
+          description: What the account is charged, in rand.
+          example: 220
+      required:
+        - currencyCode
+        - amount
+        - zarPerUnit
+        - zarAmount
+    CardAuthorizationEvent:
+      type: object
+      properties:
+        cardKey:
+          type: string
+        cardNumber:
+          type: string
+        accountId:
+          type: string
+        approved:
+          type: boolean
+        reason:
+          type:
+            - string
+            - "null"
+          enum:
+            - insufficient_funds
+            - card_not_active
+            - declined_by_card_code
+        merchant:
+          type: object
+          properties:
+            name:
+              type: string
+            city:
+              type: string
+            countryCode:
+              type: string
+            categoryCode:
+              type: string
+          required:
+            - name
+            - city
+            - countryCode
+            - categoryCode
+        currencyCode:
+          type: string
+        centsAmount:
+          type: integer
+          description: In the purchase currency.
+        zarAmount:
+          type: number
+          description: What the account is charged, in rand.
+        exchange:
+          anyOf:
+            - $ref: "#/components/schemas/Exchange"
+            - type: "null"
+            - type: "null"
+        transactionId:
+          type:
+            - integer
+            - "null"
+          description: The hold or posted purchase, when approved.
+      required:
+        - cardKey
+        - cardNumber
+        - accountId
+        - approved
+        - reason
+        - merchant
+        - currencyCode
+        - centsAmount
+        - zarAmount
+        - exchange
+        - transactionId
     Account:
       type: object
       properties:
@@ -459,28 +546,6 @@ components:
             - error
       required:
         - result
-    Exchange:
-      type: object
-      properties:
-        currencyCode:
-          type: string
-          example: USD
-        amount:
-          type: number
-          description: In the purchase currency.
-          example: 12.5
-        zarPerUnit:
-          type: number
-          example: 17.6
-        zarAmount:
-          type: number
-          description: What the account is charged, in rand.
-          example: 220
-      required:
-        - currencyCode
-        - amount
-        - zarPerUnit
-        - zarAmount
     SwipeResult:
       type: object
       properties:
@@ -617,6 +682,88 @@ components:
         - currencyCode
         - zarPerUnit
         - updatedAt
+    Webhook:
+      type: object
+      properties:
+        webhookId:
+          type: string
+        url:
+          type: string
+        events:
+          type: array
+          items:
+            type: string
+          example:
+            - transaction.posted
+            - card.authorization
+        hasSecret:
+          type: boolean
+          description: Whether deliveries are signed. The secret itself is never returned.
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          example: 2026-11-09T10:00:00.000Z
+      required:
+        - webhookId
+        - url
+        - events
+        - hasSecret
+        - active
+        - createdAt
+    WebhookDelivery:
+      type: object
+      properties:
+        deliveryId:
+          type: string
+        webhookId:
+          type: string
+        event:
+          type: string
+        status:
+          type: string
+          enum:
+            - delivered
+            - failed
+        responseStatus:
+          type:
+            - integer
+            - "null"
+        error:
+          type:
+            - string
+            - "null"
+          example: Connection refused
+        durationMs:
+          type: integer
+        createdAt:
+          type: string
+          example: 2026-11-09T10:00:00.000Z
+        payload:
+          type: object
+          properties:
+            id:
+              type: string
+            event:
+              type: string
+            createdAt:
+              type: string
+              example: 2026-11-09T10:00:00.000Z
+            data: {}
+          required:
+            - id
+            - event
+            - createdAt
+      required:
+        - deliveryId
+        - webhookId
+        - event
+        - status
+        - responseStatus
+        - error
+        - durationMs
+        - createdAt
+        - payload
     TokenResponse:
       type: object
       properties:
@@ -3630,6 +3777,393 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List webhooks
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      webhooks:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Webhook"
+                    required:
+                      - webhooks
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+    post:
+      tags:
+        - Webhooks
+      summary: Register a webhook
+      description: "Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery
+        and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw
+        body>. See the webhooks section for each payload."
+      security: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: http://localhost:8080/webhooks/sandbox
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: &a3
+                      - transaction.posted
+                      - transaction.pending
+                      - transaction.reversed
+                      - card.authorization
+                  minItems: 1
+                  description: Events to receive. Omit for every event.
+                secret:
+                  type: string
+                  minLength: 8
+                  description: "Signs each delivery: X-Sandbox-Signature: sha256=<HMAC of the
+                    body>."
+              required:
+                - url
+              additionalProperties: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Webhook"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /webhooks/events:
+    get:
+      tags:
+        - Webhooks
+      summary: List the events webhooks can receive
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - events
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+  /webhooks/{webhookId}:
+    patch:
+      tags:
+        - Webhooks
+      summary: Change, pause or resume a webhook
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: webhookId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: http://localhost:8080/webhooks/sandbox
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: *a3
+                  minItems: 1
+                  description: Events to receive. Omit for every event.
+                active:
+                  type: boolean
+                  description: Pause (false) or resume (true) deliveries.
+              additionalProperties: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Webhook"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Webhooks
+      summary: Delete a webhook and its delivery log
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: webhookId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /webhooks/{webhookId}/test:
+    post:
+      tags:
+        - Webhooks
+      summary: Send a webhook.test event now
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: webhookId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/WebhookDelivery"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /webhooks/{webhookId}/deliveries:
+    get:
+      tags:
+        - Webhooks
+      summary: Recent delivery attempts, newest first
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: webhookId
+          in: path
+        - schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          name: limit
+          in: query
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      deliveries:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WebhookDelivery"
+                    required:
+                      - deliveries
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /identity/v2/oauth2/token:
     post:
       tags:
@@ -4149,4 +4683,250 @@ paths:
       responses:
         "200":
           description: OK (empty body)
-webhooks: {}
+webhooks:
+  transaction.posted:
+    post:
+      tags:
+        - Webhooks
+      summary: A transaction posted (top-up, transfer or payment leg, posted swipe,
+        settled hold).
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Event
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: sha256=<hex HMAC of the body>, when the webhook has a secret
+          required: false
+          name: X-Sandbox-Signature
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The delivery id (also in X-Sandbox-Delivery).
+                event:
+                  type: string
+                  enum:
+                    - transaction.posted
+                createdAt:
+                  type: string
+                  example: 2026-11-09T10:00:00.000Z
+                data:
+                  $ref: "#/components/schemas/StoredTransaction"
+              required:
+                - id
+                - event
+                - createdAt
+                - data
+      responses:
+        "200":
+          description: Any 2xx marks the delivery as delivered.
+  transaction.pending:
+    post:
+      tags:
+        - Webhooks
+      summary: A card hold was placed.
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Event
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: sha256=<hex HMAC of the body>, when the webhook has a secret
+          required: false
+          name: X-Sandbox-Signature
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The delivery id (also in X-Sandbox-Delivery).
+                event:
+                  type: string
+                  enum:
+                    - transaction.pending
+                createdAt:
+                  type: string
+                  example: 2026-11-09T10:00:00.000Z
+                data:
+                  $ref: "#/components/schemas/StoredTransaction"
+              required:
+                - id
+                - event
+                - createdAt
+                - data
+      responses:
+        "200":
+          description: Any 2xx marks the delivery as delivered.
+  transaction.reversed:
+    post:
+      tags:
+        - Webhooks
+      summary: A pending hold was reversed.
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Event
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: sha256=<hex HMAC of the body>, when the webhook has a secret
+          required: false
+          name: X-Sandbox-Signature
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The delivery id (also in X-Sandbox-Delivery).
+                event:
+                  type: string
+                  enum:
+                    - transaction.reversed
+                createdAt:
+                  type: string
+                  example: 2026-11-09T10:00:00.000Z
+                data:
+                  $ref: "#/components/schemas/StoredTransaction"
+              required:
+                - id
+                - event
+                - createdAt
+                - data
+      responses:
+        "200":
+          description: Any 2xx marks the delivery as delivered.
+  card.authorization:
+    post:
+      tags:
+        - Webhooks
+      summary: A live card swipe was approved or declined.
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Event
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: sha256=<hex HMAC of the body>, when the webhook has a secret
+          required: false
+          name: X-Sandbox-Signature
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The delivery id (also in X-Sandbox-Delivery).
+                event:
+                  type: string
+                  enum:
+                    - card.authorization
+                createdAt:
+                  type: string
+                  example: 2026-11-09T10:00:00.000Z
+                data:
+                  $ref: "#/components/schemas/CardAuthorizationEvent"
+              required:
+                - id
+                - event
+                - createdAt
+                - data
+      responses:
+        "200":
+          description: Any 2xx marks the delivery as delivered.
+  webhook.test:
+    post:
+      tags:
+        - Webhooks
+      summary: Sent by POST /webhooks/{webhookId}/test.
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Event
+          in: header
+        - schema:
+            type: string
+          required: true
+          name: X-Sandbox-Delivery
+          in: header
+        - schema:
+            type: string
+            description: sha256=<hex HMAC of the body>, when the webhook has a secret
+          required: false
+          name: X-Sandbox-Signature
+          in: header
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The delivery id (also in X-Sandbox-Delivery).
+                event:
+                  type: string
+                  enum:
+                    - webhook.test
+                createdAt:
+                  type: string
+                  example: 2026-11-09T10:00:00.000Z
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                  required:
+                    - message
+              required:
+                - id
+                - event
+                - createdAt
+                - data
+      responses:
+        "200":
+          description: Any 2xx marks the delivery as delivered.

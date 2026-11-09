@@ -1,4 +1,5 @@
 import { z } from './zod.js'
+import { WEBHOOK_EVENTS } from '../webhookEvents.js'
 
 // Request schemas for validateRequest (src/middleware/validation.ts).
 //
@@ -210,6 +211,45 @@ export const exchangeRateBody = z.object({
     .positive('must be greater than zero')
     .finite()
     .openapi({ description: 'How many rand one unit of the currency buys.', example: 17.6 }),
+})
+
+// --- Webhooks ---------------------------------------------------------------
+
+const webhookUrl = z
+  .string()
+  .url('must be a URL')
+  .refine(value => /^https?:\/\//i.test(value), 'must be an http or https URL')
+  .openapi({ example: 'http://localhost:8080/webhooks/sandbox' })
+
+const webhookEvents = z
+  .array(z.enum(WEBHOOK_EVENTS))
+  .min(1, 'must name at least one event')
+  .openapi({ description: 'Events to receive. Omit for every event.' })
+
+export const createWebhookBody = z
+  .object({
+    url: webhookUrl,
+    events: webhookEvents.optional(),
+    secret: z
+      .string()
+      .min(8, 'must be at least 8 characters')
+      .optional()
+      .openapi({ description: 'Signs each delivery: X-Sandbox-Signature: sha256=<HMAC of the body>.' }),
+  })
+  .strict()
+
+export const updateWebhookBody = z
+  .object({
+    url: webhookUrl.optional(),
+    events: webhookEvents.optional(),
+    active: z.boolean().optional().openapi({ description: 'Pause (false) or resume (true) deliveries.' }),
+  })
+  .strict()
+
+export const webhookIdParams = z.object({ webhookId: z.string().min(1) })
+
+export const deliveriesQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
 })
 
 // --- Sandbox and identity ---------------------------------------------------

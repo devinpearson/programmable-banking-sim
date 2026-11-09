@@ -382,6 +382,96 @@ register('delete', '/exchange-rates/:currencyCode', {
   ok: z.object({}),
 })
 
+// --- Webhooks ---------------------------------------------------------------
+const webhookIdParams = request.webhookIdParams
+register('get', '/webhooks', {
+  tag: 'Webhooks',
+  summary: 'List webhooks',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(z.object({ webhooks: z.array(response.Webhook) })),
+})
+register('get', '/webhooks/events', {
+  tag: 'Webhooks',
+  summary: 'List the events webhooks can receive',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(z.object({ events: z.array(z.string()) })),
+})
+register('post', '/webhooks', {
+  tag: 'Webhooks',
+  summary: 'Register a webhook',
+  description:
+    'Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.',
+  sandbox: true,
+  security: 'none',
+  body: request.createWebhookBody,
+  ok: response.envelope(response.Webhook),
+})
+register('patch', '/webhooks/:webhookId', {
+  tag: 'Webhooks',
+  summary: 'Change, pause or resume a webhook',
+  sandbox: true,
+  security: 'none',
+  params: webhookIdParams,
+  body: request.updateWebhookBody,
+  ok: response.envelope(response.Webhook),
+})
+register('delete', '/webhooks/:webhookId', {
+  tag: 'Webhooks',
+  summary: 'Delete a webhook and its delivery log',
+  sandbox: true,
+  security: 'none',
+  params: webhookIdParams,
+  ok: z.object({}),
+})
+register('post', '/webhooks/:webhookId/test', {
+  tag: 'Webhooks',
+  summary: 'Send a webhook.test event now',
+  sandbox: true,
+  security: 'none',
+  params: webhookIdParams,
+  ok: response.envelope(response.WebhookDelivery),
+})
+register('get', '/webhooks/:webhookId/deliveries', {
+  tag: 'Webhooks',
+  summary: 'Recent delivery attempts, newest first',
+  sandbox: true,
+  security: 'none',
+  params: webhookIdParams,
+  query: request.deliveriesQuery,
+  ok: response.envelope(z.object({ deliveries: z.array(response.WebhookDelivery) })),
+})
+
+// The deliveries themselves, as OpenAPI 3.1 webhooks.
+const deliveryHeaders = z.object({
+  'X-Sandbox-Event': z.string(),
+  'X-Sandbox-Delivery': z.string(),
+  'X-Sandbox-Signature': z.string().optional().openapi({ description: 'sha256=<hex HMAC of the body>, when the webhook has a secret' }),
+})
+const WEBHOOK_PAYLOADS: [string, string, z.ZodTypeAny][] = [
+  ['transaction.posted', 'A transaction posted (top-up, transfer or payment leg, posted swipe, settled hold).', response.StoredTransaction],
+  ['transaction.pending', 'A card hold was placed.', response.StoredTransaction],
+  ['transaction.reversed', 'A pending hold was reversed.', response.StoredTransaction],
+  ['card.authorization', 'A live card swipe was approved or declined.', response.CardAuthorizationEvent],
+  ['webhook.test', 'Sent by POST /webhooks/{webhookId}/test.', z.object({ message: z.string() })],
+]
+// Schemas used only by webhooks aren't collected from them automatically.
+registry.register('CardAuthorizationEvent', response.CardAuthorizationEvent)
+for (const [event, summary, data] of WEBHOOK_PAYLOADS) {
+  registry.registerWebhook({
+    method: 'post',
+    path: event,
+    tags: ['Webhooks'],
+    summary,
+    request: {
+      headers: deliveryHeaders,
+      body: { content: { 'application/json': { schema: response.webhookEnvelope(event, data) } } },
+    },
+    responses: { 200: { description: 'Any 2xx marks the delivery as delivered.' } },
+  })
+}
+
 // --- Identity (OAuth) -------------------------------------------------------
 const tokenBody = z
   .object({

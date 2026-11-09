@@ -3122,6 +3122,396 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List webhooks */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                webhooks: components["schemas"]["Webhook"][];
+                            };
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Register a webhook
+         * @description Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uri
+                         * @example http://localhost:8080/webhooks/sandbox
+                         */
+                        url: string;
+                        /** @description Events to receive. Omit for every event. */
+                        events?: ("transaction.posted" | "transaction.pending" | "transaction.reversed" | "card.authorization")[];
+                        /** @description Signs each delivery: X-Sandbox-Signature: sha256=<HMAC of the body>. */
+                        secret?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Webhook"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the events webhooks can receive */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                events: string[];
+                            };
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{webhookId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a webhook and its delivery log */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    webhookId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Change, pause or resume a webhook */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    webhookId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uri
+                         * @example http://localhost:8080/webhooks/sandbox
+                         */
+                        url?: string;
+                        /** @description Events to receive. Omit for every event. */
+                        events?: ("transaction.posted" | "transaction.pending" | "transaction.reversed" | "card.authorization")[];
+                        /** @description Pause (false) or resume (true) deliveries. */
+                        active?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Webhook"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/webhooks/{webhookId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a webhook.test event now */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    webhookId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["WebhookDelivery"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{webhookId}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent delivery attempts, newest first */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    webhookId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                deliveries: components["schemas"]["WebhookDelivery"][];
+                            };
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/identity/v2/oauth2/token": {
         parameters: {
             query?: never;
@@ -3864,9 +4254,300 @@ export interface paths {
         trace?: never;
     };
 }
-export type webhooks = Record<string, never>;
+export interface webhooks {
+    "transaction.posted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A transaction posted (top-up, transfer or payment leg, posted swipe, settled hold). */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-Sandbox-Event": string;
+                    "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Signature"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        id: string;
+                        /** @enum {string} */
+                        event: "transaction.posted";
+                        /** @example 2026-11-09T10:00:00.000Z */
+                        createdAt: string;
+                        data: components["schemas"]["StoredTransaction"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Any 2xx marks the delivery as delivered. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "transaction.pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A card hold was placed. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-Sandbox-Event": string;
+                    "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Signature"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        id: string;
+                        /** @enum {string} */
+                        event: "transaction.pending";
+                        /** @example 2026-11-09T10:00:00.000Z */
+                        createdAt: string;
+                        data: components["schemas"]["StoredTransaction"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Any 2xx marks the delivery as delivered. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "transaction.reversed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A pending hold was reversed. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-Sandbox-Event": string;
+                    "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Signature"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        id: string;
+                        /** @enum {string} */
+                        event: "transaction.reversed";
+                        /** @example 2026-11-09T10:00:00.000Z */
+                        createdAt: string;
+                        data: components["schemas"]["StoredTransaction"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Any 2xx marks the delivery as delivered. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "card.authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A live card swipe was approved or declined. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-Sandbox-Event": string;
+                    "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Signature"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        id: string;
+                        /** @enum {string} */
+                        event: "card.authorization";
+                        /** @example 2026-11-09T10:00:00.000Z */
+                        createdAt: string;
+                        data: components["schemas"]["CardAuthorizationEvent"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Any 2xx marks the delivery as delivered. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "webhook.test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sent by POST /webhooks/{webhookId}/test. */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-Sandbox-Event": string;
+                    "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Signature"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        id: string;
+                        /** @enum {string} */
+                        event: "webhook.test";
+                        /** @example 2026-11-09T10:00:00.000Z */
+                        createdAt: string;
+                        data: {
+                            message: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Any 2xx marks the delivery as delivered. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export interface components {
     schemas: {
+        Exchange: {
+            /** @example USD */
+            currencyCode: string;
+            /**
+             * @description In the purchase currency.
+             * @example 12.5
+             */
+            amount: number;
+            /** @example 17.6 */
+            zarPerUnit: number;
+            /**
+             * @description What the account is charged, in rand.
+             * @example 220
+             */
+            zarAmount: number;
+        };
+        CardAuthorizationEvent: {
+            cardKey: string;
+            cardNumber: string;
+            accountId: string;
+            approved: boolean;
+            /** @enum {string|null} */
+            reason: "insufficient_funds" | "card_not_active" | "declined_by_card_code" | null;
+            merchant: {
+                name: string;
+                city: string;
+                countryCode: string;
+                categoryCode: string;
+            };
+            currencyCode: string;
+            /** @description In the purchase currency. */
+            centsAmount: number;
+            /** @description What the account is charged, in rand. */
+            zarAmount: number;
+            exchange: components["schemas"]["Exchange"] | null;
+            /** @description The hold or posted purchase, when approved. */
+            transactionId: number | null;
+        };
         Account: {
             /** @example 4675778129910189600000003 */
             accountId: string;
@@ -4050,22 +4731,6 @@ export interface components {
                 error: null;
             };
         };
-        Exchange: {
-            /** @example USD */
-            currencyCode: string;
-            /**
-             * @description In the purchase currency.
-             * @example 12.5
-             */
-            amount: number;
-            /** @example 17.6 */
-            zarPerUnit: number;
-            /**
-             * @description What the account is charged, in rand.
-             * @example 220
-             */
-            zarAmount: number;
-        };
         /** @description transaction is the pending hold (or posted purchase) on the card's account; null when declined or the card has no account. */
         SwipeResult: {
             /** @description Whether the purchase was approved. */
@@ -4119,6 +4784,42 @@ export interface components {
             zarPerUnit: number;
             /** @example 2026-11-09T10:00:00.000Z */
             updatedAt: string;
+        };
+        Webhook: {
+            webhookId: string;
+            url: string;
+            /**
+             * @example [
+             *       "transaction.posted",
+             *       "card.authorization"
+             *     ]
+             */
+            events: string[];
+            /** @description Whether deliveries are signed. The secret itself is never returned. */
+            hasSecret: boolean;
+            active: boolean;
+            /** @example 2026-11-09T10:00:00.000Z */
+            createdAt: string;
+        };
+        WebhookDelivery: {
+            deliveryId: string;
+            webhookId: string;
+            event: string;
+            /** @enum {string} */
+            status: "delivered" | "failed";
+            responseStatus: number | null;
+            /** @example Connection refused */
+            error: string | null;
+            durationMs: number;
+            /** @example 2026-11-09T10:00:00.000Z */
+            createdAt: string;
+            payload: {
+                id: string;
+                event: string;
+                /** @example 2026-11-09T10:00:00.000Z */
+                createdAt: string;
+                data?: unknown;
+            };
         };
         TokenResponse: {
             access_token: string;

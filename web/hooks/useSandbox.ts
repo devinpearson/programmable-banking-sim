@@ -10,6 +10,9 @@ import {
   getBeneficiaryCategories,
   getCards,
   getTransactions,
+  getWebhookDeliveries,
+  getWebhookEvents,
+  getWebhooks,
   type TransactionFilters,
   getExchangeRates,
   getScenarios,
@@ -37,6 +40,10 @@ export const KEYS = {
   beneficiaryCategories: 'beneficiary-categories',
   // Per account and filters: ['transactions', accountId, filters].
   transactions: 'transactions',
+  webhooks: 'webhooks',
+  webhookEvents: 'webhook-events',
+  // Per webhook: ['webhook-deliveries', webhookId].
+  webhookDeliveries: 'webhook-deliveries',
 } as const;
 
 export function useAccountsOverview() {
@@ -75,6 +82,22 @@ export function useBeneficiaryCategories() {
   return useSWR(KEYS.beneficiaryCategories, getBeneficiaryCategories, { ...SWR_CONFIG, revalidateOnFocus: false });
 }
 
+export function useWebhooks() {
+  return useSWR(KEYS.webhooks, getWebhooks, SWR_CONFIG);
+}
+
+export function useWebhookEvents() {
+  return useSWR(KEYS.webhookEvents, getWebhookEvents, { ...SWR_CONFIG, revalidateOnFocus: false });
+}
+
+export function useWebhookDeliveries(webhookId: string | null) {
+  return useSWR(
+    webhookId ? [KEYS.webhookDeliveries, webhookId] : null,
+    () => getWebhookDeliveries(webhookId as string),
+    SWR_CONFIG,
+  );
+}
+
 export function useSettings() {
   return useSWR(KEYS.settings, getSettings, { ...SWR_CONFIG, revalidateOnFocus: false });
 }
@@ -99,6 +122,7 @@ export function useLiveUpdates() {
   const [logs, setLogs] = useState<string[]>([]);
   const [connected, setConnected] = useState(false);
   const refresh = useRefreshSandbox();
+  const { mutate } = useSWRConfig();
 
   useEffect(() => {
     const socket = io(getApiBaseUrl());
@@ -107,6 +131,10 @@ export function useLiveUpdates() {
     socket.on('logs', (line: string) => setLogs(lines => appendLog(lines, line)));
     socket.on('database-summary', () => {
       void refresh();
+    });
+    // A webhook delivery finished: refresh the delivery logs.
+    socket.on('webhook-delivery', () => {
+      void mutate(key => Array.isArray(key) && key[0] === KEYS.webhookDeliveries);
     });
     return () => {
       socket.disconnect();
