@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 // A scenario is a named starting state for the sandbox: a set of accounts with
 // opening balances (and optional beneficiaries) so a hackathon or demo can
 // begin from a known setup instead of the default seed.
-export interface ScenarioAccount {
+interface ScenarioAccount {
   accountId: string
   accountNumber: string
   accountName: string
@@ -15,7 +15,7 @@ export interface ScenarioAccount {
   openingBalance: number
 }
 
-export interface ScenarioBeneficiary {
+interface ScenarioBeneficiary {
   beneficiaryId: string
   accountNumber: string
   name: string
@@ -23,7 +23,7 @@ export interface ScenarioBeneficiary {
   bank: string
 }
 
-export interface Scenario {
+interface Scenario {
   id: string
   name: string
   description: string
@@ -34,7 +34,7 @@ export interface Scenario {
 
 const PROFILE = { profileId: '20000000000001', profileName: 'Sandbox User' }
 
-export const scenarios: Scenario[] = [
+const scenarios: Scenario[] = [
   {
     id: 'starter',
     name: 'Starter',
