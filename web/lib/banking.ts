@@ -115,3 +115,62 @@ export function appendLog(lines: string[], line: string): string[] {
   const next = [...lines, line];
   return next.length > MAX_LOG_LINES ? next.slice(next.length - MAX_LOG_LINES) : next;
 }
+
+// --- Transaction history ----------------------------------------------------
+
+// Debits count against the account: shown as negative amounts.
+export function signedAmount(transaction: { type: string; amount: string | number }): number {
+  const amount = Number(transaction.amount);
+  return transaction.type === 'DEBIT' ? -amount : amount;
+}
+
+// The transactionType values the sandbox and Investec use, for filtering.
+export const TRANSACTION_TYPES = [
+  'CardPurchases',
+  'CardWithdrawals',
+  'DebitOrders',
+  'Deposits',
+  'FasterPay',
+  'FeesAndInterest',
+  'OnlineBankingPayments',
+  'OnlineBankingTransfers',
+] as const;
+
+export const PERIODS = [
+  { id: '30d', label: 'Last 30 days', days: 30 },
+  { id: '180d', label: 'Last 180 days', days: 180 },
+  { id: 'all', label: 'All time', days: null },
+] as const;
+
+export type PeriodId = (typeof PERIODS)[number]['id'];
+
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+// The fromDate/toDate for a period, ending today. "All time" starts in 2000,
+// before any sandbox data (the API's own default is the last 180 days).
+export function periodRange(period: PeriodId, today = new Date()): { fromDate: string; toDate: string } {
+  const toDate = isoDate(today);
+  const days = PERIODS.find(p => p.id === period)?.days ?? null;
+  if (days === null) return { fromDate: '2000-01-01', toDate };
+  const from = new Date(today);
+  from.setUTCDate(from.getUTCDate() - days);
+  return { fromDate: isoDate(from), toDate };
+}
+
+// --- Beneficiary payments ---------------------------------------------------
+
+export interface PaymentInput {
+  from: string;
+  beneficiaryId: string;
+  amount: string;
+}
+
+// The problem with a payment form, or null when it can be sent.
+export function paymentError(input: PaymentInput): string | null {
+  if (!input.from) return 'Pick the account to pay from';
+  if (!input.beneficiaryId) return 'Pick a beneficiary';
+  if (parseAmount(input.amount) === null) return 'Enter an amount greater than zero';
+  return null;
+}

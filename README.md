@@ -51,7 +51,7 @@ npm run dev
 
 This starts the API on http://localhost:3000 and the dashboard on http://localhost:3001. Run just one with `npm run dev:api` or `npm run dev:web`.
 
-The dashboard lets you load scenarios, top up accounts and transfer between them, add cards to accounts, swipe them in any currency and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings.
+The dashboard lets you load scenarios, top up accounts and transfer between them, browse each account's transaction history (by period and type, with pending holds), pay beneficiaries, add cards to accounts, swipe them in any currency and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings. It refreshes itself whenever the API's data changes, including changes made from Postman.
 
 The web app reads the API's address from `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:3000`), and the API sends OAuth users to the web app at `WEB_URL` (default `http://localhost:3001`).
 

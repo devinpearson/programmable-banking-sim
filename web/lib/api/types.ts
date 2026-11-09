@@ -15,6 +15,9 @@ export type DatabaseSummary = Schemas['DatabaseSummary'];
 export type Settings = Schemas['Settings'];
 export type ConsentDetails = Schemas['ConsentDetails'];
 export type ExchangeRate = Schemas['ExchangeRate'];
+export type Transaction = Schemas['Transaction'];
+export type Beneficiary = Schemas['Beneficiary'];
+export type BeneficiaryCategory = Schemas['BeneficiaryCategory'];
 export type CreatedCard = Schemas['CreatedCard'];
 export type CardStatus = 'Active' | 'Stopped';
 

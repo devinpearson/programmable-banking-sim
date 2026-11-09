@@ -124,3 +124,50 @@ test('a new card can be added and swiped in another currency', async ({ page }) 
   const hold = holds(page).getByRole('row', { name: /London Books \(USD 12\.50\)/ });
   await expect(hold).toContainText(/R 220[.,]00/);
 });
+
+test('transaction history filters by type and period, with holds on top', async ({ page }) => {
+  const history = page.getByRole('region', { name: 'Transactions' });
+  const rows = history.locator('tbody tr');
+  // The 13 seeded transactions on the main account (all from 2022–2023).
+  await expect(rows).toHaveCount(13);
+  await expect(rows.first()).toContainText('UBEREATS');
+  await expect(rows.first()).toContainText(/-R 35[\s,]?696[.,]04/);
+
+  await history.getByLabel('Type').selectOption('FasterPay');
+  await expect(rows).toHaveCount(4);
+  await history.getByLabel('Type').selectOption('');
+
+  await history.getByLabel('Period').selectOption('30d');
+  await expect(history.getByText('No transactions match these filters.')).toBeVisible();
+  await history.getByLabel('Period').selectOption('all');
+
+  // A swipe appears at the top as a pending hold.
+  await swipe(page, 'History Cafe', '15');
+  await expect(rows.first()).toContainText('Pending');
+  await expect(rows.first()).toContainText('History Cafe');
+});
+
+test('paying a beneficiary updates the beneficiary and the history', async ({ page }) => {
+  const beneficiaries = page.getByRole('region', { name: 'Beneficiaries' });
+  await beneficiaries.getByLabel('From account').selectOption({ label: `Mr J Soap (${MAIN})` });
+  await beneficiaries.getByLabel('Beneficiary', { exact: true }).selectOption({ label: 'S Jones' });
+  await beneficiaries.getByLabel('Amount (R)').fill('250');
+  await beneficiaries.getByLabel('My reference').fill('Rent share');
+  await beneficiaries.getByRole('button', { name: 'Pay' }).click();
+  await expect(page.getByText(/Paid R 250[.,]00 to S Jones/)).toBeVisible();
+
+  await expect(beneficiaries.getByRole('row', { name: /S Jones/ })).toContainText('R 250.00');
+  const latest = page.getByRole('region', { name: 'Transactions' }).locator('tbody tr').first();
+  await expect(latest).toContainText('Rent share');
+  await expect(latest).toContainText('OnlineBankingPayments');
+  await expect(latest).toContainText(/-R 250[.,]00/);
+});
+
+test('a payment the account cannot cover is refused with a reason', async ({ page }) => {
+  const beneficiaries = page.getByRole('region', { name: 'Beneficiaries' });
+  await beneficiaries.getByLabel('From account').selectOption({ label: `Mr J Soap (${SAVER})` });
+  await beneficiaries.getByLabel('Beneficiary', { exact: true }).selectOption({ label: 'Discovery CC' });
+  await beneficiaries.getByLabel('Amount (R)').fill('100');
+  await beneficiaries.getByRole('button', { name: 'Pay' }).click();
+  await expect(page.getByText('Insufficient funds')).toBeVisible();
+});

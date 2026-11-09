@@ -7,7 +7,10 @@ import type {
   CardStatus,
   ConsentDetails,
   CreatedCard,
+  Beneficiary,
+  BeneficiaryCategory,
   ExchangeRate,
+  Transaction,
   DatabaseSummary,
   PendingTransaction,
   Scenario,
@@ -61,6 +64,42 @@ export function transfer(from: string, to: string, amount: number, reference: st
       transferList: [{ beneficiaryAccountId: to, amount, myReference: reference, theirReference: reference }],
     }),
   );
+}
+
+export interface TransactionFilters {
+  fromDate?: string;
+  toDate?: string;
+  transactionType?: string;
+  includePending?: boolean;
+}
+
+export async function getTransactions(accountId: string, filters: TransactionFilters): Promise<Transaction[]> {
+  const params = new URLSearchParams();
+  if (filters.fromDate) params.set('fromDate', filters.fromDate);
+  if (filters.toDate) params.set('toDate', filters.toDate);
+  if (filters.transactionType) params.set('transactionType', filters.transactionType);
+  if (filters.includePending) params.set('includePending', 'true');
+  const query = params.size > 0 ? `?${params}` : '';
+  return (await fetchData<{ transactions: Transaction[] }>(`${ACCOUNTS}/${accountId}/transactions${query}`)).transactions;
+}
+
+export async function getBeneficiaries(): Promise<Beneficiary[]> {
+  return (await fetchData<{ result: Beneficiary[] }>(`${ACCOUNTS}/beneficiaries`)).result;
+}
+
+export function getBeneficiaryCategories() {
+  return fetchData<BeneficiaryCategory[]>(`${ACCOUNTS}/beneficiarycategories`);
+}
+
+export interface Payment {
+  beneficiaryId: string;
+  amount: number;
+  myReference: string;
+  theirReference: string;
+}
+
+export function payBeneficiary(fromAccountId: string, payment: Payment) {
+  return fetchData(`${ACCOUNTS}/${fromAccountId}/paymultiple`, postJSON({ paymentList: [payment] }));
 }
 
 export function settleHold(hold: PendingTransaction) {

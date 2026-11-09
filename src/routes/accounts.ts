@@ -285,6 +285,8 @@ router.post('/:accountId/transfermultiple',
 
       // Commit every leg atomically.
       await prisma.$transaction(writes)
+      // Open dashboards refresh on this, including for API-made transfers.
+      await emitDatabaseSummary()
 
       return formatResponse(transfers, req, res)
     } catch (error) {
@@ -367,6 +369,7 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
 
     // Commit every payment atomically.
     await prisma.$transaction(writes)
+    await emitDatabaseSummary()
 
     return formatResponse(transfers, req, res)
   } catch (error) {

@@ -10,6 +10,9 @@ import {
   isCardActive,
   newestFirst,
   parseAmount,
+  paymentError,
+  periodRange,
+  signedAmount,
   transferError,
 } from './banking';
 import type { AccountWithBalance, PendingTransaction } from './api/types';
@@ -173,5 +176,32 @@ describe('appendLog', () => {
     expect(next).toHaveLength(MAX_LOG_LINES);
     expect(next[0]).toBe('1');
     expect(next.at(-1)).toBe('new');
+  });
+});
+
+describe('signedAmount', () => {
+  it('makes debits negative and keeps credits positive', () => {
+    expect(signedAmount({ type: 'DEBIT', amount: '40.99' })).toBe(-40.99);
+    expect(signedAmount({ type: 'CREDIT', amount: 100 })).toBe(100);
+  });
+});
+
+describe('periodRange', () => {
+  const today = new Date('2026-11-09T10:00:00Z');
+  it('counts back from today', () => {
+    expect(periodRange('30d', today)).toEqual({ fromDate: '2026-10-10', toDate: '2026-11-09' });
+    expect(periodRange('180d', today)).toEqual({ fromDate: '2026-05-13', toDate: '2026-11-09' });
+  });
+  it('starts "all time" before any sandbox data', () => {
+    expect(periodRange('all', today)).toEqual({ fromDate: '2000-01-01', toDate: '2026-11-09' });
+  });
+});
+
+describe('paymentError', () => {
+  it('needs an account, a beneficiary and a positive amount', () => {
+    expect(paymentError({ from: '', beneficiaryId: 'b', amount: '1' })).toBe('Pick the account to pay from');
+    expect(paymentError({ from: 'a', beneficiaryId: '', amount: '1' })).toBe('Pick a beneficiary');
+    expect(paymentError({ from: 'a', beneficiaryId: 'b', amount: '-1' })).toBe('Enter an amount greater than zero');
+    expect(paymentError({ from: 'a', beneficiaryId: 'b', amount: '25' })).toBeNull();
   });
 });

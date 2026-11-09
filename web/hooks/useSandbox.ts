@@ -6,7 +6,11 @@ import { io } from 'socket.io-client';
 import { getApiBaseUrl } from '@/lib/api/common';
 import {
   getAccountsOverview,
+  getBeneficiaries,
+  getBeneficiaryCategories,
   getCards,
+  getTransactions,
+  type TransactionFilters,
   getExchangeRates,
   getScenarios,
   getSettings,
@@ -29,6 +33,10 @@ export const KEYS = {
   scenarios: 'scenarios',
   settings: 'settings',
   exchangeRates: 'exchange-rates',
+  beneficiaries: 'beneficiaries',
+  beneficiaryCategories: 'beneficiary-categories',
+  // Per account and filters: ['transactions', accountId, filters].
+  transactions: 'transactions',
 } as const;
 
 export function useAccountsOverview() {
@@ -51,6 +59,22 @@ export function useExchangeRates() {
   return useSWR(KEYS.exchangeRates, getExchangeRates, { ...SWR_CONFIG, revalidateOnFocus: false });
 }
 
+export function useTransactions(accountId: string | null, filters: TransactionFilters) {
+  return useSWR(
+    accountId ? [KEYS.transactions, accountId, filters] : null,
+    () => getTransactions(accountId as string, filters),
+    { ...SWR_CONFIG, keepPreviousData: true },
+  );
+}
+
+export function useBeneficiaries() {
+  return useSWR(KEYS.beneficiaries, getBeneficiaries, SWR_CONFIG);
+}
+
+export function useBeneficiaryCategories() {
+  return useSWR(KEYS.beneficiaryCategories, getBeneficiaryCategories, { ...SWR_CONFIG, revalidateOnFocus: false });
+}
+
 export function useSettings() {
   return useSWR(KEYS.settings, getSettings, { ...SWR_CONFIG, revalidateOnFocus: false });
 }
@@ -59,7 +83,14 @@ export function useSettings() {
 export function useRefreshSandbox() {
   const { mutate } = useSWRConfig();
   return () =>
-    Promise.all([mutate(KEYS.accounts), mutate(KEYS.cards), mutate(KEYS.summary)]);
+    Promise.all([
+      mutate(KEYS.accounts),
+      mutate(KEYS.cards),
+      mutate(KEYS.summary),
+      mutate(KEYS.beneficiaries),
+      // Every open transaction list, whatever its account and filters.
+      mutate(key => Array.isArray(key) && key[0] === KEYS.transactions),
+    ]);
 }
 
 // Live server logs, and a refresh whenever the API reports a data change
