@@ -3478,7 +3478,7 @@ export interface paths {
         put?: never;
         /**
          * Register a webhook
-         * @description Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.
+         * @description Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery, X-Sandbox-Attempt and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. A failed delivery is retried after 5 s, 30 s and 2 min (WEBHOOK_RETRY_DELAYS_MS) with the same X-Sandbox-Delivery id. See the webhooks section for each payload.
          */
         post: {
             parameters: {
@@ -4692,6 +4692,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4700,7 +4701,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "transaction.posted";
@@ -4742,6 +4743,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4750,7 +4752,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "transaction.pending";
@@ -4792,6 +4794,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4800,7 +4803,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "transaction.reversed";
@@ -4842,6 +4845,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4850,7 +4854,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "card.authorization";
@@ -4892,6 +4896,7 @@ export interface webhooks {
                 header: {
                     "X-Sandbox-Event": string;
                     "X-Sandbox-Delivery": string;
+                    "X-Sandbox-Attempt": string;
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -4900,7 +4905,7 @@ export interface webhooks {
             requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description The delivery id (also in X-Sandbox-Delivery). */
+                        /** @description The event id: the same on every retry (also in X-Sandbox-Delivery). */
                         id: string;
                         /** @enum {string} */
                         event: "webhook.test";
@@ -5242,8 +5247,13 @@ export interface components {
             createdAt: string;
         };
         WebhookDelivery: {
+            /** @description This attempt. */
             deliveryId: string;
             webhookId: string;
+            /** @description The event: the same for every attempt (payload id, X-Sandbox-Delivery). */
+            eventId: string;
+            /** @description 1 for the first try; retries after 5 s, 30 s and 2 min by default. */
+            attempt: number;
             event: string;
             /** @enum {string} */
             status: "delivered" | "failed";

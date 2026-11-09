@@ -165,6 +165,11 @@ model Webhook {
 model WebhookDelivery {
     deliveryId String @id
     webhookId String
+    // Shared by every attempt at the same event (the payload id and
+    // X-Sandbox-Delivery header), so receivers can de-duplicate retries.
+    eventId String @default("")
+    // 1 for the first try, then 2, 3, ... for retries.
+    attempt Int @default(1)
     event String
     payload String
     // delivered (2xx response) or failed (other status, error or timeout)

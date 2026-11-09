@@ -260,7 +260,7 @@ export const Webhook = z
 // The JSON body of every webhook delivery.
 export function webhookEnvelope<T extends z.ZodTypeAny>(event: string, data: T) {
   return z.object({
-    id: z.string().openapi({ description: 'The delivery id (also in X-Sandbox-Delivery).' }),
+    id: z.string().openapi({ description: 'The event id: the same on every retry (also in X-Sandbox-Delivery).' }),
     event: z.literal(event),
     createdAt: isoDateTime,
     data,
@@ -269,8 +269,10 @@ export function webhookEnvelope<T extends z.ZodTypeAny>(event: string, data: T) 
 
 export const WebhookDelivery = z
   .object({
-    deliveryId: z.string(),
+    deliveryId: z.string().openapi({ description: 'This attempt.' }),
     webhookId: z.string(),
+    eventId: z.string().openapi({ description: 'The event: the same for every attempt (payload id, X-Sandbox-Delivery).' }),
+    attempt: z.number().int().openapi({ description: '1 for the first try; retries after 5 s, 30 s and 2 min by default.' }),
     event: z.string(),
     status: z.enum(['delivered', 'failed']),
     responseStatus: z.number().int().nullable(),

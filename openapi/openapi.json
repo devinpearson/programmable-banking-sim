@@ -1078,10 +1078,19 @@
         "type": "object",
         "properties": {
           "deliveryId": {
-            "type": "string"
+            "type": "string",
+            "description": "This attempt."
           },
           "webhookId": {
             "type": "string"
+          },
+          "eventId": {
+            "type": "string",
+            "description": "The event: the same for every attempt (payload id, X-Sandbox-Delivery)."
+          },
+          "attempt": {
+            "type": "integer",
+            "description": "1 for the first try; retries after 5 s, 30 s and 2 min by default."
           },
           "event": {
             "type": "string"
@@ -1138,6 +1147,8 @@
         "required": [
           "deliveryId",
           "webhookId",
+          "eventId",
+          "attempt",
           "event",
           "status",
           "responseStatus",
@@ -6808,7 +6819,7 @@
           "Webhooks"
         ],
         "summary": "Register a webhook",
-        "description": "Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.",
+        "description": "Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery, X-Sandbox-Attempt and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. A failed delivery is retried after 5 s, 30 s and 2 min (WEBHOOK_RETRY_DELAYS_MS) with the same X-Sandbox-Delivery id. See the webhooks section for each payload.",
         "security": [],
         "x-sandbox-only": true,
         "requestBody": {
@@ -8275,10 +8286,20 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The event id; the same on every retry."
             },
             "required": true,
             "name": "X-Sandbox-Delivery",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "1, then 2, 3, 4 for retries."
+            },
+            "required": true,
+            "name": "X-Sandbox-Attempt",
             "in": "header"
           },
           {
@@ -8299,7 +8320,7 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "The delivery id (also in X-Sandbox-Delivery)."
+                    "description": "The event id: the same on every retry (also in X-Sandbox-Delivery)."
                   },
                   "event": {
                     "type": "string",
@@ -8349,10 +8370,20 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The event id; the same on every retry."
             },
             "required": true,
             "name": "X-Sandbox-Delivery",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "1, then 2, 3, 4 for retries."
+            },
+            "required": true,
+            "name": "X-Sandbox-Attempt",
             "in": "header"
           },
           {
@@ -8373,7 +8404,7 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "The delivery id (also in X-Sandbox-Delivery)."
+                    "description": "The event id: the same on every retry (also in X-Sandbox-Delivery)."
                   },
                   "event": {
                     "type": "string",
@@ -8423,10 +8454,20 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The event id; the same on every retry."
             },
             "required": true,
             "name": "X-Sandbox-Delivery",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "1, then 2, 3, 4 for retries."
+            },
+            "required": true,
+            "name": "X-Sandbox-Attempt",
             "in": "header"
           },
           {
@@ -8447,7 +8488,7 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "The delivery id (also in X-Sandbox-Delivery)."
+                    "description": "The event id: the same on every retry (also in X-Sandbox-Delivery)."
                   },
                   "event": {
                     "type": "string",
@@ -8497,10 +8538,20 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The event id; the same on every retry."
             },
             "required": true,
             "name": "X-Sandbox-Delivery",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "1, then 2, 3, 4 for retries."
+            },
+            "required": true,
+            "name": "X-Sandbox-Attempt",
             "in": "header"
           },
           {
@@ -8521,7 +8572,7 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "The delivery id (also in X-Sandbox-Delivery)."
+                    "description": "The event id: the same on every retry (also in X-Sandbox-Delivery)."
                   },
                   "event": {
                     "type": "string",
@@ -8571,10 +8622,20 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The event id; the same on every retry."
             },
             "required": true,
             "name": "X-Sandbox-Delivery",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "1, then 2, 3, 4 for retries."
+            },
+            "required": true,
+            "name": "X-Sandbox-Attempt",
             "in": "header"
           },
           {
@@ -8595,7 +8656,7 @@
                 "properties": {
                   "id": {
                     "type": "string",
-                    "description": "The delivery id (also in X-Sandbox-Delivery)."
+                    "description": "The event id: the same on every retry (also in X-Sandbox-Delivery)."
                   },
                   "event": {
                     "type": "string",

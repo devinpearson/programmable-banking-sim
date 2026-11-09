@@ -125,6 +125,9 @@ function Deliveries({ webhook }: { webhook: Webhook }) {
           <td className="py-2 pr-4 font-mono text-xs text-gray-900 dark:text-gray-100">{delivery.event}</td>
           <td className="py-2 pr-4">
             <StatusBadge delivery={delivery} />
+            {delivery.attempt > 1 && (
+              <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">attempt {delivery.attempt}</span>
+            )}
             {delivery.error && <span className="block text-xs text-red-700 dark:text-red-400">{delivery.error}</span>}
           </td>
           <td className="whitespace-nowrap py-2 pr-4 text-right text-gray-600 dark:text-gray-300">{delivery.durationMs} ms</td>

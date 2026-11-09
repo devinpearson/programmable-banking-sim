@@ -451,7 +451,7 @@ register('post', '/webhooks', {
   tag: 'Webhooks',
   summary: 'Register a webhook',
   description:
-    'Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. See the webhooks section for each payload.',
+    'Events are POSTed as JSON with X-Sandbox-Event, X-Sandbox-Delivery, X-Sandbox-Attempt and, with a secret, X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body>. A failed delivery is retried after 5 s, 30 s and 2 min (WEBHOOK_RETRY_DELAYS_MS) with the same X-Sandbox-Delivery id. See the webhooks section for each payload.',
   sandbox: true,
   security: 'none',
   body: request.createWebhookBody,
@@ -495,7 +495,8 @@ register('get', '/webhooks/:webhookId/deliveries', {
 // The deliveries themselves, as OpenAPI 3.1 webhooks.
 const deliveryHeaders = z.object({
   'X-Sandbox-Event': z.string(),
-  'X-Sandbox-Delivery': z.string(),
+  'X-Sandbox-Delivery': z.string().openapi({ description: 'The event id; the same on every retry.' }),
+  'X-Sandbox-Attempt': z.string().openapi({ description: '1, then 2, 3, 4 for retries.' }),
   'X-Sandbox-Signature': z.string().optional().openapi({ description: 'sha256=<hex HMAC of the body>, when the webhook has a secret' }),
 })
 const WEBHOOK_PAYLOADS: [string, string, z.ZodTypeAny][] = [

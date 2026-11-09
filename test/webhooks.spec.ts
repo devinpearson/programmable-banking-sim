@@ -6,7 +6,9 @@ import type { AddressInfo } from 'node:net'
 import { app } from './app-server'
 import { settleWebhookDeliveries } from '../src/webhooks'
 
-// Webhooks deliver to a real HTTP receiver on 127.0.0.1.
+// Webhooks deliver to a real HTTP receiver on 127.0.0.1. Retries use short
+// delays here (read when each delivery starts).
+process.env.WEBHOOK_RETRY_DELAYS_MS = '20,40,80'
 const ACCOUNT_ID = 'test-webhook-account-001'
 const OTHER_ID = 'test-webhook-account-002'
 const ACCOUNTS = '/za/pb/v1/accounts'
@@ -22,6 +24,8 @@ let receiver: http.Server
 let receiverUrl: string
 let received: Received[] = []
 let respondWith = 200
+// Answer the first N deliveries with 503, then respondWith.
+let failFirst = 0
 
 beforeAll(async () => {
   receiver = http.createServer((req, res) => {
@@ -29,7 +33,7 @@ beforeAll(async () => {
     req.on('data', chunk => (body += chunk))
     req.on('end', () => {
       received.push({ headers: req.headers, body, json: JSON.parse(body) })
-      res.statusCode = respondWith
+      res.statusCode = received.length <= failFirst ? 503 : respondWith
       res.end('ok')
     })
   })
@@ -71,6 +75,8 @@ beforeEach(async () => {
   await removeAllWebhooks()
   received = []
   respondWith = 200
+  failFirst = 0
+  process.env.WEBHOOK_RETRY_DELAYS_MS = '20,40,80'
   await request(app).delete(`${ACCOUNTS}/${ACCOUNT_ID}`)
   await request(app).delete(`${ACCOUNTS}/${OTHER_ID}`)
   await request(app).post(ACCOUNTS).send({ accountId: ACCOUNT_ID, accountNumber: '80000000001' })
@@ -230,5 +236,68 @@ describe('Webhook deliveries', () => {
 
     const [refused] = (await request(app).get(`/webhooks/${unreachable.webhookId}/deliveries`)).body.data.deliveries
     assert.include(refused, { status: 'failed', responseStatus: null, error: 'Connection refused' })
+  })
+})
+
+describe('Webhook retries', () => {
+  it('retries a failed delivery with the same id until it is accepted', async () => {
+    failFirst = 2
+    const webhook = await register({ url: receiverUrl, events: ['transaction.posted'] })
+    await request(app).post(`${ACCOUNTS}/${ACCOUNT_ID}/topup`).send({ amount: 5 })
+    await settleWebhookDeliveries()
+
+    assert.lengthOf(received, 3)
+    assert.deepEqual(received.map(r => r.headers['x-sandbox-attempt']), ['1', '2', '3'])
+    const ids = new Set(received.map(r => r.headers['x-sandbox-delivery']))
+    assert.equal(ids.size, 1)
+    assert.isTrue(received.every(r => r.json.id === received[0].json.id))
+
+    const deliveries = (await request(app).get(`/webhooks/${webhook.webhookId}/deliveries`)).body.data.deliveries
+    assert.deepEqual(
+      deliveries.map((d: { attempt: number; status: string }) => [d.attempt, d.status]),
+      [
+        [3, 'delivered'],
+        [2, 'failed'],
+        [1, 'failed'],
+      ],
+    )
+    assert.isTrue(deliveries.every((d: { eventId: string }) => d.eventId === received[0].json.id))
+  })
+
+  it('gives up after four attempts', async () => {
+    respondWith = 500
+    await register({ url: receiverUrl, events: ['transaction.posted'] })
+    await request(app).post(`${ACCOUNTS}/${ACCOUNT_ID}/topup`).send({ amount: 5 })
+    await settleWebhookDeliveries()
+    assert.lengthOf(received, 4)
+  })
+
+  it('stops retrying once the webhook is paused', async () => {
+    respondWith = 500
+    process.env.WEBHOOK_RETRY_DELAYS_MS = '300,300,300'
+    const webhook = await register({ url: receiverUrl, events: ['transaction.posted'] })
+    await request(app).post(`${ACCOUNTS}/${ACCOUNT_ID}/topup`).send({ amount: 5 })
+    while (received.length === 0) await new Promise(resolve => setTimeout(resolve, 10))
+    await request(app).patch(`/webhooks/${webhook.webhookId}`).send({ active: false })
+    await settleWebhookDeliveries()
+    assert.lengthOf(received, 1)
+  })
+
+  it('does not retry when retries are turned off', async () => {
+    respondWith = 500
+    process.env.WEBHOOK_RETRY_DELAYS_MS = ''
+    await register({ url: receiverUrl, events: ['transaction.posted'] })
+    await request(app).post(`${ACCOUNTS}/${ACCOUNT_ID}/topup`).send({ amount: 5 })
+    await settleWebhookDeliveries()
+    assert.lengthOf(received, 1)
+  })
+
+  it('never retries a test send', async () => {
+    respondWith = 500
+    const webhook = await register({ url: receiverUrl })
+    const response = await request(app).post(`/webhooks/${webhook.webhookId}/test`)
+    assert.equal(response.body.data.attempt, 1)
+    await settleWebhookDeliveries()
+    assert.lengthOf(received, 1)
   })
 })

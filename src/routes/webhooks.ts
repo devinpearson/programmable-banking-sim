@@ -33,6 +33,8 @@ function deliveryResponse(delivery: WebhookDelivery) {
   return {
     deliveryId: delivery.deliveryId,
     webhookId: delivery.webhookId,
+    eventId: delivery.eventId,
+    attempt: delivery.attempt,
     event: delivery.event,
     status: delivery.status,
     responseStatus: delivery.responseStatus,
