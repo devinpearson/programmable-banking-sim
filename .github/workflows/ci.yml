@@ -30,6 +30,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: OpenAPI document matches the routes
+        env:
+          DATABASE_URL: file:./ci.db
+        run: |
+          npx prisma migrate deploy
+          npm run openapi:check
+
       - name: Test
         run: npm test
 
@@ -51,6 +58,11 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: API types match the OpenAPI document
+        run: |
+          npm run api:types
+          git diff --exit-code lib/api/schema.d.ts
 
       - name: Typecheck
         run: npm run typecheck

@@ -22,7 +22,7 @@ function toForm(settings: Settings): Form {
     client_secret: settings.client_secret ?? '',
     api_key: settings.api_key ?? '',
     token_expiry: String(settings.token_expiry ?? 1799),
-    auth: settings.auth === true || settings.auth === 'true',
+    auth: settings.auth,
   };
 }
 

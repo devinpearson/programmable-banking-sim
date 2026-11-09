@@ -70,11 +70,11 @@ describe('buildSwipeRequest', () => {
 
 describe('describeSwipe', () => {
   it('describes an approved hold', () => {
-    const text = describeSwipe({ result: true, transaction: { transactionId: 1, status: 'PENDING' } }, 50, 'Cafe');
+    const text = describeSwipe({ result: true, transaction: { status: 'PENDING' } }, 50, 'Cafe');
     expect(text).toMatch(/^Approved: R 50[.,]00 at Cafe \(pending hold placed\)$/);
   });
   it('describes an approved, posted swipe', () => {
-    expect(describeSwipe({ result: true, transaction: { transactionId: 1, status: 'POSTED' } }, 5, 'Cafe')).toContain(
+    expect(describeSwipe({ result: true, transaction: { status: 'POSTED' } }, 5, 'Cafe')).toContain(
       '(posted)',
     );
   });

@@ -25,6 +25,12 @@ import { seedCards } from '../prisma/card.js'
 import { seedCardCodes } from '../prisma/card-code.js'
 import { seedProfiles } from '../prisma/profile.js'
 import { listScenarios, applyScenario } from './scenarios.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { setupOpenApi } from './config/openapi.js'
+import { validateRequest, validatedBody } from './middleware/validation.js'
+import { authRateLimit } from './middleware/rateLimit.js'
+import { loginBody, settingsBody } from './schema/requestSchemas.js'
+import type { z } from 'zod'
 
 dotenv.config()
 
@@ -54,10 +60,14 @@ export const refreshTokens = new Map<string, RefreshGrant>()
 const messageQueue = 'logs'
 
 io.on('connection', socket => {
-  socket.on('envs', msg => {
-    console.log(`message: ${msg}`)
-    settings = msg
-    io.emit('envs', settings)
+  // Same rules as POST /envs: validated, saved, and broadcast.
+  socket.on('envs', async msg => {
+    const parsed = settingsBody.safeParse(msg)
+    if (!parsed.success) {
+      console.log('Ignoring invalid settings from the socket:', parsed.error.issues)
+      return
+    }
+    await applySettings(parsed.data)
   })
   socket.on('control', async (msg: ControlMessage) => {
     console.log(`control: ${msg}`)
@@ -101,10 +111,10 @@ app.get('/login', redirectToWeb('/login'))
 app.get('/wpaas/prog-banking-wpaas/oauth-consent', redirectToWeb('/consent'))
 app.get('/guide', redirectToWeb('/guide'))
 
-app.post('/login', (req, res) => {
-  const email = req.body.email
-  const password = req.body.password
-  const qsp = req.query.qsp || req.body.qsp // Get qsp from query params or form body
+app.post('/login', authRateLimit, validateRequest({ body: loginBody }), (req, res) => {
+  const { email, password, qsp: formQsp } = validatedBody(res, loginBody)
+  // The qsp comes in the query string or, from the login page, the form body.
+  const qsp = (typeof req.query.qsp === 'string' && req.query.qsp) || formQsp
   
   if (email === 'admin@example.com' && password === 'admin') {
     // Mark the pending OAuth flow as signed in so /approve will accept it.
@@ -124,37 +134,34 @@ app.post('/login', (req, res) => {
   }
 })
 
-app.post('/envs', async (req: Request, res: Response) => {
-  await prisma.setting.update({
-    where: { name: 'client_id' },
-    data: { value: req.body.client_id },
-  })
-  await prisma.setting.update({
-    where: { name: 'client_secret' },
-    data: { value: req.body.client_secret },
-  })
-  await prisma.setting.update({
-    where: { name: 'api_key' },
-    data: { value: req.body.api_key },
-  })
-  await prisma.setting.update({
-    where: { name: 'token_expiry' },
-    data: { value: req.body.token_expiry as unknown as string },
-  })
-  let auth = 'false'
-  if (req.body.auth === true) {
-    auth = 'true'
+// Save the sandbox settings, use them from now on, and tell dashboards.
+async function applySettings(input: z.infer<typeof settingsBody>) {
+  const next: Settings = {
+    client_id: input.client_id,
+    client_secret: input.client_secret,
+    api_key: input.api_key,
+    token_expiry: input.token_expiry,
+    auth: input.auth === true,
   }
-  await prisma.setting.update({
-    where: { name: 'auth' },
-    data: { value: auth },
-  })
-  settings = req.body
-  return res.json(settings)
+  for (const [name, value] of Object.entries(next)) {
+    await prisma.setting.upsert({
+      where: { name },
+      update: { value: String(value) },
+      create: { name, value: String(value) },
+    })
+  }
+  settings = next
+  io.emit('envs', settings)
+  return settings
+}
+
+app.post('/envs', validateRequest({ body: settingsBody }), async (_req, res) => {
+  return res.json(await applySettings(validatedBody(res, settingsBody)))
 })
 
 // Handle legacy /oauth requests
-app.all('/oauth*', (_req: Request, res: Response) => {
+// Express 5 wildcards are named: matches /oauth, /oauth/... and /oauthX.
+app.all('/oauth{*rest}', (_req, res) => {
   return res.status(404).json({
     error: 'endpoint_not_found',
     message: 'OAuth endpoints have moved. Use the correct endpoints below.',
@@ -172,7 +179,15 @@ app.all('/oauth*', (_req: Request, res: Response) => {
   })
 })
 
-app.use('/identity', identity)
+// Where each router is mounted; also read by the OpenAPI route check.
+export const routerMounts = {
+  '/identity': identity,
+  '/za/pb/v1/accounts': accounts,
+  '/za/v1/cards': cards,
+} as const
+
+// Token requests check client secrets and the OAuth pages sign users in.
+app.use('/identity', authRateLimit, routerMounts['/identity'])
 // Check the bearer token when auth is on, and enforce what it was granted:
 // its scopes here, its consented accounts in the routers (via res.locals).
 app.use('/za', (req, res, next) => {
@@ -191,8 +206,8 @@ app.use('/za', (req, res, next) => {
   next()
 })
 
-app.use('/za/pb/v1/accounts', accounts)
-app.use('/za/v1/cards', cards)
+app.use('/za/pb/v1/accounts', routerMounts['/za/pb/v1/accounts'])
+app.use('/za/v1/cards', routerMounts['/za/v1/cards'])
 
 // Shared database lifecycle helpers, used by the control socket and the
 // /clear and /restore routes so every entry point behaves identically.
@@ -215,7 +230,7 @@ async function restoreDatabase() {
   await seedCardCodes()
 }
 
-app.delete('/clear', async (req: Request, res: Response) => {
+app.delete('/clear', async (req, res) => {
   try {
     await clearDatabase()
 
@@ -226,7 +241,7 @@ app.delete('/clear', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/restore', async (req: Request, res: Response) => {
+app.get('/restore', async (req, res) => {
   try {
     await restoreDatabase()
 
@@ -238,12 +253,12 @@ app.get('/restore', async (req: Request, res: Response) => {
 })
 
 // List the named starting scenarios available to load.
-app.get('/scenarios', (req: Request, res: Response) => {
+app.get('/scenarios', (req, res) => {
   return formatResponse(listScenarios(), req, res)
 })
 
 // Load a named scenario, replacing the current account data.
-app.post('/scenarios/:id', async (req: Request, res: Response) => {
+app.post('/scenarios/:id', async (req, res) => {
   try {
     const result = await applyScenario(req.params.id)
     if (!result) {
@@ -257,7 +272,7 @@ app.post('/scenarios/:id', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/envs', async (req: Request, res: Response) => {
+app.get('/envs', async (req, res) => {
   try {
     return formatResponse(settings, req, res)
   } catch (error) {
@@ -266,10 +281,10 @@ app.get('/envs', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' })
 })
-app.get('/database-summary', async (req: Request, res: Response) => {
+app.get('/database-summary', async (req, res) => {
   try {
     const [profileCount, accountCount, cardCount, transactionCount] = await Promise.all([
       prisma.profile.count(),
@@ -291,6 +306,12 @@ app.get('/database-summary', async (req: Request, res: Response) => {
     return formatErrorResponse(req, res, 500)
   }
 })
+
+// OpenAPI document and Swagger UI: /api-docs.json, /api-docs.yaml, /swagger-ui.
+setupOpenApi(app)
+
+// After every route: JSON for anything a handler threw or rejected with.
+app.use(errorHandler)
 
 // The unexpired access token named by the Authorization header, or null.
 function validToken(req: Request): AccessToken | null {
@@ -359,6 +380,7 @@ export function formatErrorResponse(
   res: Response,
   code: number,
   errorMessage?: string,
+  extra?: Record<string, unknown>,
 ) {
   const date = new Date()
   io.sockets.emit(
@@ -375,7 +397,9 @@ export function formatErrorResponse(
   )
   // Most errors keep an empty body; pass a message when the caller needs to
   // know *why* (e.g. insufficient funds).
-  return res.status(code).json(errorMessage ? { errorMessage } : undefined)
+  return res
+    .status(code)
+    .json(errorMessage ? { errorMessage, ...extra } : undefined)
 }
 
 async function fetchSettings() {
@@ -393,7 +417,7 @@ async function fetchSettings() {
         settings.api_key = setting.value
         break
       case 'token_expiry':
-        settings.token_expiry = setting.value as unknown as number
+        settings.token_expiry = Number(setting.value)
         break
       case 'auth':
         if (setting.value === 'true') {

@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express'
+import express from 'express'
 const router = express.Router()
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
@@ -10,6 +10,16 @@ import {
 } from '../app.js'
 import { getAccountBalance } from '../balance.js'
 import { accountAllowed } from '../consent.js'
+import { validateRequest, validatedBody } from '../middleware/validation.js'
+import {
+  cardCodeBody,
+  cardStatusBody,
+  createCardBody,
+  environmentVariablesBody,
+  executeCodeBody,
+  executeLiveBody,
+  toggleProgrammableBody,
+} from '../schema/requestSchemas.js'
 import {
   InvestecTransactionType,
   TransactionStatus,
@@ -43,7 +53,7 @@ router.param('cardKey', async (req, res, next, cardKey: string) => {
   }
 })
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req, res) => {
   try {
     const result = (await prisma.card.findMany()).filter(card =>
       accountAllowed(res, card.accountId),
@@ -67,7 +77,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validateRequest({ body: createCardBody }), async (req, res) => {
   try {
     const savedCodeId = uuidv4()
     const publishedCodeId = uuidv4()
@@ -83,7 +93,7 @@ router.post('/', async (req: Request, res: Response) => {
       savedCode: savedCodeId,
       envs: '{}',
     }
-    card = { ...card, ...req.body }
+    card = { ...card, ...validatedBody(res, createCardBody) }
     if (card.cardKey === undefined || card.cardKey === '') {
       card.cardKey = uuidv4()
     }
@@ -106,7 +116,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 })
 
-router.delete('/:cardKey', async (req: Request, res: Response) => {
+router.delete('/:cardKey', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the account exists
@@ -129,7 +139,7 @@ router.delete('/:cardKey', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:cardKey/code', async (req: Request, res: Response) => {
+router.get('/:cardKey/code', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -154,7 +164,7 @@ router.get('/:cardKey/code', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/:cardKey/code', async (req: Request, res: Response) => {
+router.post('/:cardKey/code', validateRequest({ body: cardCodeBody }), async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -167,10 +177,7 @@ router.post('/:cardKey/code', async (req: Request, res: Response) => {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    let code = req.body.code
-    if (code === undefined) {
-      code = ''
-    }
+    const { code } = validatedBody(res, cardCodeBody)
     const cardCode = await prisma.cardCode.update({
       where: {
         codeId: card.savedCode,
@@ -186,7 +193,7 @@ router.post('/:cardKey/code', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
+router.get('/:cardKey/publishedcode', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -211,7 +218,7 @@ router.get('/:cardKey/publishedcode', async (req: Request, res: Response) => {
   }
 })
 
-router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
+router.post('/:cardKey/publishedcode', validateRequest({ body: cardCodeBody }), async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -224,10 +231,7 @@ router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    let code = req.body.code
-    if (code === undefined) {
-      code = ''
-    }
+    const { code } = validatedBody(res, cardCodeBody)
 
     const cardCode = await prisma.cardCode.update({
       where: {
@@ -246,26 +250,15 @@ router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
 })
 
 // Sandbox control: stop or reactivate a card. Not a real Investec endpoint.
-// Body: { "status": "Active" | "Stopped" }.
-const CARD_STATUSES = ['Active', 'Stopped']
-router.post('/:cardKey/status', async (req: Request, res: Response) => {
+// Body: { "status": "Active" | "Stopped" } (any case).
+router.post('/:cardKey/status', validateRequest({ body: cardStatusBody }), async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     const card = await prisma.card.findFirst({ where: { cardKey } })
     if (!card) {
       return formatErrorResponse(req, res, 404)
     }
-    const status = CARD_STATUSES.find(
-      s => s.toLowerCase() === String(req.body.status ?? '').toLowerCase(),
-    )
-    if (!status) {
-      return formatErrorResponse(
-        req,
-        res,
-        400,
-        `status must be one of: ${CARD_STATUSES.join(', ')}`,
-      )
-    }
+    const { status } = validatedBody(res, cardStatusBody)
     await prisma.card.update({ where: { cardKey }, data: { status } })
     return formatResponse({ cardKey, status }, req, res)
   } catch (error) {
@@ -276,7 +269,8 @@ router.post('/:cardKey/status', async (req: Request, res: Response) => {
 
 router.post(
   '/:cardKey/toggle-programmable-feature',
-  async (req: Request, res: Response) => {
+  validateRequest({ body: toggleProgrammableBody }),
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -289,10 +283,7 @@ router.post(
         console.log('no card found')
         return formatErrorResponse(req, res, 404) // no account was found
       }
-      let enabled = req.body.Enabled
-      if (enabled !== true) {
-        enabled = false
-      }
+      const enabled = validatedBody(res, toggleProgrammableBody).Enabled
       await prisma.card.update({
         where: {
           cardKey: cardKey,
@@ -311,7 +302,7 @@ router.post(
 
 router.get(
   '/:cardKey/environmentvariables',
-  async (req: Request, res: Response) => {
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -346,7 +337,8 @@ router.get(
 
 router.post(
   '/:cardKey/environmentvariables',
-  async (req: Request, res: Response) => {
+  validateRequest({ body: environmentVariablesBody }),
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -359,10 +351,7 @@ router.post(
         console.log('no card found')
         return formatErrorResponse(req, res, 404) // no account was found
       }
-      let vars = JSON.stringify(req.body.variables)
-      if (vars === undefined) {
-        vars = '{}'
-      }
+      const vars = JSON.stringify(validatedBody(res, environmentVariablesBody).variables)
       await prisma.card.update({
         where: {
           cardKey: cardKey,
@@ -387,7 +376,7 @@ router.post(
   },
 )
 
-router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
+router.post('/:cardKey/code/execute', validateRequest({ body: executeCodeBody }), async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -400,8 +389,8 @@ router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
       console.log('no card found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    const simulationPayload = req.body
-    let code = simulationPayload.simulationcode
+    const simulationPayload = validatedBody(res, executeCodeBody)
+    const code = simulationPayload.simulationcode
     const transaction = emu.createTransaction(
       simulationPayload.currencyCode,
       simulationPayload.centsAmount, // Amount in cents
@@ -410,9 +399,6 @@ router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
       simulationPayload.merchantCity, // City
       simulationPayload.countryCode, // Country code
     )
-    if (simulationPayload.simulationcode === undefined) {
-      code = ''
-    }
 
     const result = await emu.run(transaction, code, card.envs)
     // console.log(result)
@@ -458,7 +444,8 @@ router.post('/:cardKey/code/execute', async (req: Request, res: Response) => {
 
 router.post(
   '/:cardKey/code/execute-live',
-  async (req: Request, res: Response) => {
+  validateRequest({ body: executeLiveBody }),
+  async (req, res) => {
     try {
       const cardKey = req.params.cardKey
       // check that the card exists
@@ -476,12 +463,9 @@ router.post(
           codeId: card.publishedCode,
         },
       })
-      const simulationPayload = req.body
+      const simulationPayload = validatedBody(res, executeLiveBody)
       const code = cardCode?.code ?? ''
-      const amount = Number(simulationPayload.centsAmount) / 100
-      if (!Number.isFinite(amount) || amount <= 0) {
-        return formatErrorResponse(req, res, 400) // invalid amount
-      }
+      const amount = simulationPayload.centsAmount / 100
       // A stopped (or otherwise inactive) card is declined by the bank before
       // any card code runs.
       if (card.status.toLowerCase() !== 'active') {
@@ -556,14 +540,14 @@ router.post(
         const now = dayjs().format('YYYY-MM-DD')
         // By default an approved swipe is a pending hold. Pass settle: true to
         // post it straight away (an already-settled card purchase).
-        const settleNow = simulationPayload.settle === true
+        const settleNow = simulationPayload.settle
         posted = await prisma.transaction.create({
           data: {
             accountId: card.accountId,
             type: TransactionType.DEBIT,
             transactionType: InvestecTransactionType.CardPurchases,
             status: settleNow ? TransactionStatus.POSTED : TransactionStatus.PENDING,
-            description: simulationPayload.merchantName ?? 'Card purchase',
+            description: simulationPayload.merchantName,
             cardNumber: card.cardNumber,
             postedOrder: 0,
             // A hold has no posting/value/action dates until it settles.
@@ -587,7 +571,7 @@ router.post(
   },
 )
 
-router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
+router.get('/:cardKey/code/executions', async (req, res) => {
   try {
     const cardKey = req.params.cardKey
     // check that the card exists
@@ -623,7 +607,7 @@ router.get('/:cardKey/code/executions', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/countries', async (req: Request, res: Response) => {
+router.get('/countries', async (req, res) => {
   try {
     const result = await prisma.country.findMany()
     const data = { result }
@@ -634,7 +618,7 @@ router.get('/countries', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/currencies', async (req: Request, res: Response) => {
+router.get('/currencies', async (req, res) => {
   try {
     const result = await prisma.currency.findMany()
     const data = { result }
@@ -645,7 +629,7 @@ router.get('/currencies', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/merchants', async (req: Request, res: Response) => {
+router.get('/merchants', async (req, res) => {
   try {
     const result = await prisma.merchant.findMany()
     const data = { result }

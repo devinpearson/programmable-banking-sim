@@ -53,8 +53,13 @@ export function buildSwipeRequest(input: SwipeInput) {
   };
 }
 
+// The parts of a swipe result describeSwipe reads.
+type SwipeOutcome = Pick<SwipeResult, 'result' | 'reason'> & {
+  transaction: Pick<NonNullable<SwipeResult['transaction']>, 'status'> | null;
+};
+
 // One line describing what happened to a swipe.
-export function describeSwipe(result: SwipeResult, amount: number, merchantName: string): string {
+export function describeSwipe(result: SwipeOutcome, amount: number, merchantName: string): string {
   if (result.result) {
     const outcome = !result.transaction
       ? ''

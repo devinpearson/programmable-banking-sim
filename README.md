@@ -58,7 +58,27 @@ The web app reads the API's address from `NEXT_PUBLIC_API_BASE_URL` (default `ht
 ### Web app development
 In `web/`: `npm run lint`, `npm run typecheck`, `npm run test:unit` (Vitest), `npm run test:e2e` (Playwright, which starts its own API and web app on spare ports with a throwaway database) and `npm run build`.
 
+The web app's API types (`web/lib/api/schema.d.ts`) are generated from the OpenAPI document: after changing the API, run `npm run openapi:generate` in the root, then `npm run api:types` in `web/`. CI fails if either is stale.
+
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
+
+## API docs
+The OpenAPI document is generated from the same zod schemas that validate requests, so the docs and the API can't drift apart.
+- **Swagger UI:** http://localhost:3000/swagger-ui (or `/api-docs`)
+- **Spec:** `/api-docs.json` and `/api-docs.yaml`, also committed as [`openapi/openapi.json`](openapi/openapi.json) and [`openapi/openapi.yaml`](openapi/openapi.yaml)
+- Operations marked `x-sandbox-only` have no Investec equivalent.
+
+After changing a route or schema, run `npm run openapi:generate`. `npm run openapi:check` (run in CI) fails if a mounted route is undocumented, a documented route isn't mounted, or the files in `openapi/` are stale.
+
+### Validation errors
+Invalid requests get a `400` naming the field, plus every problem in `details`:
+```json
+{
+  "errorMessage": "transferList.0.amount: must be greater than zero",
+  "details": [{ "location": "body", "path": "transferList.0.amount", "message": "must be greater than zero" }]
+}
+```
+Investec endpoints ignore unknown fields; the sandbox-only endpoints that create records reject them.
 
 ## Endpoints
 
@@ -72,6 +92,8 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
     - Get an access token (only required if auth is turned on)
 - **GET /identity/v2/oauth2/authorize?client_id=…&redirect_uri=…&scope=…&state=…**
     - Start the 3-legged flow. `redirect_uri` is required. `scope` is space-separated; leave it out to request every scope. `state` is echoed back on the redirect
+
+Sign-in (`POST /login`) and everything under `/identity` are rate limited to `AUTH_RATE_LIMIT` requests per minute per IP (default 300). Over the limit they answer `429` with a `Retry-After` header. The banking endpoints are not limited.
 
 #### 3-legged consent and scopes
 When auth is turned on, a token from the 3-legged (`authorization_code`) flow only reaches what the user approved:
