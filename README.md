@@ -93,6 +93,8 @@ Investec endpoints ignore unknown fields; the sandbox-only endpoints that create
 - **GET /identity/v2/oauth2/authorize?client_id=…&redirect_uri=…&scope=…&state=…**
     - Start the 3-legged flow. `redirect_uri` is required. `scope` is space-separated; leave it out to request every scope. `state` is echoed back on the redirect
 
+Sign-in (`POST /login`) and everything under `/identity` are rate limited to `AUTH_RATE_LIMIT` requests per minute per IP (default 300). Over the limit they answer `429` with a `Retry-After` header. The banking endpoints are not limited.
+
 #### 3-legged consent and scopes
 When auth is turned on, a token from the 3-legged (`authorization_code`) flow only reaches what the user approved:
 - **Accounts:** only the accounts ticked on the consent page (no selection means all accounts). Other accounts, and cards on them, return `403`, and they are left out of the account and card lists.

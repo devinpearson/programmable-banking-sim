@@ -53,6 +53,7 @@ const ERROR_TEXT: Record<number, string> = {
   404: 'Not found',
   409: 'Already exists',
   422: 'Not possible in the current state (e.g. insufficient funds)',
+  429: 'Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After',
 }
 
 // OpenAPI paths use {param}; Express uses :param.
@@ -66,8 +67,14 @@ function pathParams(path: string): z.AnyZodObject | undefined {
   return z.object(Object.fromEntries(names.map(name => [name, z.string()])))
 }
 
+// Rate-limited by authRateLimit (src/middleware/rateLimit.ts).
+function isRateLimited(path: string) {
+  return path === '/login' || path.startsWith('/identity/')
+}
+
 function register(method: Method, path: string, op: Operation) {
   const errors = new Set(op.errors ?? [])
+  if (isRateLimited(path)) errors.add(429)
   if (op.body || op.query) errors.add(400)
   if (path.includes(':')) errors.add(404)
   const security =

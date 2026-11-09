@@ -3464,6 +3464,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute);
+            see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /identity/v2/oauth2/authorize:
     get:
       tags:
@@ -3506,6 +3513,13 @@ paths:
                 $ref: "#/components/schemas/Error"
         "401":
           description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute);
+            see Retry-After
           content:
             application/json:
               schema:
@@ -3566,6 +3580,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute);
+            see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /identity/approve:
     get:
       tags:
@@ -3600,6 +3621,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute);
+            see Retry-After
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /identity/decline:
     get:
       tags:
@@ -3618,6 +3646,13 @@ paths:
           description: To redirect_uri with status=DECLINED and state
         "400":
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute);
+            see Retry-After
           content:
             application/json:
               schema:
@@ -3649,6 +3684,13 @@ paths:
             error=invalid_credentials
         "400":
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute);
+            see Retry-After
           content:
             application/json:
               schema:

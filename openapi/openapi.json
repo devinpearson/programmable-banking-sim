@@ -5377,6 +5377,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5441,6 +5451,16 @@
           },
           "401": {
             "description": "Missing or expired token (when auth is on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After",
             "content": {
               "application/json": {
                 "schema": {
@@ -5535,6 +5555,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5589,6 +5619,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -5617,6 +5657,16 @@
           },
           "400": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After",
             "content": {
               "application/json": {
                 "schema": {
@@ -5664,6 +5714,16 @@
           },
           "400": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After",
             "content": {
               "application/json": {
                 "schema": {

@@ -28,6 +28,7 @@ import { listScenarios, applyScenario } from './scenarios.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { setupOpenApi } from './config/openapi.js'
 import { validateRequest, validatedBody } from './middleware/validation.js'
+import { authRateLimit } from './middleware/rateLimit.js'
 import { loginBody, settingsBody } from './schema/requestSchemas.js'
 import type { z } from 'zod'
 
@@ -110,7 +111,7 @@ app.get('/login', redirectToWeb('/login'))
 app.get('/wpaas/prog-banking-wpaas/oauth-consent', redirectToWeb('/consent'))
 app.get('/guide', redirectToWeb('/guide'))
 
-app.post('/login', validateRequest({ body: loginBody }), (req, res) => {
+app.post('/login', authRateLimit, validateRequest({ body: loginBody }), (req, res) => {
   const { email, password, qsp: formQsp } = validatedBody(res, loginBody)
   // The qsp comes in the query string or, from the login page, the form body.
   const qsp = (typeof req.query.qsp === 'string' && req.query.qsp) || formQsp
@@ -185,7 +186,8 @@ export const routerMounts = {
   '/za/v1/cards': cards,
 } as const
 
-app.use('/identity', routerMounts['/identity'])
+// Token requests check client secrets and the OAuth pages sign users in.
+app.use('/identity', authRateLimit, routerMounts['/identity'])
 // Check the bearer token when auth is on, and enforce what it was granted:
 // its scopes here, its consented accounts in the routers (via res.locals).
 app.use('/za', (req, res, next) => {

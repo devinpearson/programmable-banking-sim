@@ -3005,6 +3005,15 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -3053,6 +3062,15 @@ export interface paths {
                 };
                 /** @description Missing or expired token (when auth is on) */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3126,6 +3144,15 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         put?: never;
@@ -3181,6 +3208,15 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         put?: never;
@@ -3219,6 +3255,15 @@ export interface paths {
                 };
                 /** @description Invalid request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -3274,6 +3319,15 @@ export interface paths {
                 };
                 /** @description Invalid request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Too many sign-in or identity requests (AUTH_RATE_LIMIT per minute); see Retry-After */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
