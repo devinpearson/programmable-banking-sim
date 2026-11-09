@@ -106,7 +106,7 @@
                 </div>
                 <div class="px-4 py-5 sm:p-6">
                     <div ref="logsContainer" class="logs-container border border-gray-200 rounded bg-gray-50" style="height: 300px !important; overflow-y: scroll !important; overflow-x: hidden !important; scrollbar-width: auto !important; -webkit-overflow-scrolling: touch;">
-                        <ul role="list" id="messages" v-if="messages" class="divide-y divide-gray-200" style="min-height: 350px;">
+                        <ul id="messages" v-if="messages" class="divide-y divide-gray-200" style="min-height: 350px;">
                             <li v-for="item in messages" class="even:bg-gray-50 odd:bg-white px-3 py-2">
                                 {{ item }}
                             </li>

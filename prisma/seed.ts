@@ -5,6 +5,7 @@ import { seedMerchants } from './merchant'
 import { seedProfiles } from './profile'
 import { seedAccounts } from './account'
 import { seedTransactions } from './transaction'
+import { seedBeneficiaries } from './beneficiary'
 import { seedSettings } from './settings'
 import { seedCardCodes } from './card-code'
 import { seedCards } from './card'
@@ -20,6 +21,7 @@ async function main() {
   await seedProfiles()
   await seedAccounts()
   await seedTransactions()
+  await seedBeneficiaries()
   await seedCards()
   await seedCardCodes()
   await seedSettings()

@@ -1,11 +1,11 @@
-import express, { Request, Response } from 'express'
+import express, { type Request, type Response } from 'express'
 import dayjs from 'dayjs'
 const router = express.Router()
 import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 import { formatResponse, formatErrorResponse, emitDatabaseSummary } from '../app.js'
 import { Investec } from 'programmable-banking-faker'
-import { TransactionType, BalanceResponse } from '../types.js'
+import { TransactionType, type BalanceResponse } from '../types.js'
 
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -419,17 +419,19 @@ router.get('/beneficiaries', async (req: Request, res: Response) => {
   }
 })
 
-// function to create an account
 router.post('/beneficiaries', async (req: Request, res: Response) => {
   try {
     let beneficiary = Investec.beneficiary()
     beneficiary = { ...beneficiary, ...req.body }
 
-    // insert the beneficiary
-    await prisma.beneficiary.create({
-      data: beneficiary,
+    const existing = await prisma.beneficiary.findUnique({
+      where: { beneficiaryId: beneficiary.beneficiaryId },
     })
+    if (existing) {
+      return formatErrorResponse(req, res, 409)
+    }
 
+    await prisma.beneficiary.create({ data: beneficiary })
     return formatResponse(beneficiary, req, res)
   } catch (error) {
     console.log(error)
@@ -438,7 +440,7 @@ router.post('/beneficiaries', async (req: Request, res: Response) => {
 })
 
 // Delete a beneficiary
-router.delete('/za/pb/v1/accounts/beneficiaries/:beneficiaryId', async (req: Request, res: Response) => {
+router.delete('/beneficiaries/:beneficiaryId', async (req: Request, res: Response) => {
   try {
     const { beneficiaryId } = req.params
 
