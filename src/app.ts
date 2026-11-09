@@ -63,27 +63,11 @@ io.on('connection', socket => {
     console.log(`action: ${action}`)
     switch (action) {
       case 'clear':
-        await prisma.account.deleteMany()
-        await prisma.transaction.deleteMany()
-        await prisma.beneficiary.deleteMany()
-        await prisma.card.deleteMany()
-        await prisma.cardCode.deleteMany()
-        await prisma.profile.deleteMany()
+        await clearDatabase()
         await emitDatabaseSummary()
         break
       case 'restore':
-        await prisma.account.deleteMany()
-        await prisma.transaction.deleteMany()
-        await prisma.beneficiary.deleteMany()
-        await prisma.card.deleteMany()
-        await prisma.cardCode.deleteMany()
-        await prisma.profile.deleteMany()
-        await seedProfiles()
-        await seedAccounts()
-        await seedTransactions()
-        await seedBeneficiaries()
-        await seedCards()
-        await seedCardCodes()
+        await restoreDatabase()
         await emitDatabaseSummary()
         break
     }
@@ -197,14 +181,30 @@ app.use('/za', (req, res, next) => {
 app.use('/za/pb/v1/accounts', accounts)
 app.use('/za/v1/cards', cards)
 
+// Shared database lifecycle helpers, used by the control socket and the
+// /clear and /restore routes so every entry point behaves identically.
+async function clearDatabase() {
+  await prisma.account.deleteMany()
+  await prisma.transaction.deleteMany()
+  await prisma.beneficiary.deleteMany()
+  await prisma.card.deleteMany()
+  await prisma.cardCode.deleteMany()
+  await prisma.profile.deleteMany()
+}
+
+async function restoreDatabase() {
+  await clearDatabase()
+  await seedProfiles()
+  await seedAccounts()
+  await seedTransactions()
+  await seedBeneficiaries()
+  await seedCards()
+  await seedCardCodes()
+}
+
 app.delete('/clear', async (req: Request, res: Response) => {
   try {
-    await prisma.account.deleteMany()
-    await prisma.transaction.deleteMany()
-    await prisma.beneficiary.deleteMany()
-    await prisma.card.deleteMany()
-    await prisma.cardCode.deleteMany()
-    await prisma.profile.deleteMany()
+    await clearDatabase()
 
     return res.status(200).json()
   } catch (error) {
@@ -215,9 +215,7 @@ app.delete('/clear', async (req: Request, res: Response) => {
 
 app.get('/restore', async (req: Request, res: Response) => {
   try {
-    await seedAccounts()
-    await seedTransactions()
-    await seedBeneficiaries()
+    await restoreDatabase()
 
     return res.status(200).json()
   } catch (error) {
