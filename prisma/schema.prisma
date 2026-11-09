@@ -93,6 +93,9 @@ model Card {
     publishedCode String
     savedCode String
     envs String
+    // When the card's environment variables were first set and last changed.
+    envsCreatedAt DateTime @default(now())
+    envsUpdatedAt DateTime @default(now())
     executions CardExecution[]
 
     @@index([accountId])

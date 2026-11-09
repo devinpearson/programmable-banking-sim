@@ -21,6 +21,7 @@ export type BeneficiaryCategory = Schemas['BeneficiaryCategory'];
 export type Webhook = Schemas['Webhook'];
 export type WebhookDelivery = Schemas['WebhookDelivery'];
 export type FaultConfig = Schemas['FaultConfig'];
+export type TransferResponses = Schemas['TransferResponses'];
 export type CreatedCard = Schemas['CreatedCard'];
 export type CardStatus = 'Active' | 'Stopped';
 

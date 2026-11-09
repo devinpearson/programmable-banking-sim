@@ -196,3 +196,9 @@ export function describeFaults(config: FaultSummaryInput): string {
   parts.push(config.pathPrefix ? `on ${config.pathPrefix}` : 'on all /za requests and tokens');
   return parts.join(' · ');
 }
+
+// " (ref UBP2201761367)" for a transfer or payment response, or ''.
+export function referenceSuffix(response: { TransferResponses: { PaymentReferenceNumber: string }[] } | undefined): string {
+  const reference = response?.TransferResponses[0]?.PaymentReferenceNumber;
+  return reference ? ` (ref ${reference})` : '';
+}

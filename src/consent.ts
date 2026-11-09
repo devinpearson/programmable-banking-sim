@@ -35,6 +35,7 @@ export const SCOPE_DESCRIPTIONS: Record<Scope, string> = {
 // without the query string. Routes not listed need no particular scope.
 const SCOPE_RULES: [string, RegExp, Scope][] = [
   ['GET', /^\/za\/pb\/v1\/accounts\/?$/, 'accounts'],
+  ['GET', /^\/za\/pb\/v1\/profiles(\/[^/]+\/accounts)?\/?$/, 'accounts'],
   ['GET', /^\/za\/pb\/v1\/accounts\/[^/]+\/balance$/, 'balances'],
   ['GET', /^\/za\/pb\/v1\/accounts\/[^/]+\/(transactions|pending-transactions)$/, 'transactions'],
   ['POST', /^\/za\/pb\/v1\/accounts\/[^/]+\/transfermultiple$/, 'transfers'],

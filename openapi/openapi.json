@@ -422,50 +422,57 @@
           "amount"
         ]
       },
-      "TransferLeg": {
+      "TransferResponses": {
         "type": "object",
         "properties": {
-          "beneficiaryAccountId": {
-            "type": "string"
+          "TransferResponses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "PaymentReferenceNumber": {
+                  "type": "string",
+                  "example": "UBP2201761367"
+                },
+                "PaymentDate": {
+                  "type": "string",
+                  "example": "09/11/2026"
+                },
+                "Status": {
+                  "type": "string",
+                  "example": "- No authorisation necessary <BR> - Payment/Transfer effective date 09/11/2026"
+                },
+                "BeneficiaryName": {
+                  "type": "string"
+                },
+                "BeneficiaryAccountId": {
+                  "type": "string",
+                  "description": "The destination account id (transfers) or beneficiary id (payments)."
+                },
+                "AuthorisationRequired": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "PaymentReferenceNumber",
+                "PaymentDate",
+                "Status",
+                "BeneficiaryName",
+                "BeneficiaryAccountId",
+                "AuthorisationRequired"
+              ]
+            }
           },
-          "amount": {
-            "type": "number"
-          },
-          "myReference": {
-            "type": "string"
-          },
-          "theirReference": {
-            "type": "string"
+          "ErrorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
-          "beneficiaryAccountId",
-          "amount",
-          "myReference",
-          "theirReference"
-        ]
-      },
-      "PaymentLeg": {
-        "type": "object",
-        "properties": {
-          "beneficiaryId": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "myReference": {
-            "type": "string"
-          },
-          "theirReference": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "beneficiaryId",
-          "amount",
-          "myReference",
-          "theirReference"
+          "TransferResponses",
+          "ErrorMessage"
         ]
       },
       "Beneficiary": {
@@ -606,6 +613,26 @@
           "fileName",
           "mimeType",
           "note"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string"
+          },
+          "profileName": {
+            "type": "string"
+          },
+          "default": {
+            "type": "boolean",
+            "description": "The sandbox treats the first profile as the default."
+          }
+        },
+        "required": [
+          "profileId",
+          "profileName",
+          "default"
         ]
       },
       "Card": {
@@ -2768,10 +2795,7 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/TransferLeg"
-                      }
+                      "$ref": "#/components/schemas/TransferResponses"
                     },
                     "links": {
                       "type": "object",
@@ -2935,10 +2959,7 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PaymentLeg"
-                      }
+                      "$ref": "#/components/schemas/TransferResponses"
                     },
                     "links": {
                       "type": "object",
@@ -3432,6 +3453,7 @@
           "Documents"
         ],
         "summary": "List statements",
+        "description": "Monthly statements dated at each month end, newest first, for completed months (at most 24).",
         "security": [
           {
             "bearerAuth": []
@@ -3445,6 +3467,28 @@
             "required": true,
             "name": "accountId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Earliest statement date. Defaults to three months ago.",
+              "example": "2026-01-31"
+            },
+            "required": false,
+            "name": "fromDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Latest statement date. Defaults to today.",
+              "example": "2026-01-31"
+            },
+            "required": false,
+            "name": "toDate",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3499,6 +3543,16 @@
                     "links",
                     "meta"
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -3583,6 +3637,200 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DocumentDetail"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or expired token (when auth is on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the scope or account consent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/za/pb/v1/profiles": {
+      "get": {
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "List profiles",
+        "description": "Paths as in Investec's API collection; Investec doesn't publish these responses, so the fields are the sandbox's best match.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Profile"
+                      }
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "self": {
+                          "type": "string",
+                          "example": "http://localhost:3000/za/pb/v1/accounts"
+                        }
+                      },
+                      "required": [
+                        "self"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      },
+                      "required": [
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "links",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or expired token (when auth is on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the scope or account consent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/za/pb/v1/profiles/{profileId}/accounts": {
+      "get": {
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "List a profile's accounts",
+        "description": "Same shape as GET /za/pb/v1/accounts. A 3-legged token sees only consented accounts. Paths as in Investec's API collection; Investec doesn't publish these responses, so the fields are the sandbox's best match.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "profileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Account"
+                          }
+                        }
+                      },
+                      "required": [
+                        "accounts"
+                      ]
                     },
                     "links": {
                       "type": "object",

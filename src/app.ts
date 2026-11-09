@@ -13,6 +13,7 @@ import cards from './routes/cards.js'
 import exchangeRates from './routes/exchangeRates.js'
 import webhooks from './routes/webhooks.js'
 import faults from './routes/faults.js'
+import profiles from './routes/profiles.js'
 import type {
   AccessToken,
   AuthorizationCode,
@@ -189,6 +190,7 @@ export const routerMounts = {
   '/identity': identity,
   '/za/pb/v1/accounts': accounts,
   '/za/v1/cards': cards,
+  '/za/pb/v1/profiles': profiles,
   '/exchange-rates': exchangeRates,
   '/webhooks': webhooks,
   '/faults': faults,
@@ -219,6 +221,7 @@ app.use('/za', (req, res, next) => {
 
 app.use('/za/pb/v1/accounts', routerMounts['/za/pb/v1/accounts'])
 app.use('/za/v1/cards', routerMounts['/za/v1/cards'])
+app.use('/za/pb/v1/profiles', routerMounts['/za/pb/v1/profiles'])
 // Sandbox control, outside /za so it needs no token.
 app.use('/exchange-rates', routerMounts['/exchange-rates'])
 app.use('/webhooks', routerMounts['/webhooks'])

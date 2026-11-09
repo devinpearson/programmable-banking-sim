@@ -337,8 +337,8 @@ router.get(
       const data = {
         result: {
           variables: JSON.parse(card.envs),
-          createdAt: '2023-06-27T07:18:12.086Z',
-          updatedAt: '2023-06-27T07:18:12.086Z',
+          createdAt: card.envsCreatedAt.toISOString(),
+          updatedAt: card.envsUpdatedAt.toISOString(),
           error: null,
         },
       }
@@ -368,19 +368,20 @@ router.post(
         return formatErrorResponse(req, res, 404) // no account was found
       }
       const vars = JSON.stringify(validatedBody(res, environmentVariablesBody).variables)
-      await prisma.card.update({
+      const updated = await prisma.card.update({
         where: {
           cardKey: cardKey,
         },
         data: {
           envs: vars,
+          envsUpdatedAt: new Date(),
         },
       })
       const data = {
         result: {
           variables: JSON.parse(vars),
-          createdAt: '2023-06-27T07:18:12.086Z',
-          updatedAt: '2023-06-27T07:18:12.086Z',
+          createdAt: updated.envsCreatedAt.toISOString(),
+          updatedAt: updated.envsUpdatedAt.toISOString(),
           error: null,
         },
       }

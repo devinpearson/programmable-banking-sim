@@ -154,7 +154,7 @@ test('paying a beneficiary updates the beneficiary and the history', async ({ pa
   await beneficiaries.getByLabel('Amount (R)').fill('250');
   await beneficiaries.getByLabel('My reference').fill('Rent share');
   await beneficiaries.getByRole('button', { name: 'Pay' }).click();
-  await expect(page.getByText(/Paid R 250[.,]00 to S Jones/)).toBeVisible();
+  await expect(page.getByText(/Paid R 250[.,]00 to S Jones \(ref UBP\d{10}\)/)).toBeVisible();
 
   await expect(beneficiaries.getByRole('row', { name: /S Jones/ })).toContainText('R 250.00');
   const latest = page.getByRole('region', { name: 'Transactions' }).locator('tbody tr').first();

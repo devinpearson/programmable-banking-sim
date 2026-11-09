@@ -8,7 +8,7 @@ import { useAction } from '@/components/ToastProvider';
 import { useAccountsOverview, useRefreshSandbox } from '@/hooks/useSandbox';
 import { topUp, transfer } from '@/lib/api/sandbox';
 import type { AccountWithBalance } from '@/lib/api/types';
-import { formatMoney, parseAmount, transferError } from '@/lib/banking';
+import { formatMoney, parseAmount, referenceSuffix, transferError } from '@/lib/banking';
 
 function TopUp({ account }: { account: AccountWithBalance }) {
   const [amount, setAmount] = useState('');
@@ -58,7 +58,7 @@ function TransferForm({ accounts }: { accounts: AccountWithBalance[] }) {
     if (problem || amount === null) return;
     const done = await run(
       () => transfer(form.from, form.to, amount, form.reference || 'Transfer'),
-      `Transferred ${formatMoney(amount)}`,
+      result => `Transferred ${formatMoney(amount)}${referenceSuffix(result)}`,
     );
     if (done !== undefined) setForm(f => ({ ...f, amount: '' }));
     await refresh();

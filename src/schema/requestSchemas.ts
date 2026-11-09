@@ -100,6 +100,17 @@ export const createTransactionBody = z
   .strict()
   .openapi({ description: 'Fields left out get random values.' })
 
+export const documentsQuery = z
+  .object({
+    fromDate: date.optional().openapi({ description: 'Earliest statement date. Defaults to three months ago.' }),
+    toDate: date.optional().openapi({ description: 'Latest statement date. Defaults to today.' }),
+  })
+  .superRefine((value, context) => {
+    if (value.fromDate && value.toDate && value.fromDate > value.toDate) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['toDate'], message: 'must be on or after fromDate' })
+    }
+  })
+
 export const allowNonCardPendingQuery = z.object({
   allowNonCardPending: booleanString.optional().openapi({
     description: 'Allow a non-card transaction to be created as PENDING.',
