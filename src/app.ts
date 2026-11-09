@@ -26,6 +26,7 @@ import { seedCardCodes } from '../prisma/card-code.js'
 import { seedProfiles } from '../prisma/profile.js'
 import { listScenarios, applyScenario } from './scenarios.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { setupOpenApi } from './config/openapi.js'
 import { validateRequest, validatedBody } from './middleware/validation.js'
 import { loginBody, settingsBody } from './schema/requestSchemas.js'
 import type { z } from 'zod'
@@ -177,7 +178,14 @@ app.all('/oauth{*rest}', (_req, res) => {
   })
 })
 
-app.use('/identity', identity)
+// Where each router is mounted; also read by the OpenAPI route check.
+export const routerMounts = {
+  '/identity': identity,
+  '/za/pb/v1/accounts': accounts,
+  '/za/v1/cards': cards,
+} as const
+
+app.use('/identity', routerMounts['/identity'])
 // Check the bearer token when auth is on, and enforce what it was granted:
 // its scopes here, its consented accounts in the routers (via res.locals).
 app.use('/za', (req, res, next) => {
@@ -196,8 +204,8 @@ app.use('/za', (req, res, next) => {
   next()
 })
 
-app.use('/za/pb/v1/accounts', accounts)
-app.use('/za/v1/cards', cards)
+app.use('/za/pb/v1/accounts', routerMounts['/za/pb/v1/accounts'])
+app.use('/za/v1/cards', routerMounts['/za/v1/cards'])
 
 // Shared database lifecycle helpers, used by the control socket and the
 // /clear and /restore routes so every entry point behaves identically.
@@ -296,6 +304,9 @@ app.get('/database-summary', async (req, res) => {
     return formatErrorResponse(req, res, 500)
   }
 })
+
+// OpenAPI document and Swagger UI: /api-docs.json, /api-docs.yaml, /swagger-ui.
+setupOpenApi(app)
 
 // After every route: JSON for anything a handler threw or rejected with.
 app.use(errorHandler)
@@ -404,7 +415,7 @@ async function fetchSettings() {
         settings.api_key = setting.value
         break
       case 'token_expiry':
-        settings.token_expiry = setting.value as unknown as number
+        settings.token_expiry = Number(setting.value)
         break
       case 'auth':
         if (setting.value === 'true') {

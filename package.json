@@ -18,7 +18,9 @@
     "format": "biome format --write ./src",
     "check": "biome check --write ./src",
     "knip": "knip",
-    "mutate": "stryker run"
+    "mutate": "stryker run",
+    "openapi:generate": "tsx src/scripts/generateOpenapi.ts",
+    "openapi:check": "tsx src/scripts/checkOpenapi.ts"
   },
   "bin": {
     "pbsim": "dist/src/index.js"

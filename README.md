@@ -60,6 +60,24 @@ In `web/`: `npm run lint`, `npm run typecheck`, `npm run test:unit` (Vitest), `n
 
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
+## API docs
+The OpenAPI document is generated from the same zod schemas that validate requests, so the docs and the API can't drift apart.
+- **Swagger UI:** http://localhost:3000/swagger-ui (or `/api-docs`)
+- **Spec:** `/api-docs.json` and `/api-docs.yaml`, also committed as [`openapi/openapi.json`](openapi/openapi.json) and [`openapi/openapi.yaml`](openapi/openapi.yaml)
+- Operations marked `x-sandbox-only` have no Investec equivalent.
+
+After changing a route or schema, run `npm run openapi:generate`. `npm run openapi:check` (run in CI) fails if a mounted route is undocumented, a documented route isn't mounted, or the files in `openapi/` are stale.
+
+### Validation errors
+Invalid requests get a `400` naming the field, plus every problem in `details`:
+```json
+{
+  "errorMessage": "transferList.0.amount: must be greater than zero",
+  "details": [{ "location": "body", "path": "transferList.0.amount", "message": "must be greater than zero" }]
+}
+```
+Investec endpoints ignore unknown fields; the sandbox-only endpoints that create records reject them.
+
 ## Endpoints
 
 ### Dashboard

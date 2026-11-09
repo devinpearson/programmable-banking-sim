@@ -10,7 +10,7 @@ interface RequestSchemas {
 
 type Location = keyof RequestSchemas
 
-export interface ValidationIssue {
+interface ValidationIssue {
   location: Location
   path: string
   message: string

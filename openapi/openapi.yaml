@@ -1,0 +1,3907 @@
+openapi: 3.0.3
+info:
+  title: Programmable Banking Sandbox API
+  version: 1.2.0
+  description: A local sandbox emulating the Investec Programmable Banking APIs.
+    Operations marked x-sandbox-only have no Investec equivalent.
+servers:
+  - url: http://localhost:3000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: An access token from POST /identity/v2/oauth2/token. Only required
+        when the sandbox has auth turned on.
+    clientCredentials:
+      type: http
+      scheme: basic
+      description: client_id:client_secret
+  schemas:
+    Account:
+      type: object
+      properties:
+        accountId:
+          type: string
+          example: "4675778129910189600000003"
+        accountNumber:
+          type: string
+          example: "10012420003"
+        accountName:
+          type: string
+          example: Mr J Soap
+        referenceName:
+          type: string
+        productName:
+          type: string
+          example: Private Bank Account
+        kycCompliant:
+          type: boolean
+        profileId:
+          type: string
+        profileName:
+          type: string
+      required:
+        - accountId
+        - accountNumber
+        - accountName
+        - referenceName
+        - productName
+        - kycCompliant
+        - profileId
+        - profileName
+    Error:
+      type: object
+      properties:
+        errorMessage:
+          type: string
+          example: Insufficient funds
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              location:
+                type: string
+                enum:
+                  - params
+                  - query
+                  - body
+              path:
+                type: string
+              message:
+                type: string
+            required:
+              - location
+              - path
+              - message
+          description: Every validation problem, for 400 responses.
+      required:
+        - errorMessage
+      description: Most errors explain themselves; some (e.g. a plain 404) have an
+        empty body.
+    Balance:
+      type: object
+      properties:
+        accountId:
+          type: string
+        currentBalance:
+          type: number
+          description: Posted transactions only.
+          example: -35696.04
+        availableBalance:
+          type: number
+          description: Current balance plus the overdraft limit, less pending card holds.
+          example: 14303.96
+        currency:
+          type: string
+          example: ZAR
+      required:
+        - accountId
+        - currentBalance
+        - availableBalance
+        - currency
+    Transaction:
+      type: object
+      properties:
+        accountId:
+          type: string
+        type:
+          type: string
+          enum:
+            - DEBIT
+            - CREDIT
+        transactionType:
+          type: string
+          example: CardPurchases
+        status:
+          type: string
+          enum:
+            - POSTED
+            - PENDING
+        description:
+          type: string
+        cardNumber:
+          type: string
+        postedOrder:
+          anyOf:
+            - type: string
+              description: Decimal amount
+              example: "125.50"
+            - type: number
+          description: 0 for pending transactions.
+        postingDate:
+          type: string
+          description: Empty until a pending transaction settles.
+        valueDate:
+          type: string
+        actionDate:
+          type: string
+        transactionDate:
+          type: string
+        amount:
+          type: string
+          description: Decimal amount
+          example: "125.50"
+        runningBalance:
+          anyOf:
+            - type: string
+              description: Decimal amount
+              example: "125.50"
+            - type: number
+          description: 0 for pending transactions.
+      required:
+        - accountId
+        - type
+        - transactionType
+        - status
+        - description
+        - cardNumber
+        - postedOrder
+        - postingDate
+        - valueDate
+        - actionDate
+        - transactionDate
+        - amount
+        - runningBalance
+    StoredTransaction:
+      allOf:
+        - $ref: "#/components/schemas/Transaction"
+        - type: object
+          properties:
+            transactionId:
+              type: integer
+          required:
+            - transactionId
+    PendingTransaction:
+      type: object
+      properties:
+        transactionId:
+          type: integer
+          description: Sandbox addition, for settling or reversing the hold.
+        accountId:
+          type: string
+        type:
+          type: string
+          enum:
+            - DEBIT
+            - CREDIT
+        transactionType:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+        description:
+          type: string
+        cardNumber:
+          type: string
+        transactionDate:
+          type: string
+        amount:
+          type: string
+          description: Decimal amount
+          example: "125.50"
+      required:
+        - transactionId
+        - accountId
+        - type
+        - transactionType
+        - status
+        - description
+        - cardNumber
+        - transactionDate
+        - amount
+    TransferLeg:
+      type: object
+      properties:
+        beneficiaryAccountId:
+          type: string
+        amount:
+          type: number
+        myReference:
+          type: string
+        theirReference:
+          type: string
+      required:
+        - beneficiaryAccountId
+        - amount
+        - myReference
+        - theirReference
+    PaymentLeg:
+      type: object
+      properties:
+        beneficiaryId:
+          type: string
+        amount:
+          type: number
+        myReference:
+          type: string
+        theirReference:
+          type: string
+      required:
+        - beneficiaryId
+        - amount
+        - myReference
+        - theirReference
+    Beneficiary:
+      type: object
+      properties:
+        beneficiaryId:
+          type: string
+        accountNumber:
+          type: string
+        code:
+          type: string
+        bank:
+          type: string
+        beneficiaryName:
+          type: string
+        lastPaymentAmount:
+          type: string
+          example: 2,000.00
+        lastPaymentDate:
+          type: string
+          example: 25/04/2023
+        cellNo:
+          type: string
+          nullable: true
+        emailAddress:
+          type: string
+          nullable: true
+        name:
+          type: string
+        referenceAccountNumber:
+          type: string
+        referenceName:
+          type: string
+        categoryId:
+          type: string
+        profileId:
+          type: string
+      required:
+        - beneficiaryId
+        - accountNumber
+        - code
+        - bank
+        - beneficiaryName
+        - lastPaymentAmount
+        - lastPaymentDate
+        - cellNo
+        - emailAddress
+        - name
+        - referenceAccountNumber
+        - referenceName
+        - categoryId
+        - profileId
+    BeneficiaryCategory:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        isDefault:
+          type: boolean
+        name:
+          type: string
+      required:
+        - categoryId
+        - isDefault
+        - name
+    DocumentSummary:
+      type: object
+      properties:
+        documentType:
+          type: string
+        documentDate:
+          type: string
+        description:
+          type: string
+      required:
+        - documentType
+        - documentDate
+        - description
+    DocumentDetail:
+      type: object
+      properties:
+        accountId:
+          type: string
+        documentType:
+          type: string
+        documentDate:
+          type: string
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        note:
+          type: string
+      required:
+        - accountId
+        - documentType
+        - documentDate
+        - fileName
+        - mimeType
+        - note
+    Card:
+      type: object
+      properties:
+        CardKey:
+          type: string
+          example: "700615"
+        CardNumber:
+          type: string
+          example: 402167XXXXXX1111
+        IsProgrammable:
+          type: boolean
+        status:
+          type: string
+          example: Active
+        CardTypeCode:
+          type: string
+        AccountNumber:
+          type: string
+        AccountId:
+          type: string
+      required:
+        - CardKey
+        - CardNumber
+        - IsProgrammable
+        - status
+        - CardTypeCode
+        - AccountNumber
+        - AccountId
+    CreatedCard:
+      type: object
+      properties:
+        cardKey:
+          type: string
+        cardNumber:
+          type: string
+        isProgrammable:
+          type: boolean
+        status:
+          type: string
+        cardTypeCode:
+          type: string
+        accountId:
+          type: string
+        accountNumber:
+          type: string
+        publishedCode:
+          type: string
+        savedCode:
+          type: string
+        envs:
+          type: string
+      required:
+        - cardKey
+        - cardNumber
+        - isProgrammable
+        - status
+        - cardTypeCode
+        - accountId
+        - accountNumber
+        - publishedCode
+        - savedCode
+        - envs
+    CardCode:
+      type: object
+      properties:
+        cardCode:
+          type: object
+          properties:
+            codeId:
+              type: string
+            code:
+              type: string
+            createdAt:
+              type: string
+              example: 2026-11-09T10:00:00.000Z
+            updatedAt:
+              type: string
+              example: 2026-11-09T10:00:00.000Z
+            publishedAt:
+              type: string
+              nullable: true
+              example: 2026-11-09T10:00:00.000Z
+          required:
+            - codeId
+            - code
+            - createdAt
+            - updatedAt
+            - publishedAt
+      required:
+        - cardCode
+    EnvironmentVariables:
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            variables:
+              type: object
+              additionalProperties:
+                nullable: true
+            createdAt:
+              type: string
+              example: 2026-11-09T10:00:00.000Z
+            updatedAt:
+              type: string
+              example: 2026-11-09T10:00:00.000Z
+            error:
+              nullable: true
+          required:
+            - variables
+            - createdAt
+            - updatedAt
+            - error
+      required:
+        - result
+    SwipeResult:
+      type: object
+      properties:
+        result:
+          type: boolean
+          description: Whether the purchase was approved.
+        reason:
+          type: string
+          enum:
+            - insufficient_funds
+            - card_not_active
+          description: Why the bank declined it, before any card code ran.
+        transaction:
+          allOf:
+            - $ref: "#/components/schemas/StoredTransaction"
+            - allOf:
+                - $ref: "#/components/schemas/Transaction"
+                - type: object
+                  nullable: true
+                  properties:
+                    transactionId:
+                      type: integer
+                  required:
+                    - transactionId
+              description: The pending hold (or posted purchase) on the card's account; null
+                when declined or the card has no account.
+      required:
+        - result
+        - transaction
+    Execution:
+      type: object
+      properties:
+        executionId:
+          type: string
+        cardKey:
+          type: string
+        rootCodeFunctionId:
+          type: string
+        sandbox:
+          type: boolean
+        type:
+          type: string
+          enum: &a2
+            - before_transaction
+            - after_transaction
+            - after_decline
+        authorizationApproved:
+          type: boolean
+          nullable: true
+        smsCount:
+          type: integer
+        emailCount:
+          type: integer
+        pushNotificationCount:
+          type: integer
+        createdAt:
+          type: string
+          example: 2026-11-09T10:00:00.000Z
+        startedAt:
+          type: string
+          example: 2026-11-09T10:00:00.000Z
+        completedAt:
+          type: string
+          example: 2026-11-09T10:00:00.000Z
+        updatedAt:
+          type: string
+          nullable: true
+          example: 2026-11-09T10:00:00.000Z
+        logs:
+          type: array
+          items:
+            type: object
+            properties:
+              logId:
+                type: string
+              executionId:
+                type: string
+              createdAt:
+                type: string
+                example: 2026-11-09T10:00:00.000Z
+              level:
+                type: string
+              content:
+                type: string
+            required:
+              - createdAt
+              - level
+              - content
+      required:
+        - executionId
+        - rootCodeFunctionId
+        - sandbox
+        - type
+        - authorizationApproved
+        - smsCount
+        - emailCount
+        - pushNotificationCount
+        - createdAt
+        - startedAt
+        - completedAt
+        - updatedAt
+        - logs
+    ReferenceList:
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+            required:
+              - code
+              - name
+      required:
+        - result
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum:
+            - Bearer
+        expires_in:
+          type: integer
+        scope:
+          type: string
+          example: accounts balances transactions
+        refresh_token:
+          type: string
+          description: For authorization_code and refresh_token grants.
+      required:
+        - access_token
+        - token_type
+        - expires_in
+        - scope
+    TokenRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+            - authorization_code
+            - refresh_token
+        code:
+          type: string
+          description: authorization_code grant
+        redirect_uri:
+          type: string
+          description: authorization_code grant; must match /authorize
+        refresh_token:
+          type: string
+          description: refresh_token grant
+      required:
+        - grant_type
+    ConsentDetails:
+      type: object
+      properties:
+        scopes:
+          type: array
+          items:
+            type: object
+            properties:
+              scope:
+                type: string
+              description:
+                type: string
+            required:
+              - scope
+              - description
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              accountId:
+                type: string
+              accountNumber:
+                type: string
+              accountName:
+                type: string
+              productName:
+                type: string
+            required:
+              - accountId
+              - accountNumber
+              - accountName
+              - productName
+      required:
+        - scopes
+        - accounts
+    Settings:
+      type: object
+      properties:
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        api_key:
+          type: string
+        token_expiry:
+          type: integer
+          description: Seconds
+        auth:
+          type: boolean
+          description: Whether /za routes require a bearer token.
+      required:
+        - client_id
+        - client_secret
+        - api_key
+        - token_expiry
+        - auth
+    DatabaseSummary:
+      type: object
+      properties:
+        profiles:
+          type: integer
+        accounts:
+          type: integer
+        cards:
+          type: integer
+        transactions:
+          type: integer
+      required:
+        - profiles
+        - accounts
+        - cards
+        - transactions
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: string
+          example: hackathon
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - id
+        - name
+        - description
+    ScenarioLoaded:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        accounts:
+          type: integer
+        beneficiaries:
+          type: integer
+        cards:
+          type: integer
+      required:
+        - id
+        - name
+        - accounts
+        - beneficiaries
+        - cards
+  parameters: {}
+paths:
+  /za/pb/v1/accounts:
+    get:
+      tags:
+        - Accounts
+      summary: List accounts
+      description: A 3-legged token sees only the accounts the user consented to.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      accounts:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Account"
+                    required:
+                      - accounts
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Accounts
+      summary: Create an account
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accountId:
+                  type: string
+                  minLength: 1
+                accountNumber:
+                  type: string
+                  minLength: 1
+                accountName:
+                  type: string
+                  minLength: 1
+                referenceName:
+                  type: string
+                  minLength: 1
+                productName:
+                  type: string
+                  minLength: 1
+                kycCompliant:
+                  type: boolean
+                profileId:
+                  type: string
+                  minLength: 1
+                profileName:
+                  type: string
+                  minLength: 1
+                overdraftLimit:
+                  type: number
+                  minimum: 0
+                  description: How far below zero the account may go.
+              additionalProperties: false
+              description: Fields left out get random values; the account joins the first
+                profile.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Account"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Not possible in the current state (e.g. insufficient funds)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}:
+    delete:
+      tags:
+        - Accounts
+      summary: Delete an account with its transactions and cards
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      responses:
+        "200":
+          description: OK (empty body)
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/balance:
+    get:
+      tags:
+        - Accounts
+      summary: Get the balance
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Balance"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: List transactions, newest first
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+        - schema:
+            type: string
+            pattern: ^\d{4}-\d{2}-\d{2}$
+            description: Earliest posting date. Defaults to 180 days ago.
+            example: 2026-01-31
+          required: false
+          name: fromDate
+          in: query
+        - schema:
+            type: string
+            pattern: ^\d{4}-\d{2}-\d{2}$
+            description: Latest posting date. Defaults to today.
+            example: 2026-01-31
+          required: false
+          name: toDate
+          in: query
+        - schema:
+            type: string
+            minLength: 1
+            example: CardPurchases
+          required: false
+          name: transactionType
+          in: query
+        - schema:
+            type: string
+            enum: &a1
+              - "true"
+              - "false"
+            description: Include pending card holds (listed first).
+          required: false
+          name: includePending
+          in: query
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      transactions:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Transaction"
+                    required:
+                      - transactions
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Transactions
+      summary: Create a transaction
+      description: Only card transactions (CardPurchases, CardWithdrawals) may be
+        PENDING unless allowNonCardPending=true.
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+        - schema:
+            type: string
+            enum: *a1
+            description: Allow a non-card transaction to be created as PENDING.
+          required: false
+          name: allowNonCardPending
+          in: query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - DEBIT
+                    - CREDIT
+                transactionType:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - POSTED
+                    - PENDING
+                description:
+                  type: string
+                cardNumber:
+                  type: string
+                postingDate:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                  example: 2026-01-31
+                valueDate:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                  example: 2026-01-31
+                actionDate:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                  example: 2026-01-31
+                transactionDate:
+                  type: string
+                  pattern: ^\d{4}-\d{2}-\d{2}$
+                  example: 2026-01-31
+                amount:
+                  type: number
+                  example: 125.5
+              additionalProperties: false
+              description: Fields left out get random values.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/StoredTransaction"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/transactions/settle:
+    post:
+      tags:
+        - Transactions
+      summary: Settle all of an account's pending transactions
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      settled:
+                        type: integer
+                    required:
+                      - settled
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/transactions/{postingDate}:
+    delete:
+      tags:
+        - Transactions
+      summary: Delete the transactions posted on a date
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+        - schema:
+            type: string
+          required: true
+          name: postingDate
+          in: path
+      responses:
+        "200":
+          description: OK (empty body)
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/pending-transactions:
+    get:
+      tags:
+        - Transactions
+      summary: List pending transactions (card holds)
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      pendingTransactions:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/PendingTransaction"
+                    required:
+                      - pendingTransactions
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/pending-transactions/{transactionId}/settle:
+    post:
+      tags:
+        - Transactions
+      summary: Settle one pending transaction
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+        - schema:
+            type: string
+          required: true
+          name: transactionId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/pending-transactions/{transactionId}:
+    delete:
+      tags:
+        - Transactions
+      summary: Reverse one pending transaction, releasing the funds
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+        - schema:
+            type: string
+          required: true
+          name: transactionId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/topup:
+    post:
+      tags:
+        - Transactions
+      summary: Top up an account (one CREDIT)
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  example: 125.5
+                description:
+                  type: string
+                  minLength: 1
+              required:
+                - amount
+              additionalProperties: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/StoredTransaction"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/transfermultiple:
+    post:
+      tags:
+        - Transfers and payments
+      summary: Transfer between accounts (up to 50)
+      description: The whole batch must fit the available balance (422 otherwise).
+        Both accounts must be consented.
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transferList:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      beneficiaryAccountId:
+                        type: string
+                        minLength: 1
+                      amount:
+                        type: number
+                        example: 125.5
+                      myReference:
+                        type: string
+                        default: ""
+                      theirReference:
+                        type: string
+                        default: ""
+                    required:
+                      - beneficiaryAccountId
+                      - amount
+                  minItems: 1
+                  maxItems: 50
+                profileId:
+                  type: string
+              required:
+                - transferList
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TransferLeg"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Not possible in the current state (e.g. insufficient funds)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/paymultiple:
+    post:
+      tags:
+        - Transfers and payments
+      summary: Pay beneficiaries (up to 50)
+      description: The whole batch must fit the available balance (422 otherwise).
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentList:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      beneficiaryId:
+                        type: string
+                        minLength: 1
+                      amount:
+                        type: number
+                        example: 125.5
+                      myReference:
+                        type: string
+                        default: ""
+                      theirReference:
+                        type: string
+                        default: ""
+                    required:
+                      - beneficiaryId
+                      - amount
+                  minItems: 1
+                  maxItems: 50
+              required:
+                - paymentList
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PaymentLeg"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Not possible in the current state (e.g. insufficient funds)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/beneficiaries:
+    get:
+      tags:
+        - Beneficiaries
+      summary: List beneficiaries
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Beneficiary"
+                    required:
+                      - result
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Beneficiaries
+      summary: Create a beneficiary
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                beneficiaryId:
+                  type: string
+                  minLength: 1
+                accountNumber:
+                  type: string
+                code:
+                  type: string
+                bank:
+                  type: string
+                beneficiaryName:
+                  type: string
+                lastPaymentAmount:
+                  type: string
+                lastPaymentDate:
+                  type: string
+                cellNo:
+                  type: string
+                  nullable: true
+                emailAddress:
+                  type: string
+                  nullable: true
+                name:
+                  type: string
+                referenceAccountNumber:
+                  type: string
+                referenceName:
+                  type: string
+                categoryId:
+                  type: string
+                profileId:
+                  type: string
+              additionalProperties: false
+              description: Fields left out get random values.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Beneficiary"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/beneficiaries/{beneficiaryId}:
+    delete:
+      tags:
+        - Beneficiaries
+      summary: Delete a beneficiary
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: beneficiaryId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/beneficiarycategories:
+    get:
+      tags:
+        - Beneficiaries
+      summary: List beneficiary categories
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BeneficiaryCategory"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/documents:
+    get:
+      tags:
+        - Documents
+      summary: List statements
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      documents:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/DocumentSummary"
+                    required:
+                      - documents
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/pb/v1/accounts/{accountId}/documents/{documentType}/{documentDate}:
+    get:
+      tags:
+        - Documents
+      summary: Get a statement (placeholder descriptor)
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: accountId
+          in: path
+        - schema:
+            type: string
+          required: true
+          name: documentType
+          in: path
+        - schema:
+            type: string
+          required: true
+          name: documentDate
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/DocumentDetail"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards:
+    get:
+      tags:
+        - Cards
+      summary: List cards
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      cards:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Card"
+                    required:
+                      - cards
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Cards
+      summary: Create a card
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardKey:
+                  type: string
+                cardNumber:
+                  type: string
+                  minLength: 1
+                isProgrammable:
+                  type: boolean
+                status:
+                  type: string
+                  minLength: 1
+                cardTypeCode:
+                  type: string
+                  minLength: 1
+                accountId:
+                  type: string
+                  minLength: 1
+                accountNumber:
+                  type: string
+                  minLength: 1
+              additionalProperties: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CreatedCard"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}:
+    delete:
+      tags:
+        - Cards
+      summary: Delete a card
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      responses:
+        "200":
+          description: OK (empty body)
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/status:
+    post:
+      tags:
+        - Cards
+      summary: Stop or reactivate a card
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - Active
+                    - Stopped
+              required:
+                - status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      cardKey:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                          - Active
+                          - Stopped
+                    required:
+                      - cardKey
+                      - status
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/toggle-programmable-feature:
+    post:
+      tags:
+        - Cards
+      summary: Turn the programmable feature on or off
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Enabled:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Enabled:
+                    type: boolean
+                required:
+                  - Enabled
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/code:
+    get:
+      tags:
+        - Card code
+      summary: Get the saved code
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CardCode"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Card code
+      summary: Save code
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CardCode"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/publishedcode:
+    get:
+      tags:
+        - Card code
+      summary: Get the published code
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CardCode"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Card code
+      summary: Publish code
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CardCode"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/environmentvariables:
+    get:
+      tags:
+        - Card code
+      summary: Get environment variables
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/EnvironmentVariables"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Card code
+      summary: Replace environment variables
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties:
+                    nullable: true
+                  default: {}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/EnvironmentVariables"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/code/execute:
+    post:
+      tags:
+        - Card code
+      summary: Simulate a transaction against code you supply
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                  pattern: ^[A-Za-z]{3}$
+                  example: ZAR
+                centsAmount:
+                  type: integer
+                  minimum: 0
+                  exclusiveMinimum: true
+                  example: 1000
+                merchantCode:
+                  type: string
+                  pattern: ^\d{4}$
+                  example: "5411"
+                merchantName:
+                  type: string
+                  minLength: 1
+                  example: Corner Cafe
+                merchantCity:
+                  type: string
+                  minLength: 1
+                  example: Cape Town
+                countryCode:
+                  type: string
+                  pattern: ^[A-Za-z]{2}$
+                  example: ZA
+                simulationcode:
+                  type: string
+                  default: ""
+                  description: The card code to run.
+              required:
+                - currencyCode
+                - centsAmount
+                - merchantCode
+                - merchantName
+                - merchantCity
+                - countryCode
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            executionId:
+                              type: string
+                            rootCodeFunctionId:
+                              type: string
+                            sandbox:
+                              type: boolean
+                            type:
+                              type: string
+                              enum: *a2
+                            authorizationApproved:
+                              type: boolean
+                              nullable: true
+                            smsCount:
+                              type: integer
+                            emailCount:
+                              type: integer
+                            pushNotificationCount:
+                              type: integer
+                            createdAt:
+                              type: string
+                              example: 2026-11-09T10:00:00.000Z
+                            startedAt:
+                              type: string
+                              example: 2026-11-09T10:00:00.000Z
+                            completedAt:
+                              type: string
+                              example: 2026-11-09T10:00:00.000Z
+                            updatedAt:
+                              type: string
+                              nullable: true
+                              example: 2026-11-09T10:00:00.000Z
+                            logs:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  logId:
+                                    type: string
+                                  executionId:
+                                    type: string
+                                  createdAt:
+                                    type: string
+                                    example: 2026-11-09T10:00:00.000Z
+                                  level:
+                                    type: string
+                                  content:
+                                    type: string
+                                required:
+                                  - createdAt
+                                  - level
+                                  - content
+                          required:
+                            - executionId
+                            - rootCodeFunctionId
+                            - sandbox
+                            - type
+                            - authorizationApproved
+                            - smsCount
+                            - emailCount
+                            - pushNotificationCount
+                            - createdAt
+                            - startedAt
+                            - completedAt
+                            - updatedAt
+                            - logs
+                    required:
+                      - result
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/code/execute-live:
+    post:
+      tags:
+        - Card code
+      summary: Swipe the card (point of sale)
+      description: "Runs the published code. Declined up front if the card is stopped
+        or the account can't cover it; an approved swipe places a pending hold
+        (or posts immediately with settle: true)."
+      security:
+        - bearerAuth: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currencyCode:
+                  type: string
+                  pattern: ^[A-Za-z]{3}$
+                  example: ZAR
+                centsAmount:
+                  type: integer
+                  minimum: 0
+                  exclusiveMinimum: true
+                  example: 1000
+                merchantCode:
+                  type: string
+                  pattern: ^\d{4}$
+                  example: "5411"
+                merchantName:
+                  type: string
+                  minLength: 1
+                  example: Corner Cafe
+                merchantCity:
+                  type: string
+                  minLength: 1
+                  example: Cape Town
+                countryCode:
+                  type: string
+                  pattern: ^[A-Za-z]{2}$
+                  example: ZA
+                settle:
+                  type: boolean
+                  default: false
+                  description: Post the purchase immediately instead of placing a pending hold.
+              required:
+                - currencyCode
+                - centsAmount
+                - merchantCode
+                - merchantName
+                - merchantCity
+                - countryCode
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/SwipeResult"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/{cardKey}/code/executions:
+    get:
+      tags:
+        - Card code
+      summary: List code executions and their logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: cardKey
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      executions:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Execution"
+                    required:
+                      - executions
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/countries:
+    get:
+      tags:
+        - Cards
+      summary: List countries
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ReferenceList"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/currencies:
+    get:
+      tags:
+        - Cards
+      summary: List currencies
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ReferenceList"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /za/v1/cards/merchants:
+    get:
+      tags:
+        - Cards
+      summary: List merchant categories
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ReferenceList"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /identity/v2/oauth2/token:
+    post:
+      tags:
+        - Identity
+      summary: Get an access token
+      description: client_credentials also needs the x-api-key header when an API key
+        is set.
+      security:
+        - clientCredentials: []
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Not possible in the current state (e.g. insufficient funds)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /identity/v2/oauth2/authorize:
+    get:
+      tags:
+        - Identity
+      summary: Start the 3-legged flow
+      security: []
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: client_id
+          in: query
+        - schema:
+            type: string
+            example: http://localhost:8080/callback
+          required: true
+          name: redirect_uri
+          in: query
+        - schema:
+            type: string
+            description: "Space-separated: accounts balances transactions transfers
+              beneficiarypayments statements cards. Omit for all."
+          required: false
+          name: scope
+          in: query
+        - schema:
+            type: string
+            description: Echoed back on the redirect.
+          required: false
+          name: state
+          in: query
+      responses:
+        "302":
+          description: To the web app's login page
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /identity/consent:
+    get:
+      tags:
+        - Identity
+      summary: What the consent page shows for a signed-in request
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            description: The sign-in request handle
+          required: true
+          name: qsp
+          in: query
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ConsentDetails"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /identity/approve:
+    get:
+      tags:
+        - Identity
+      summary: Approve a signed-in request
+      security: []
+      parameters:
+        - schema:
+            type: string
+            description: The sign-in request handle
+          required: true
+          name: qsp
+          in: query
+        - schema:
+            type: string
+            description: JSON array of consented account numbers; omit for all.
+          required: false
+          name: selectedAccounts
+          in: query
+      responses:
+        "302":
+          description: To redirect_uri with code, status=SUCCESS and state
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or expired token (when auth is on)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /identity/decline:
+    get:
+      tags:
+        - Identity
+      summary: Decline a request
+      security: []
+      parameters:
+        - schema:
+            type: string
+            description: The sign-in request handle
+          required: true
+          name: qsp
+          in: query
+      responses:
+        "302":
+          description: To redirect_uri with status=DECLINED and state
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /login:
+    post:
+      tags:
+        - Identity
+      summary: Sign in (the login page posts here)
+      security: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  default: ""
+                password:
+                  type: string
+                  default: ""
+                qsp:
+                  type: string
+      responses:
+        "302":
+          description: To the web app's consent page, or back to login with
+            error=invalid_credentials
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /health:
+    get:
+      tags:
+        - Sandbox
+      summary: Health check
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                required:
+                  - status
+  /envs:
+    get:
+      tags:
+        - Sandbox
+      summary: Get settings
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Settings"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+    post:
+      tags:
+        - Sandbox
+      summary: Save settings
+      security: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                api_key:
+                  type: string
+                token_expiry:
+                  type: integer
+                  minimum: 0
+                  exclusiveMinimum: true
+                auth:
+                  anyOf:
+                    - type: boolean
+                    - type: string
+                      enum: *a1
+              required:
+                - client_id
+                - client_secret
+                - api_key
+                - token_expiry
+                - auth
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /database-summary:
+    get:
+      tags:
+        - Sandbox
+      summary: Count profiles, accounts, cards and transactions
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/DatabaseSummary"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+  /scenarios:
+    get:
+      tags:
+        - Sandbox
+      summary: List scenarios
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Scenario"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+  /scenarios/{id}:
+    post:
+      tags:
+        - Sandbox
+      summary: Load a scenario (replaces accounts, transactions, beneficiaries and
+        cards)
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ScenarioLoaded"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /restore:
+    get:
+      tags:
+        - Sandbox
+      summary: Reset to the seed data
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK (empty body)
+  /clear:
+    delete:
+      tags:
+        - Sandbox
+      summary: Remove all data
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK (empty body)
