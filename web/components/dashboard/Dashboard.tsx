@@ -5,6 +5,7 @@ import AccountsPanel from './AccountsPanel';
 import BeneficiariesPanel from './BeneficiariesPanel';
 import CardsPanel from './CardsPanel';
 import ControlBar from './ControlBar';
+import ExchangeRatesPanel from './ExchangeRatesPanel';
 import FaultsPanel, { FaultBanner } from './FaultsPanel';
 import PendingHoldsPanel from './PendingHoldsPanel';
 import ServerLogs from './ServerLogs';
@@ -24,6 +25,7 @@ export default function Dashboard() {
       <TransactionsPanel />
       <BeneficiariesPanel />
       <CardsPanel />
+      <ExchangeRatesPanel />
       <PendingHoldsPanel />
       <WebhooksPanel />
       <FaultsPanel />

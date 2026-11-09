@@ -185,6 +185,17 @@ export function createCard(card: NewCard) {
   return fetchData<CreatedCard>(CARDS, postJSON(card));
 }
 
+export function setExchangeRate(currencyCode: string, zarPerUnit: number) {
+  return fetchData<ExchangeRate>(`/exchange-rates/${encodeURIComponent(currencyCode)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ zarPerUnit }),
+  });
+}
+
+export function deleteExchangeRate(currencyCode: string) {
+  return fetchAPI(`/exchange-rates/${encodeURIComponent(currencyCode)}`, { method: 'DELETE' });
+}
+
 export async function getExchangeRates(): Promise<ExchangeRate[]> {
   return (await fetchData<{ rates: ExchangeRate[] }>('/exchange-rates')).rates;
 }
