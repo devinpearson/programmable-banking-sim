@@ -14,6 +14,7 @@ import {
 } from '../types.js'
 import { getAccountBalance } from '../balance.js'
 import { accountAllowed } from '../consent.js'
+import { publish } from '../webhooks.js'
 import { validateRequest, validatedBody, validatedQuery } from '../middleware/validation.js'
 import {
   allowNonCardPendingQuery,
@@ -284,9 +285,10 @@ router.post('/:accountId/transfermultiple',
       }
 
       // Commit every leg atomically.
-      await prisma.$transaction(writes)
+      const created = await prisma.$transaction(writes)
       // Open dashboards refresh on this, including for API-made transfers.
       await emitDatabaseSummary()
+      for (const leg of created) publish('transaction.posted', leg)
 
       return formatResponse(transfers, req, res)
     } catch (error) {
@@ -368,8 +370,14 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
     }
 
     // Commit every payment atomically.
-    await prisma.$transaction(writes)
+    const results = await prisma.$transaction(writes)
     await emitDatabaseSummary()
+    // The batch also updates beneficiaries; publish only the transactions.
+    for (const result of results) {
+      if (result && typeof result === 'object' && 'transactionId' in result) {
+        publish('transaction.posted', result)
+      }
+    }
 
     return formatResponse(transfers, req, res)
   } catch (error) {
@@ -424,6 +432,10 @@ router.post(
       data: randomTx,
     })
     await emitDatabaseSummary()
+    publish(
+      transaction.status === TransactionStatus.PENDING ? 'transaction.pending' : 'transaction.posted',
+      transaction,
+    )
     return formatResponse(transaction, req, res)
   } catch (error) {
     console.log(error)
@@ -468,6 +480,7 @@ router.post('/:accountId/topup', validateRequest({ body: topUpBody }), async (re
       },
     })
     await emitDatabaseSummary()
+    publish('transaction.posted', transaction)
     return formatResponse(transaction, req, res)
   } catch (error) {
     console.log(error)
@@ -492,6 +505,11 @@ router.post('/:accountId/transactions/settle', async (req, res) => {
     // Card holds have no posting date until they settle: they post today.
     // Pending items created with explicit dates keep them.
     const today = dayjs().format('YYYY-MM-DD')
+    // Which ones settle, to publish each afterwards.
+    const settling = await prisma.transaction.findMany({
+      where: { accountId, status: TransactionStatus.PENDING },
+      select: { transactionId: true },
+    })
     const [, result] = await prisma.$transaction([
       prisma.transaction.updateMany({
         where: {
@@ -510,6 +528,10 @@ router.post('/:accountId/transactions/settle', async (req, res) => {
       }),
     ])
     await emitDatabaseSummary()
+    const settled = await prisma.transaction.findMany({
+      where: { transactionId: { in: settling.map(t => t.transactionId) } },
+    })
+    for (const transaction of settled) publish('transaction.posted', transaction)
     return formatResponse({ settled: result.count }, req, res)
   } catch (error) {
     console.log(error)
@@ -763,6 +785,7 @@ router.post(
         },
       })
       await emitDatabaseSummary()
+      publish('transaction.posted', transaction)
       return formatResponse(toTransactionResponse(transaction), req, res)
     } catch (error) {
       console.log(error)
@@ -786,6 +809,7 @@ router.delete(
         where: { transactionId: pending.transactionId },
       })
       await emitDatabaseSummary()
+      publish('transaction.reversed', pending)
       return res.status(200).json({})
     } catch (error) {
       console.log(error)

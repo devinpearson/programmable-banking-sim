@@ -16,6 +16,8 @@ import type {
   Scenario,
   Settings,
   SwipeResult,
+  Webhook,
+  WebhookDelivery,
 } from './types';
 import { buildSwipeRequest, newestFirst, type SwipeInput } from '../banking';
 
@@ -100,6 +102,40 @@ export interface Payment {
 
 export function payBeneficiary(fromAccountId: string, payment: Payment) {
   return fetchData(`${ACCOUNTS}/${fromAccountId}/paymultiple`, postJSON({ paymentList: [payment] }));
+}
+
+export async function getWebhooks(): Promise<Webhook[]> {
+  return (await fetchData<{ webhooks: Webhook[] }>('/webhooks')).webhooks;
+}
+
+export async function getWebhookEvents(): Promise<string[]> {
+  return (await fetchData<{ events: string[] }>('/webhooks/events')).events;
+}
+
+export interface NewWebhook {
+  url: string;
+  events?: string[];
+  secret?: string;
+}
+
+export function createWebhook(webhook: NewWebhook) {
+  return fetchData<Webhook>('/webhooks', postJSON(webhook));
+}
+
+export function setWebhookActive(webhookId: string, active: boolean) {
+  return fetchData<Webhook>(`/webhooks/${webhookId}`, { method: 'PATCH', body: JSON.stringify({ active }) });
+}
+
+export function deleteWebhook(webhookId: string) {
+  return fetchAPI(`/webhooks/${webhookId}`, { method: 'DELETE' });
+}
+
+export function testWebhook(webhookId: string) {
+  return fetchData<WebhookDelivery>(`/webhooks/${webhookId}/test`, { method: 'POST' });
+}
+
+export async function getWebhookDeliveries(webhookId: string): Promise<WebhookDelivery[]> {
+  return (await fetchData<{ deliveries: WebhookDelivery[] }>(`/webhooks/${webhookId}/deliveries?limit=20`)).deliveries;
 }
 
 export function settleHold(hold: PendingTransaction) {

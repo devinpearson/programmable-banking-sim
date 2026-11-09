@@ -10,6 +10,7 @@ import ServerLogs from './ServerLogs';
 import SettingsPanel from './SettingsPanel';
 import SummaryCards from './SummaryCards';
 import TransactionsPanel from './TransactionsPanel';
+import WebhooksPanel from './WebhooksPanel';
 
 export default function Dashboard() {
   const { logs, connected, clearLogs } = useLiveUpdates();
@@ -22,6 +23,7 @@ export default function Dashboard() {
       <BeneficiariesPanel />
       <CardsPanel />
       <PendingHoldsPanel />
+      <WebhooksPanel />
       <ServerLogs logs={logs} connected={connected} onClear={clearLogs} />
       <SettingsPanel />
     </div>

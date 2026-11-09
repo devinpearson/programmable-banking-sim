@@ -162,6 +162,26 @@ The seed has illustrative (not live) rates for the 22 seeded currencies. Manage 
 - **PUT /exchange-rates/:currencyCode** `{ "zarPerUnit": 17.6 }`: add a currency or change its rate
 - **DELETE /exchange-rates/:currencyCode**: remove one
 
+### Webhooks
+Register a URL and the sandbox POSTs events to it as they happen, so you can build and test an integration that reacts to the bank (the dashboard has a Webhooks panel too):
+
+| Event | When |
+| --- | --- |
+| `transaction.posted` | A transaction posts: top-ups, transfer and payment legs, posted swipes, created transactions, and holds that settle |
+| `transaction.pending` | A card hold is placed |
+| `transaction.reversed` | A hold is reversed |
+| `card.authorization` | Every live card swipe, approved or declined (with the reason, merchant and any currency conversion) |
+| `webhook.test` | Sent on demand by `POST /webhooks/:webhookId/test` |
+
+Each delivery is a JSON POST, `{ "id", "event", "createdAt", "data" }`, with `X-Sandbox-Event` and `X-Sandbox-Delivery` headers. Give the webhook a `secret` and deliveries also carry `X-Sandbox-Signature: sha256=<HMAC-SHA256 of the raw body, hex>` to verify. Any 2xx response counts as delivered; there are no automatic retries, but every attempt is logged with its status or error. The payload shapes are in the OpenAPI document's `webhooks` section.
+
+- **GET /webhooks**, **POST /webhooks** `{ "url", "events"?, "secret"? }` (no `events` means all)
+- **PATCH /webhooks/:webhookId** `{ "active": false }` to pause, or change `url`/`events`
+- **DELETE /webhooks/:webhookId**
+- **POST /webhooks/:webhookId/test**, **GET /webhooks/:webhookId/deliveries**, **GET /webhooks/events**
+
+Webhooks are configuration: **Reset data** and scenarios leave them in place.
+
 ### Mock API only endpoints
 - **POST /za/pb/v1/accounts/:accountId/transactions**
     - Creates and inserts a transaction into the history. Only card transactions (`CardPurchases`, `CardWithdrawals`) can be created with `status: "PENDING"`; other types get a `400` unless you add `?allowNonCardPending=true` for the rare non-card pending case. Card transactions can also be inserted already posted: omit `status` or send `"POSTED"`. A pending transaction with no `transactionType` defaults to `CardPurchases`

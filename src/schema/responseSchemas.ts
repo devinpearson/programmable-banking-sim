@@ -229,6 +229,57 @@ const Exchange = z
   })
   .openapi('Exchange')
 
+export const Webhook = z
+  .object({
+    webhookId: z.string(),
+    url: z.string(),
+    events: z.array(z.string()).openapi({ example: ['transaction.posted', 'card.authorization'] }),
+    hasSecret: z.boolean().openapi({ description: 'Whether deliveries are signed. The secret itself is never returned.' }),
+    active: z.boolean(),
+    createdAt: isoDateTime,
+  })
+  .openapi('Webhook')
+
+// The JSON body of every webhook delivery.
+export function webhookEnvelope<T extends z.ZodTypeAny>(event: string, data: T) {
+  return z.object({
+    id: z.string().openapi({ description: 'The delivery id (also in X-Sandbox-Delivery).' }),
+    event: z.literal(event),
+    createdAt: isoDateTime,
+    data,
+  })
+}
+
+export const WebhookDelivery = z
+  .object({
+    deliveryId: z.string(),
+    webhookId: z.string(),
+    event: z.string(),
+    status: z.enum(['delivered', 'failed']),
+    responseStatus: z.number().int().nullable(),
+    error: z.string().nullable().openapi({ example: 'Connection refused' }),
+    durationMs: z.number().int(),
+    createdAt: isoDateTime,
+    payload: z.object({ id: z.string(), event: z.string(), createdAt: isoDateTime, data: z.unknown() }),
+  })
+  .openapi('WebhookDelivery')
+
+export const CardAuthorizationEvent = z
+  .object({
+    cardKey: z.string(),
+    cardNumber: z.string(),
+    accountId: z.string(),
+    approved: z.boolean(),
+    reason: z.enum(['insufficient_funds', 'card_not_active', 'declined_by_card_code']).nullable(),
+    merchant: z.object({ name: z.string(), city: z.string(), countryCode: z.string(), categoryCode: z.string() }),
+    currencyCode: z.string(),
+    centsAmount: z.number().int().openapi({ description: 'In the purchase currency.' }),
+    zarAmount: z.number().openapi({ description: 'What the account is charged, in rand.' }),
+    exchange: z.union([Exchange, z.null()]),
+    transactionId: z.number().int().nullable().openapi({ description: 'The hold or posted purchase, when approved.' }),
+  })
+  .openapi('CardAuthorizationEvent')
+
 export const ExchangeRate = z
   .object({
     currencyCode: z.string().openapi({ example: 'USD' }),

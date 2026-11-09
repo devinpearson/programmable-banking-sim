@@ -11,6 +11,7 @@ import {
 import { getAccountBalance } from '../balance.js'
 import { HOME_CURRENCY, toRand } from '../fx.js'
 import { STARTER_CARD_CODE, generateCardNumber } from '../cardCode.js'
+import { publish } from '../webhooks.js'
 import { accountAllowed } from '../consent.js'
 import { validateRequest, validatedBody } from '../middleware/validation.js'
 import {
@@ -495,9 +496,29 @@ router.post(
       const amount = conversion.zarAmount
       // Reported for foreign purchases only.
       const exchange = conversion.currencyCode === HOME_CURRENCY ? null : conversion
+      // The card.authorization webhook event for this swipe's outcome.
+      const authorization = (approved: boolean, reason: string | null, transactionId: number | null) => ({
+        cardKey: card.cardKey,
+        cardNumber: card.cardNumber,
+        accountId: card.accountId,
+        approved,
+        reason,
+        merchant: {
+          name: simulationPayload.merchantName,
+          city: simulationPayload.merchantCity,
+          countryCode: simulationPayload.countryCode.toUpperCase(),
+          categoryCode: simulationPayload.merchantCode,
+        },
+        currencyCode: conversion.currencyCode,
+        centsAmount: simulationPayload.centsAmount,
+        zarAmount: amount,
+        exchange,
+        transactionId,
+      })
       // A stopped (or otherwise inactive) card is declined by the bank before
       // any card code runs.
       if (card.status.toLowerCase() !== 'active') {
+        publish('card.authorization', authorization(false, 'card_not_active', null))
         return formatResponse(
           { result: false, reason: 'card_not_active', transaction: null, exchange },
           req,
@@ -510,6 +531,7 @@ router.post(
       // point at no account (e.g. created with the defaults) just run code.
       const balance = await getAccountBalance(card.accountId)
       if (balance && amount > balance.availableBalance) {
+        publish('card.authorization', authorization(false, 'insufficient_funds', null))
         return formatResponse(
           { result: false, reason: 'insufficient_funds', transaction: null, exchange },
           req,
@@ -592,7 +614,12 @@ router.post(
           },
         })
         await emitDatabaseSummary()
+        publish(posted.status === TransactionStatus.POSTED ? 'transaction.posted' : 'transaction.pending', posted)
       }
+      publish(
+        'card.authorization',
+        authorization(transactionResult, transactionResult ? null : 'declined_by_card_code', posted?.transactionId ?? null),
+      )
 
       const data = { result: transactionResult, transaction: posted, exchange }
       return formatResponse(data, req, res)

@@ -18,6 +18,8 @@ export type ExchangeRate = Schemas['ExchangeRate'];
 export type Transaction = Schemas['Transaction'];
 export type Beneficiary = Schemas['Beneficiary'];
 export type BeneficiaryCategory = Schemas['BeneficiaryCategory'];
+export type Webhook = Schemas['Webhook'];
+export type WebhookDelivery = Schemas['WebhookDelivery'];
 export type CreatedCard = Schemas['CreatedCard'];
 export type CardStatus = 'Active' | 'Stopped';
 
