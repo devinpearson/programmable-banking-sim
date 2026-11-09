@@ -7,6 +7,7 @@ import { formatResponse, formatErrorResponse, emitDatabaseSummary } from '../app
 import { Investec } from 'programmable-banking-faker'
 import {
   CARD_TRANSACTION_TYPES,
+  InvestecTransactionType,
   TransactionStatus,
   TransactionType,
   type BalanceResponse,
@@ -96,11 +97,10 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
       where: {
         accountId: accountId,
       },
-      // Explicit, stable order so postedOrder and runningBalance are
-      // deterministic instead of relying on the database's insertion order.
-      orderBy: {
-        transactionId: 'asc',
-      },
+      // Oldest first, so postedOrder and runningBalance accumulate in posting
+      // order even when a transaction was inserted backdated. transactionId
+      // breaks ties within a day.
+      orderBy: [{ postingDate: 'asc' }, { transactionId: 'asc' }],
     })
     //    console.log(transactionsArr)
     const toDate = req.query.toDate ?? dayjs().format('YYYY-MM-DD') // set to today
@@ -113,6 +113,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
     let postedOrder = 0
     let runningBalance: number = 0
     const transactions = []
+    const pendingTransactions = []
     for (let j = 0; j < transactionsArr.length; j++) {
       const pending = transactionsArr[j].status === TransactionStatus.PENDING
       if (pending && !includePending) {
@@ -133,7 +134,7 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
         ) {
           continue
         }
-        transactions.push({
+        pendingTransactions.push({
           ...toTransactionResponse(transactionsArr[j]),
           postedOrder: 0,
           runningBalance: 0,
@@ -167,7 +168,11 @@ router.get('/:accountId/transactions', async (req: Request, res: Response) => {
       )
       transactions.push(toTransactionResponse(transactionsArr[j]))
     }
-    const data = { transactions }
+    // Like the real API, newest first, with pending holds (the most recent
+    // activity) on top.
+    const data = {
+      transactions: [...pendingTransactions.reverse(), ...transactions.reverse()],
+    }
     return formatResponse(data, req, res)
   } catch (error) {
     console.log(error)
@@ -218,7 +223,7 @@ router.post('/:accountId/transfermultiple',
             data: {
               accountId: accountId,
               type: TransactionType.DEBIT,
-              transactionType: 'Transfer',
+              transactionType: InvestecTransactionType.OnlineBankingTransfers,
               status: 'POSTED',
               description: transfer.myReference,
               cardNumber: '',
@@ -235,7 +240,7 @@ router.post('/:accountId/transfermultiple',
             data: {
               accountId: transfer.beneficiaryAccountId,
               type: TransactionType.CREDIT,
-              transactionType: 'Transfer',
+              transactionType: InvestecTransactionType.OnlineBankingTransfers,
               status: 'POSTED',
               description: transfer.theirReference,
               cardNumber: '',
@@ -310,7 +315,7 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
           data: {
             accountId: accountId,
             type: TransactionType.DEBIT,
-            transactionType: 'Payment',
+            transactionType: InvestecTransactionType.OnlineBankingPayments,
             status: 'POSTED',
             description: payment.myReference,
             cardNumber: '',
@@ -321,6 +326,18 @@ router.post('/:accountId/paymultiple', async (req: Request, res: Response) => {
             transactionDate: today,
             amount: payment.amount,
             runningBalance: 0,
+          },
+        }),
+        // The beneficiary remembers its most recent payment, in the same
+        // formats the API uses (e.g. "2,000.00" and "25/04/2023").
+        prisma.beneficiary.update({
+          where: { beneficiaryId: payment.beneficiaryId },
+          data: {
+            lastPaymentAmount: amount.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }),
+            lastPaymentDate: dayjs().format('DD/MM/YYYY'),
           },
         }),
       )
@@ -351,7 +368,7 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
     // unless the caller opts in with ?allowNonCardPending=true (for the rare
     // non-card pending case, e.g. a held EFT).
     if (req.body.status === TransactionStatus.PENDING) {
-      randomTx.transactionType = 'CardPurchases'
+      randomTx.transactionType = InvestecTransactionType.CardPurchases
     }
     randomTx = { ...randomTx, ...req.body }
     const allowNonCardPending = req.query.allowNonCardPending === 'true'
@@ -416,7 +433,7 @@ router.post('/:accountId/topup', async (req: Request, res: Response) => {
       data: {
         accountId: accountId,
         type: TransactionType.CREDIT,
-        transactionType: 'Deposit',
+        transactionType: InvestecTransactionType.Deposits,
         status: 'POSTED',
         description: req.body.description ?? 'Sandbox top up',
         cardNumber: '',

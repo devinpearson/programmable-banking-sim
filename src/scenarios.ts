@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import dayjs from 'dayjs'
-import { TransactionType } from './types.js'
+import { InvestecTransactionType, TransactionType } from './types.js'
 
 const prisma = new PrismaClient()
 
@@ -25,6 +25,14 @@ interface ScenarioBeneficiary {
   bank: string
 }
 
+// A programmable card issued against one of the scenario's accounts, so card
+// swipes (execute-live) place holds on real scenario balances.
+interface ScenarioCard {
+  cardKey: string
+  cardNumber: string
+  accountId: string
+}
+
 interface Scenario {
   id: string
   name: string
@@ -32,7 +40,24 @@ interface Scenario {
   profile: { profileId: string; profileName: string }
   accounts: ScenarioAccount[]
   beneficiaries?: ScenarioBeneficiary[]
+  cards?: ScenarioCard[]
 }
+
+// Published/saved code for scenario cards: the same starter template the
+// seeded card has, which approves every transaction.
+const STARTER_CARD_CODE =
+  '// This function runs before a transaction.\n' +
+  'const beforeTransaction = async (authorization) => {\n' +
+  '  console.log(authorization);\n' +
+  '};\n' +
+  '// This function runs after a transaction was successful.\n' +
+  'const afterTransaction = async (transaction) => {\n' +
+  '  console.log(transaction);\n' +
+  '};\n' +
+  '// This function runs after a transaction was declined.\n' +
+  'const afterDecline = async (transaction) => {\n' +
+  '  console.log(transaction);\n' +
+  '};'
 
 const PROFILE = { profileId: '20000000000001', profileName: 'Sandbox User' }
 
@@ -58,6 +83,9 @@ const scenarios: Scenario[] = [
         openingBalance: 0,
       },
     ],
+    cards: [
+      { cardKey: 'scenario-card-001', cardNumber: '402167XXXXXX0001', accountId: '30000000000000000000001' },
+    ],
   },
   {
     id: 'overdrawn',
@@ -80,6 +108,9 @@ const scenarios: Scenario[] = [
         productName: 'Savings Account',
         openingBalance: 15000,
       },
+    ],
+    cards: [
+      { cardKey: 'scenario-card-011', cardNumber: '402167XXXXXX0011', accountId: '30000000000000000000011' },
     ],
   },
   {
@@ -111,6 +142,9 @@ const scenarios: Scenario[] = [
         overdraftLimit: 20000,
       },
     ],
+    cards: [
+      { cardKey: 'scenario-card-021', cardNumber: '402167XXXXXX0021', accountId: '30000000000000000000021' },
+    ],
     beneficiaries: [
       {
         beneficiaryId: 'scenario-bene-001',
@@ -141,7 +175,11 @@ function openingTransaction(accountId: string, openingBalance: number) {
   return {
     accountId: accountId,
     type: credit ? TransactionType.CREDIT : TransactionType.DEBIT,
-    transactionType: 'Deposit',
+    // A positive opening balance arrives as a deposit; a negative one as a
+    // transfer out.
+    transactionType: credit
+      ? InvestecTransactionType.Deposits
+      : InvestecTransactionType.OnlineBankingTransfers,
     status: 'POSTED',
     description: 'Opening balance',
     cardNumber: '',
@@ -155,8 +193,8 @@ function openingTransaction(accountId: string, openingBalance: number) {
   }
 }
 
-// Replace the account-related data with the chosen scenario. Cards, currencies,
-// countries, merchants and settings are left untouched. Returns null for an
+// Replace the account-related data (and cards) with the chosen scenario.
+// Currencies, countries, merchants and settings are left untouched. Returns null for an
 // unknown id so the caller can respond with 404.
 export async function applyScenario(id: string) {
   const scenario = scenarios.find(s => s.id === id)
@@ -194,6 +232,46 @@ export async function applyScenario(id: string) {
     }
   }
 
+  // Replace the cards too: the old ones point at accounts that no longer
+  // exist. Deleting a card cascades its executions; its code rows are
+  // removed explicitly.
+  const oldCards = await prisma.card.findMany()
+  const oldCodeIds = oldCards.flatMap(card => [card.savedCode, card.publishedCode])
+  await prisma.card.deleteMany()
+  await prisma.cardCode.deleteMany({ where: { codeId: { in: oldCodeIds } } })
+  for (const card of scenario.cards ?? []) {
+    const account = scenario.accounts.find(a => a.accountId === card.accountId)
+    const now = new Date()
+    const savedCode = `${card.cardKey}-saved`
+    const publishedCode = `${card.cardKey}-published`
+    await prisma.cardCode.createMany({
+      data: [
+        { codeId: savedCode, code: STARTER_CARD_CODE, createdAt: now, updatedAt: now },
+        {
+          codeId: publishedCode,
+          code: STARTER_CARD_CODE,
+          createdAt: now,
+          updatedAt: now,
+          publishedAt: now,
+        },
+      ],
+    })
+    await prisma.card.create({
+      data: {
+        cardKey: card.cardKey,
+        cardNumber: card.cardNumber,
+        isProgrammable: true,
+        status: 'Active',
+        cardTypeCode: 'vgs',
+        accountId: card.accountId,
+        accountNumber: account?.accountNumber ?? '',
+        publishedCode,
+        savedCode,
+        envs: '{}',
+      },
+    })
+  }
+
   for (const beneficiary of scenario.beneficiaries ?? []) {
     await prisma.beneficiary.create({
       data: {
@@ -218,5 +296,6 @@ export async function applyScenario(id: string) {
     name: scenario.name,
     accounts: scenario.accounts.length,
     beneficiaries: scenario.beneficiaries?.length ?? 0,
+    cards: scenario.cards?.length ?? 0,
   }
 }

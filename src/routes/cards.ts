@@ -9,7 +9,11 @@ import {
   emitDatabaseSummary,
 } from '../app.js'
 import { getAccountBalance } from '../balance.js'
-import { TransactionStatus, TransactionType } from '../types.js'
+import {
+  InvestecTransactionType,
+  TransactionStatus,
+  TransactionType,
+} from '../types.js'
 import { v4 as uuidv4 } from 'uuid'
 import emu from 'programmable-card-code-emulator'
 import type { ExecutionItem } from '../types.js'
@@ -224,6 +228,35 @@ router.post('/:cardKey/publishedcode', async (req: Request, res: Response) => {
   }
 })
 
+// Sandbox control: stop or reactivate a card. Not a real Investec endpoint.
+// Body: { "status": "Active" | "Stopped" }.
+const CARD_STATUSES = ['Active', 'Stopped']
+router.post('/:cardKey/status', async (req: Request, res: Response) => {
+  try {
+    const cardKey = req.params.cardKey
+    const card = await prisma.card.findFirst({ where: { cardKey } })
+    if (!card) {
+      return formatErrorResponse(req, res, 404)
+    }
+    const status = CARD_STATUSES.find(
+      s => s.toLowerCase() === String(req.body.status ?? '').toLowerCase(),
+    )
+    if (!status) {
+      return formatErrorResponse(
+        req,
+        res,
+        400,
+        `status must be one of: ${CARD_STATUSES.join(', ')}`,
+      )
+    }
+    await prisma.card.update({ where: { cardKey }, data: { status } })
+    return formatResponse({ cardKey, status }, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
 router.post(
   '/:cardKey/toggle-programmable-feature',
   async (req: Request, res: Response) => {
@@ -432,6 +465,15 @@ router.post(
       if (!Number.isFinite(amount) || amount <= 0) {
         return formatErrorResponse(req, res, 400) // invalid amount
       }
+      // A stopped (or otherwise inactive) card is declined by the bank before
+      // any card code runs.
+      if (card.status.toLowerCase() !== 'active') {
+        return formatResponse(
+          { result: false, reason: 'card_not_active', transaction: null },
+          req,
+          res,
+        )
+      }
       // A card linked to a real account swipes against that account: the bank
       // declines it up front when the available balance can't cover it, and
       // an approved swipe places a pending hold on the account. Cards that
@@ -502,7 +544,7 @@ router.post(
           data: {
             accountId: card.accountId,
             type: TransactionType.DEBIT,
-            transactionType: 'CardPurchases',
+            transactionType: InvestecTransactionType.CardPurchases,
             status: settleNow ? TransactionStatus.POSTED : TransactionStatus.PENDING,
             description: simulationPayload.merchantName ?? 'Card purchase',
             cardNumber: card.cardNumber,

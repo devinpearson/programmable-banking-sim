@@ -8,9 +8,23 @@ export enum TransactionStatus {
     PENDING = 'PENDING',
 }
 
+// Real-API transactionType values the sandbox writes itself, so filtering by
+// type matches the seeds and faker data (which also use DebitOrders,
+// FasterPay and FeesAndInterest).
+export enum InvestecTransactionType {
+    CardPurchases = 'CardPurchases',
+    CardWithdrawals = 'CardWithdrawals',
+    Deposits = 'Deposits',
+    OnlineBankingPayments = 'OnlineBankingPayments',
+    OnlineBankingTransfers = 'OnlineBankingTransfers',
+}
+
 // Only card transactions sit in PENDING (an authorisation hold) before they
 // settle; payments, transfers, debit orders and fees post straight away.
-export const CARD_TRANSACTION_TYPES = ['CardPurchases', 'CardWithdrawals']
+export const CARD_TRANSACTION_TYPES: string[] = [
+  InvestecTransactionType.CardPurchases,
+  InvestecTransactionType.CardWithdrawals,
+]
 
 export interface AccessToken {
   expires_at: string

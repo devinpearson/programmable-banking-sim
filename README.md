@@ -66,11 +66,11 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 - **GET /za/pb/v1/accounts/:accountId/balance**
     - Get the balance of an account. `currentBalance` counts posted transactions; `availableBalance` adds the account's overdraft limit and subtracts pending card holds
 - **GET /za/pb/v1/accounts/:accountId/transactions**
-    - Get the transactions of an account. Add `?includePending=true` to include pending card holds
+    - Get the transactions of an account, newest first. `runningBalance` and `postedOrder` follow posting date, so backdated inserts land in the right place. Add `?includePending=true` to include pending card holds (listed on top)
 - **GET /za/pb/v1/accounts/:accountId/pending-transactions**
     - Get the pending (unsettled) transactions of an account
 - **POST /za/pb/v1/accounts/:accountId/transfermultiple** / **paymultiple**
-    - Transfer or pay. A batch that exceeds the available balance is rejected with `422` and `{ "errorMessage": "Insufficient funds" }`
+    - Transfer or pay. A batch that exceeds the available balance is rejected with `422` and `{ "errorMessage": "Insufficient funds" }`. Transfers are labelled `OnlineBankingTransfers` and payments `OnlineBankingPayments`; a payment updates the beneficiary's `lastPaymentAmount` and `lastPaymentDate`
 - **GET /za/pb/v1/accounts/beneficiaries**
     - Get all beneficiaries
 
@@ -121,6 +121,10 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
     - Create a new beneficiary
 - **DELETE /za/pb/v1/accounts/beneficiaries/:beneficiaryId**
     - Delete a beneficiary
+- **POST /za/v1/cards/:cardKey/status**
+    - Stop or reactivate a card: `{ "status": "Stopped" }` or `{ "status": "Active" }`. Swipes on a stopped card are declined with `reason: "card_not_active"`
+- **POST /scenarios/:id**
+    - Load a named starting state. It replaces accounts, transactions, beneficiaries and cards; each scenario issues a programmable card on its main account
 - **POST /za/v1/cards/:cardKey/code/execute-live**
     - Used for the POS to execute the code on the card. If the card's `accountId` is a real account, the swipe is declined (`reason: "insufficient_funds"`) when the available balance can't cover it, and an approved swipe places a pending `CardPurchases` hold on the account (returned as `transaction`). Send `"settle": true` to post the purchase immediately instead of holding it
 
