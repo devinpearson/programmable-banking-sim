@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express'
+import express, { type Request, type Response } from 'express'
 const router = express.Router()
 import {
   accessTokens,
@@ -8,14 +8,14 @@ import {
   formatErrorResponse,
 } from '../app.js'
 import dayjs from 'dayjs'
-import { AuthorizationCode } from '../types.js'
-import { createHmac } from 'crypto'
+import type { AuthorizationCode } from '../types.js'
+import { createHmac } from 'node:crypto'
 
 // Local session storage for OAuth flow
 const sessionTokens: { [key: string]: AuthorizationCode } = {}
 
 // Redirect legacy /oauth requests to correct endpoint
-router.all('/oauth', (req: Request, res: Response) => {
+router.all('/oauth', (_req: Request, res: Response) => {
   return res.status(404).json({
     error: 'endpoint_not_found',
     message: 'OAuth endpoints have moved. Use /identity/v2/oauth2/token for token requests ' +
@@ -48,7 +48,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
         return formatErrorResponse(req, res, 401)
       }
     }
-    if (req.body.grant_type == 'client_credentials') {
+    if (req.body.grant_type === 'client_credentials') {
       if (
         settings.api_key !== '' &&
         req.headers['x-api-key'] !== settings.api_key
@@ -65,7 +65,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
         expires_in: +settings.token_expiry,
         scope: 'accounts',
       })
-    } else if (req.body.grant_type == 'authorization_code') {
+    } else if (req.body.grant_type === 'authorization_code') {
       const code = req.body.code
       // const _redirectUri = req.body.redirect_uri
       // need to check the code to see if it is in the authorizationCodes
@@ -91,7 +91,7 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
         scope: authorizationCode.scope,
         refresh_token: refreshToken,
       })
-    } else if (req.body.grant_type == 'refresh_token') {
+    } else if (req.body.grant_type === 'refresh_token') {
       const incomingToken = req.body.refresh_token
       if (!refreshTokens.includes(incomingToken)) {
         return formatErrorResponse(req, res, 401)
@@ -152,7 +152,7 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
   authorizationCodes[authorizationCode.code] = authorizationCode
   sessionTokens[hash] = authorizationCode
   
-  return res.redirect(302, '/login?qsp=' + hash)
+  return res.redirect(302, `/login?qsp=${hash}`)
 })
 
 router.get('/approve', (req: Request, res: Response) => {
@@ -167,7 +167,7 @@ router.get('/approve', (req: Request, res: Response) => {
   // For this example, we will just redirect to the redirect_uri with the authorization code
   const redirectUri = authorizationCode.redirect_uri.startsWith('http')
     ? authorizationCode.redirect_uri
-    : 'http://' + authorizationCode.redirect_uri
+    : `http://${authorizationCode.redirect_uri}`
   return res.redirect(
     302,
     redirectUri +
@@ -190,7 +190,7 @@ router.get('/decline', (req: Request, res: Response) => {
   // For this example, we will just redirect to the redirect_uri with the authorization code
   const redirectUri = authorizationCode.redirect_uri.startsWith('http')
     ? authorizationCode.redirect_uri
-    : 'http://' + authorizationCode.redirect_uri
+    : `http://${authorizationCode.redirect_uri}`
   return res.redirect(
     302,
     redirectUri +

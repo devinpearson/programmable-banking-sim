@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express'
+import 'dotenv/config'
+import express, { type Request, type Response } from 'express'
 import morgan from 'morgan'
 import cors from 'cors'
 import dayjs from 'dayjs'
@@ -11,7 +12,7 @@ import { createServer } from 'node:http'
 import identity from './routes/identity.js'
 import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
-import {
+import type {
   AccessToken,
   AuthorizationCode,
   Settings,
@@ -52,14 +53,14 @@ const messageQueue = 'logs'
 
 io.on('connection', socket => {
   socket.on('envs', msg => {
-    console.log('message: ' + msg)
+    console.log(`message: ${msg}`)
     settings = msg
     io.emit('envs', settings)
   })
   socket.on('control', async (msg: ControlMessage) => {
-    console.log('control: ' + msg)
+    console.log(`control: ${msg}`)
     const { action } = msg // , message
-    console.log('action: ' + action)
+    console.log(`action: ${action}`)
     switch (action) {
       case 'clear':
         await prisma.account.deleteMany()
@@ -89,7 +90,7 @@ io.on('connection', socket => {
     //io.emit('control', settings);
   })
   socket.on(messageQueue, msg => {
-    console.log('message: ' + msg)
+    console.log(`message: ${msg}`)
     io.emit(messageQueue, msg)
   })
   console.log('a user connected')
@@ -98,11 +99,11 @@ io.on('connection', socket => {
   })
 })
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.sendFile(join(__dirname, 'index.html'))
 })
 
-app.get('/login', (req, res) => {
+app.get('/login', (_req, res) => {
   res.sendFile(join(__dirname, 'login.html'))
 })
 
@@ -127,12 +128,12 @@ app.post('/login', (req, res) => {
 // screen where the scopes and accounts are selected
 app.get(
   '/wpaas/prog-banking-wpaas/oauth-consent',
-  (req: Request, res: Response) => {
+  (_req: Request, res: Response) => {
     res.sendFile(join(__dirname, 'oauth-consent.html'))
   },
 )
 
-app.get('/guide', (req, res) => {
+app.get('/guide', (_req, res) => {
   res.sendFile(join(__dirname, 'guide.html'))
 })
 
@@ -166,7 +167,7 @@ app.post('/envs', async (req: Request, res: Response) => {
 })
 
 // Handle legacy /oauth requests
-app.all('/oauth*', (req: Request, res: Response) => {
+app.all('/oauth*', (_req: Request, res: Response) => {
   return res.status(404).json({
     error: 'endpoint_not_found',
     message: 'OAuth endpoints have moved. Use the correct endpoints below.',
@@ -234,7 +235,7 @@ app.get('/envs', async (req: Request, res: Response) => {
   }
 })
 
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' })
 })
 app.get('/database-summary', async (req: Request, res: Response) => {
@@ -323,7 +324,7 @@ export function formatResponse (data: unknown, req: Request, res: Response) {
   return res.json({
     data,
     links: {
-      self: req.protocol + '://' + req.get('host') + req.originalUrl,
+      self: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
     },
     meta: {
       totalPages: 1,

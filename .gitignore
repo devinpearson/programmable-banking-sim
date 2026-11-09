@@ -6,3 +6,8 @@
 **.db-journal
 CLAUDE.md
 .idea
+.stryker-tmp
+reports
+
+# Local SQLite databases (recreate with: npm run db:reset)
+prisma/*.db

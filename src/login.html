@@ -57,7 +57,7 @@
   
   <script>
     // Extract qsp parameter from URL and populate the hidden field
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const qsp = urlParams.get('qsp');
       if (qsp) {

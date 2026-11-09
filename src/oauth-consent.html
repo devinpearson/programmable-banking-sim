@@ -75,7 +75,7 @@
         }
       },
         mounted() {
-            let params = new URLSearchParams(document.location.search);
+            const params = new URLSearchParams(document.location.search);
             this.qsp = params.get("qsp")
             this.fetchAccounts();
         },
@@ -91,11 +91,11 @@
             if (action === "submit"){
                 // Include selected accounts in the approval
                 const selectedAccountsParam = this.selectedAccounts.length > 0 ? 
-                    '&selectedAccounts=' + encodeURIComponent(JSON.stringify(this.selectedAccounts)) : '';
-                window.location.href = '/identity/approve?qsp=' + this.qsp + selectedAccountsParam;
+                    `&selectedAccounts=${encodeURIComponent(JSON.stringify(this.selectedAccounts))}` : '';
+                window.location.href = `/identity/approve?qsp=${this.qsp}${selectedAccountsParam}`;
                 return;
             } else {
-                window.location.href = '/identity/decline?qsp=' + this.qsp;
+                window.location.href = `/identity/decline?qsp=${this.qsp}`;
             }
         },
         toast(msg) {
