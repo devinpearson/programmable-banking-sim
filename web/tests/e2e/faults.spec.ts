@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { showTab } from './dashboard';
 import { API_URL } from './servers';
 
 test.afterEach(async ({ request }) => {
@@ -7,7 +8,7 @@ test.afterEach(async ({ request }) => {
 
 test('faults break other clients but not the dashboard, and turn off from the banner', async ({ page, request }) => {
   expect((await request.get(`${API_URL}/restore`)).ok()).toBe(true);
-  await page.goto('/');
+  await page.goto('/#simulate');
   const panel = page.getByRole('region', { name: 'Fault injection' });
 
   await panel.getByLabel('Error rate (%)').fill('100');
@@ -24,6 +25,7 @@ test('faults break other clients but not the dashboard, and turn off from the ba
   expect(outside.headers()['x-sandbox-fault-injected']).toBe('503');
 
   // ...while the dashboard keeps working.
+  await showTab(page, 'Banking');
   await page.getByRole('region', { name: 'Accounts' }).getByRole('button', { name: 'Refresh' }).click();
   await expect(page.getByRole('region', { name: 'Accounts' }).getByRole('row', { name: /10012420003/ })).toBeVisible();
 
