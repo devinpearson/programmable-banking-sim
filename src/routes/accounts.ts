@@ -418,12 +418,26 @@ router.delete('/:accountId', async (req: Request, res: Response) => {
       console.log('no account found')
       return formatErrorResponse(req, res, 404) // no account was found
     }
-    // remove the transactions
-    await prisma.transaction.deleteMany({
-      where: {
-        accountId: accountId,
-      },
+    // Remove the account's cards and their code rows. Deleting a card
+    // cascades its executions and logs; the code rows have no FK link, so
+    // they are gathered and removed explicitly.
+    const cards = await prisma.card.findMany({
+      where: { accountId: accountId },
     })
+    const codeIds = cards
+      .flatMap(card => [card.savedCode, card.publishedCode])
+      .filter(Boolean)
+
+    await prisma.card.deleteMany({
+      where: { accountId: accountId },
+    })
+    if (codeIds.length > 0) {
+      await prisma.cardCode.deleteMany({
+        where: { codeId: { in: codeIds } },
+      })
+    }
+
+    // Deleting the account cascades its transactions.
     await prisma.account.delete({
       where: {
         accountId: accountId,

@@ -4,7 +4,9 @@ const prisma = new PrismaClient()
 
 const accountId = '4675778129910189600000003'
 
-const transactionData: Prisma.TransactionCreateInput[] = [
+// UncheckedCreateInput lets the seed set the scalar accountId directly
+// instead of going through the Account relation.
+const transactionData: Prisma.TransactionUncheckedCreateInput[] = [
   {
     accountId,
     type: 'DEBIT',

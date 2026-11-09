@@ -21,6 +21,7 @@ model Account {
     kycCompliant Boolean @default(true)
     profileId String
     profileName String
+    transactions Transaction[]
 }
 
 model Transaction {
@@ -38,6 +39,9 @@ model Transaction {
     transactionDate String
     amount Decimal
     runningBalance Decimal
+    account Account @relation(fields: [accountId], references: [accountId], onDelete: Cascade)
+
+    @@index([accountId])
 }
 
 model Country { 
@@ -88,6 +92,9 @@ model Card {
     publishedCode String
     savedCode String
     envs String
+    executions CardExecution[]
+
+    @@index([accountId])
 }
 
 model CardCode {
@@ -112,6 +119,10 @@ model CardExecution {
     startedAt DateTime
     completedAt DateTime
     updatedAt DateTime?
+    card Card @relation(fields: [cardKey], references: [cardKey], onDelete: Cascade)
+    logs CardExecutionLog[]
+
+    @@index([cardKey])
 }
 
 model CardExecutionLog {
@@ -120,4 +131,7 @@ model CardExecutionLog {
     createdAt DateTime
     level String
     content String
+    execution CardExecution @relation(fields: [executionId], references: [executionId], onDelete: Cascade)
+
+    @@index([executionId])
 }

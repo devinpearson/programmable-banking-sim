@@ -378,4 +378,36 @@ describe('Test the card helpers', () => {
     assert.equal(response.statusCode, 200)
     assert.equal(response.body.data.cardCode.code, '')
   })
+
+  it('should cascade-delete a card\'s executions and logs', async () => {
+    const cardKey = 'test-cascade-exec-001'
+    await request(app).delete(`/za/v1/cards/${cardKey}`)
+    await request(app).post('/za/v1/cards').send({ cardKey })
+
+    // Produce an execution (and its logs).
+    await request(app)
+      .post(`/za/v1/cards/${cardKey}/code/execute`)
+      .send({
+        simulationcode: 'const beforeTransaction = async (auth) => { console.log(auth); };',
+        currencyCode: 'ZAR',
+        centsAmount: 500,
+        merchantCode: '5411',
+        merchantName: 'Sim Merchant',
+        merchantCity: 'Johannesburg',
+        countryCode: 'ZA',
+      })
+    const before = await request(app).get(`/za/v1/cards/${cardKey}/code/executions`)
+    assert.isAbove(before.body.data.executions.length, 0)
+
+    // Delete the card, then recreate it with the same key: executions must not survive.
+    const deleteResponse = await request(app).delete(`/za/v1/cards/${cardKey}`)
+    assert.equal(deleteResponse.statusCode, 200)
+    await request(app).post('/za/v1/cards').send({ cardKey })
+
+    const after = await request(app).get(`/za/v1/cards/${cardKey}/code/executions`)
+    assert.equal(after.statusCode, 200)
+    assert.equal(after.body.data.executions.length, 0)
+
+    await request(app).delete(`/za/v1/cards/${cardKey}`)
+  })
 })
