@@ -194,6 +194,24 @@ export const cardStatusBody = z.object({
     .openapi({ type: 'string', enum: ['Active', 'Stopped'] }),
 })
 
+// --- Exchange rates ---------------------------------------------------------
+
+export const currencyCodeParams = z.object({
+  currencyCode: z
+    .string()
+    .regex(/^[A-Za-z]{3}$/, 'must be a 3-letter currency code')
+    .transform(code => code.toUpperCase())
+    .openapi({ example: 'USD' }),
+})
+
+export const exchangeRateBody = z.object({
+  zarPerUnit: z.coerce
+    .number()
+    .positive('must be greater than zero')
+    .finite()
+    .openapi({ description: 'How many rand one unit of the currency buys.', example: 17.6 }),
+})
+
 // --- Sandbox and identity ---------------------------------------------------
 
 export const settingsBody = z.object({

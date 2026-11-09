@@ -459,6 +459,28 @@ components:
             - error
       required:
         - result
+    Exchange:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: USD
+        amount:
+          type: number
+          description: In the purchase currency.
+          example: 12.5
+        zarPerUnit:
+          type: number
+          example: 17.6
+        zarAmount:
+          type: number
+          description: What the account is charged, in rand.
+          example: 220
+      required:
+        - currencyCode
+        - amount
+        - zarPerUnit
+        - zarAmount
     SwipeResult:
       type: object
       properties:
@@ -476,9 +498,15 @@ components:
             - $ref: "#/components/schemas/StoredTransaction"
             - type: "null"
             - type: "null"
+        exchange:
+          anyOf:
+            - $ref: "#/components/schemas/Exchange"
+            - type: "null"
+            - type: "null"
       required:
         - result
         - transaction
+        - exchange
       description: transaction is the pending hold (or posted purchase) on the card's
         account; null when declined or the card has no account.
     Execution:
@@ -573,6 +601,22 @@ components:
               - name
       required:
         - result
+    ExchangeRate:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: USD
+        zarPerUnit:
+          type: number
+          example: 17.6
+        updatedAt:
+          type: string
+          example: 2026-11-09T10:00:00.000Z
+      required:
+        - currencyCode
+        - zarPerUnit
+        - updatedAt
     TokenResponse:
       type: object
       properties:
@@ -2237,7 +2281,10 @@ paths:
     post:
       tags:
         - Cards
-      summary: Create a card
+      summary: Issue a card
+      description: "Given an accountId (which must exist), the card swipes against
+        that account and takes its account number. Defaults: a masked card
+        number, status Active, and the starter code saved and published."
       security:
         - bearerAuth: []
       x-sandbox-only: true
@@ -2317,6 +2364,12 @@ paths:
                 $ref: "#/components/schemas/Error"
         "409":
           description: Already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Not possible in the current state (e.g. insufficient funds)
           content:
             application/json:
               schema:
@@ -3103,9 +3156,12 @@ paths:
       tags:
         - Card code
       summary: Swipe the card (point of sale)
-      description: "Runs the published code. Declined up front if the card is stopped
-        or the account can't cover it; an approved swipe places a pending hold
-        (or posts immediately with settle: true)."
+      description: "Runs the published code. Any currency with an exchange rate works:
+        the card code sees the purchase in its own currency, and the account is
+        charged in rand. Declined up front if the card is stopped or the account
+        can't cover the rand amount; an approved swipe places a pending hold (or
+        posts immediately with settle: true). 422 when the currency has no
+        exchange rate."
       security:
         - bearerAuth: []
       x-sandbox-only: true
@@ -3206,6 +3262,12 @@ paths:
                 $ref: "#/components/schemas/Error"
         "404":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Not possible in the current state (e.g. insufficient funds)
           content:
             application/json:
               schema:
@@ -3421,6 +3483,149 @@ paths:
                 $ref: "#/components/schemas/Error"
         "403":
           description: Token lacks the scope or account consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /exchange-rates:
+    get:
+      tags:
+        - Exchange rates
+      summary: List exchange rates for foreign card swipes
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      rates:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ExchangeRate"
+                    required:
+                      - rates
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+  /exchange-rates/{currencyCode}:
+    put:
+      tags:
+        - Exchange rates
+      summary: Add a currency or change its rate
+      description: Rand per unit of the currency. ZAR is always 1.
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            pattern: ^[A-Za-z]{3}$
+            example: USD
+          required: true
+          name: currencyCode
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                zarPerUnit:
+                  type: number
+                  exclusiveMinimum: 0
+                  description: How many rand one unit of the currency buys.
+                  example: 17.6
+              required:
+                - zarPerUnit
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ExchangeRate"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Exchange rates
+      summary: Remove a currency (swipes in it are then refused)
+      security: []
+      x-sandbox-only: true
+      parameters:
+        - schema:
+            type: string
+            pattern: ^[A-Za-z]{3}$
+            example: USD
+          required: true
+          name: currencyCode
+          in: path
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        "404":
+          description: Not found
           content:
             application/json:
               schema:

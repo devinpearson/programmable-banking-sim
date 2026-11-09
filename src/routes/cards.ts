@@ -9,6 +9,8 @@ import {
   emitDatabaseSummary,
 } from '../app.js'
 import { getAccountBalance } from '../balance.js'
+import { HOME_CURRENCY, toRand } from '../fx.js'
+import { STARTER_CARD_CODE, generateCardNumber } from '../cardCode.js'
 import { accountAllowed } from '../consent.js'
 import { validateRequest, validatedBody } from '../middleware/validation.js'
 import {
@@ -77,37 +79,50 @@ router.get('/', async (req, res) => {
   }
 })
 
+// Sandbox: issue a card. Given an accountId, the card is linked to that
+// account (it must exist) and swipes against its balance; the account number
+// comes from the account. Without one, the card links to no account and
+// swipes only run its code. Unset fields get defaults: a masked card number,
+// status Active, and the starter code saved and published.
 router.post('/', validateRequest({ body: createCardBody }), async (req, res) => {
   try {
+    const body = validatedBody(res, createCardBody)
+    const account = body.accountId
+      ? await prisma.account.findUnique({ where: { accountId: body.accountId } })
+      : null
+    if (body.accountId && !account) {
+      return formatErrorResponse(req, res, 422, `No account with id ${body.accountId}`)
+    }
     const savedCodeId = uuidv4()
     const publishedCodeId = uuidv4()
-    let card = {
-      cardKey: uuidv4(),
-      cardNumber: '1234567890123456',
-      isProgrammable: false,
-      status: 'ACTIVE',
-      cardTypeCode: 'vgs',
-      accountId: '1234567890',
-      accountNumber: '1234567890',
+    const card = {
+      cardKey: body.cardKey || uuidv4(),
+      cardNumber: body.cardNumber ?? generateCardNumber(),
+      isProgrammable: body.isProgrammable ?? false,
+      status: body.status ?? 'Active',
+      cardTypeCode: body.cardTypeCode ?? 'vgs',
+      // An unlinked card keeps the old placeholder account fields.
+      accountId: account?.accountId ?? '1234567890',
+      accountNumber: body.accountNumber ?? account?.accountNumber ?? '1234567890',
       publishedCode: publishedCodeId,
       savedCode: savedCodeId,
       envs: '{}',
-    }
-    card = { ...card, ...validatedBody(res, createCardBody) }
-    if (card.cardKey === undefined || card.cardKey === '') {
-      card.cardKey = uuidv4()
     }
     const cardcheck = await prisma.card.findFirst({
       where: { cardKey: card.cardKey },
     })
     if (cardcheck) {
-      console.log('card found')
-      return formatErrorResponse(req, res, 409)
+      return formatErrorResponse(req, res, 409, `A card with key ${card.cardKey} already exists`)
     }
     const now = new Date()
-    await prisma.cardCode.create({ data: { codeId: savedCodeId, code: '', createdAt: now, updatedAt: now } })
-    await prisma.cardCode.create({ data: { codeId: publishedCodeId, code: '', createdAt: now, updatedAt: now } })
+    await prisma.cardCode.createMany({
+      data: [
+        { codeId: savedCodeId, code: STARTER_CARD_CODE, createdAt: now, updatedAt: now },
+        { codeId: publishedCodeId, code: STARTER_CARD_CODE, createdAt: now, updatedAt: now, publishedAt: now },
+      ],
+    })
     await prisma.card.create({ data: card })
+    await emitDatabaseSummary()
 
     return formatResponse(card, req, res)
   } catch (error) {
@@ -465,12 +480,26 @@ router.post(
       })
       const simulationPayload = validatedBody(res, executeLiveBody)
       const code = cardCode?.code ?? ''
-      const amount = simulationPayload.centsAmount / 100
+      // The card code sees the purchase in its own currency; the account is
+      // charged in rand at the sandbox exchange rate.
+      const conversion = await toRand(simulationPayload.currencyCode, simulationPayload.centsAmount)
+      if (!conversion) {
+        const currency = simulationPayload.currencyCode.toUpperCase()
+        return formatErrorResponse(
+          req,
+          res,
+          422,
+          `No exchange rate for ${currency}. Add one with PUT /exchange-rates/${currency}.`,
+        )
+      }
+      const amount = conversion.zarAmount
+      // Reported for foreign purchases only.
+      const exchange = conversion.currencyCode === HOME_CURRENCY ? null : conversion
       // A stopped (or otherwise inactive) card is declined by the bank before
       // any card code runs.
       if (card.status.toLowerCase() !== 'active') {
         return formatResponse(
-          { result: false, reason: 'card_not_active', transaction: null },
+          { result: false, reason: 'card_not_active', transaction: null, exchange },
           req,
           res,
         )
@@ -482,7 +511,7 @@ router.post(
       const balance = await getAccountBalance(card.accountId)
       if (balance && amount > balance.availableBalance) {
         return formatResponse(
-          { result: false, reason: 'insufficient_funds', transaction: null },
+          { result: false, reason: 'insufficient_funds', transaction: null, exchange },
           req,
           res,
         )
@@ -547,7 +576,10 @@ router.post(
             type: TransactionType.DEBIT,
             transactionType: InvestecTransactionType.CardPurchases,
             status: settleNow ? TransactionStatus.POSTED : TransactionStatus.PENDING,
-            description: simulationPayload.merchantName,
+            // Foreign purchases show the original amount, as on a statement.
+            description: exchange
+              ? `${simulationPayload.merchantName} (${exchange.currencyCode} ${exchange.amount.toFixed(2)})`
+              : simulationPayload.merchantName,
             cardNumber: card.cardNumber,
             postedOrder: 0,
             // A hold has no posting/value/action dates until it settles.
@@ -562,7 +594,7 @@ router.post(
         await emitDatabaseSummary()
       }
 
-      const data = { result: transactionResult, transaction: posted }
+      const data = { result: transactionResult, transaction: posted, exchange }
       return formatResponse(data, req, res)
     } catch (error) {
       console.log(error)

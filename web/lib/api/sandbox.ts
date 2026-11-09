@@ -6,6 +6,8 @@ import type {
   Card,
   CardStatus,
   ConsentDetails,
+  CreatedCard,
+  ExchangeRate,
   DatabaseSummary,
   PendingTransaction,
   Scenario,
@@ -80,6 +82,20 @@ export async function getCards(): Promise<Card[]> {
 
 export function setCardStatus(cardKey: string, status: CardStatus) {
   return fetchData(`${CARDS}/${cardKey}/status`, postJSON({ status }));
+}
+
+export interface NewCard {
+  accountId: string;
+  cardNumber?: string;
+  isProgrammable: boolean;
+}
+
+export function createCard(card: NewCard) {
+  return fetchData<CreatedCard>(CARDS, postJSON(card));
+}
+
+export async function getExchangeRates(): Promise<ExchangeRate[]> {
+  return (await fetchData<{ rates: ExchangeRate[] }>('/exchange-rates')).rates;
 }
 
 export function swipeCard(cardKey: string, input: SwipeInput) {

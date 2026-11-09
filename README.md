@@ -51,7 +51,7 @@ npm run dev
 
 This starts the API on http://localhost:3000 and the dashboard on http://localhost:3001. Run just one with `npm run dev:api` or `npm run dev:web`.
 
-The dashboard lets you load scenarios, top up accounts and transfer between them, swipe cards and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings.
+The dashboard lets you load scenarios, top up accounts and transfer between them, add cards to accounts, swipe them in any currency and settle or reverse the pending holds they create, stop and reactivate cards, watch the API's request log live, and change the sandbox's settings.
 
 The web app reads the API's address from `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:3000`), and the API sends OAuth users to the web app at `WEB_URL` (default `http://localhost:3001`).
 
@@ -154,6 +154,14 @@ Refreshed tokens keep the original scope and accounts. `client_credentials` toke
 - **POST /za/v1/cards/:cardKey/toggle-programmable-feature**
     - Toggle the programmable feature of a card
 
+### Foreign currency swipes
+A card swipe (`execute-live`) can be in any currency that has an exchange rate. The card code sees the purchase in its own currency (`currencyCode`, `centsAmount`), as on a real card; the account is charged in rand at the sandbox rate, and the hold reads e.g. `London Books (USD 12.50)`. The response's `exchange` field shows the conversion. A currency without a rate gets `422`.
+
+The seed has illustrative (not live) rates for the 22 seeded currencies. Manage them with:
+- **GET /exchange-rates**: list the rates
+- **PUT /exchange-rates/:currencyCode** `{ "zarPerUnit": 17.6 }`: add a currency or change its rate
+- **DELETE /exchange-rates/:currencyCode**: remove one
+
 ### Mock API only endpoints
 - **POST /za/pb/v1/accounts/:accountId/transactions**
     - Creates and inserts a transaction into the history. Only card transactions (`CardPurchases`, `CardWithdrawals`) can be created with `status: "PENDING"`; other types get a `400` unless you add `?allowNonCardPending=true` for the rare non-card pending case. Card transactions can also be inserted already posted: omit `status` or send `"POSTED"`. A pending transaction with no `transactionType` defaults to `CardPurchases`
@@ -173,6 +181,8 @@ Refreshed tokens keep the original scope and accounts. `client_credentials` toke
     - Create a new beneficiary
 - **DELETE /za/pb/v1/accounts/beneficiaries/:beneficiaryId**
     - Delete a beneficiary
+- **POST /za/v1/cards**
+    - Issue a card. With `accountId` (which must exist) the card swipes against that account and takes its account number. Defaults: a masked card number like `402167XXXXXX1234`, status `Active`, and the starter code saved and published
 - **POST /za/v1/cards/:cardKey/status**
     - Stop or reactivate a card: `{ "status": "Stopped" }` or `{ "status": "Active" }`. Swipes on a stopped card are declined with `reason: "card_not_active"`
 - **POST /scenarios/:id**

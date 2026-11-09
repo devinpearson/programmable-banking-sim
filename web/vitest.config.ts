@@ -13,7 +13,7 @@ export default defineConfig({
     environment: 'node',
     // Every unit test in the app; Playwright specs under tests/e2e run separately via test:e2e.
     include: ['{app,components,hooks,lib}/**/*.test.{ts,tsx}'],
-    exclude: ['node_modules/**', '.next/**', '.next-build/**', 'tests/e2e/**'],
+    exclude: ['node_modules/**', '.next/**', '.next-build/**', '.next-e2e/**', 'tests/e2e/**'],
     coverage: {
       provider: 'v8',
       include: ['lib/**/*.{ts,tsx}'],

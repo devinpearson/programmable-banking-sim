@@ -269,11 +269,13 @@ register('get', CARDS, {
 })
 register('post', CARDS, {
   tag: 'Cards',
-  summary: 'Create a card',
+  summary: 'Issue a card',
+  description:
+    "Given an accountId (which must exist), the card swipes against that account and takes its account number. Defaults: a masked card number, status Active, and the starter code saved and published.",
   sandbox: true,
   body: request.createCardBody,
   ok: response.envelope(response.CreatedCard),
-  errors: [...accountErrors, 409],
+  errors: [...accountErrors, 409, 422],
 })
 register('delete', `${CARDS}/:cardKey`, { tag: 'Cards', summary: 'Delete a card', sandbox: true, ok: null, errors: accountErrors })
 register('post', `${CARDS}/:cardKey/status`, {
@@ -330,14 +332,14 @@ register('post', `${CARDS}/:cardKey/code/execute`, {
   errors: accountErrors,
 })
 register('post', `${CARDS}/:cardKey/code/execute-live`, {
+  errors: [...accountErrors, 422],
   tag: 'Card code',
   summary: 'Swipe the card (point of sale)',
   description:
-    "Runs the published code. Declined up front if the card is stopped or the account can't cover it; an approved swipe places a pending hold (or posts immediately with settle: true).",
+    "Runs the published code. Any currency with an exchange rate works: the card code sees the purchase in its own currency, and the account is charged in rand. Declined up front if the card is stopped or the account can't cover the rand amount; an approved swipe places a pending hold (or posts immediately with settle: true). 422 when the currency has no exchange rate.",
   sandbox: true,
   body: request.executeLiveBody,
   ok: response.envelope(response.SwipeResult),
-  errors: accountErrors,
 })
 register('get', `${CARDS}/:cardKey/code/executions`, {
   tag: 'Card code',
@@ -352,6 +354,33 @@ for (const [path, summary] of [
 ] as const) {
   register('get', `${CARDS}/${path}`, { tag: 'Cards', summary, ok: response.envelope(response.ReferenceList), errors: accountErrors })
 }
+
+// --- Exchange rates ---------------------------------------------------------
+register('get', '/exchange-rates', {
+  tag: 'Exchange rates',
+  summary: 'List exchange rates for foreign card swipes',
+  sandbox: true,
+  security: 'none',
+  ok: response.envelope(z.object({ rates: z.array(response.ExchangeRate) })),
+})
+register('put', '/exchange-rates/:currencyCode', {
+  tag: 'Exchange rates',
+  summary: "Add a currency or change its rate",
+  description: 'Rand per unit of the currency. ZAR is always 1.',
+  sandbox: true,
+  security: 'none',
+  params: request.currencyCodeParams,
+  body: request.exchangeRateBody,
+  ok: response.envelope(response.ExchangeRate),
+})
+register('delete', '/exchange-rates/:currencyCode', {
+  tag: 'Exchange rates',
+  summary: 'Remove a currency (swipes in it are then refused)',
+  sandbox: true,
+  security: 'none',
+  params: request.currencyCodeParams,
+  ok: z.object({}),
+})
 
 // --- Identity (OAuth) -------------------------------------------------------
 const tokenBody = z

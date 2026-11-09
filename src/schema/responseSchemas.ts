@@ -220,6 +220,23 @@ export const Execution = z
   })
   .openapi('Execution')
 
+const Exchange = z
+  .object({
+    currencyCode: z.string().openapi({ example: 'USD' }),
+    amount: z.number().openapi({ description: 'In the purchase currency.', example: 12.5 }),
+    zarPerUnit: z.number().openapi({ example: 17.6 }),
+    zarAmount: z.number().openapi({ description: 'What the account is charged, in rand.', example: 220 }),
+  })
+  .openapi('Exchange')
+
+export const ExchangeRate = z
+  .object({
+    currencyCode: z.string().openapi({ example: 'USD' }),
+    zarPerUnit: z.number().openapi({ example: 17.6 }),
+    updatedAt: isoDateTime,
+  })
+  .openapi('ExchangeRate')
+
 export const SwipeResult = z
   .object({
     result: z.boolean().openapi({ description: 'Whether the purchase was approved.' }),
@@ -229,6 +246,8 @@ export const SwipeResult = z
     // A plain union with null: .nullable() (or describing the field) on this
     // extended, registered schema makes the generator re-expand it in allOf.
     transaction: z.union([StoredTransaction, z.null()]),
+    // The conversion for a foreign purchase; null for rand.
+    exchange: z.union([Exchange, z.null()]),
   })
   .openapi('SwipeResult', {
     description:
