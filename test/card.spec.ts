@@ -184,6 +184,14 @@ describe('Test the card helpers', () => {
       })
     assert.equal(response.statusCode, 200)
     assert.isBoolean(response.body.data.result)
+    // The seeded card is linked to a real account, so an approved swipe leaves
+    // a pending hold there. Reverse it so other suites see the seeded balance.
+    const hold = response.body.data.transaction
+    if (hold) {
+      await request(app).delete(
+        `/za/pb/v1/accounts/${hold.accountId}/pending-transactions/${hold.transactionId}`,
+      )
+    }
   })
 
   it('should respond with the executions for a card', async () => {

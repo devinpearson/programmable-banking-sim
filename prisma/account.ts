@@ -10,6 +10,7 @@ const accountData: Prisma.AccountCreateInput[] = [
     referenceName: 'Mr J Soap',
     productName: 'Private Bank Account',
     kycCompliant: true,
+    overdraftLimit: 50000,
     profileId: '10001234567890',
     profileName: 'Joe Soap',
   },

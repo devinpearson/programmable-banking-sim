@@ -64,9 +64,13 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 - **GET /za/pb/v1/accounts**
     - Get all accounts
 - **GET /za/pb/v1/accounts/:accountId/balance**
-    - Get the balance of an account
+    - Get the balance of an account. `currentBalance` counts posted transactions; `availableBalance` adds the account's overdraft limit and subtracts pending card holds
 - **GET /za/pb/v1/accounts/:accountId/transactions**
-    - Get the transactions of an account
+    - Get the transactions of an account. Add `?includePending=true` to include pending card holds
+- **GET /za/pb/v1/accounts/:accountId/pending-transactions**
+    - Get the pending (unsettled) transactions of an account
+- **POST /za/pb/v1/accounts/:accountId/transfermultiple** / **paymultiple**
+    - Transfer or pay. A batch that exceeds the available balance is rejected with `422` and `{ "errorMessage": "Insufficient funds" }`
 - **GET /za/pb/v1/accounts/beneficiaries**
     - Get all beneficiaries
 
@@ -100,11 +104,17 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 
 ### Mock API only endpoints
 - **POST /za/pb/v1/accounts/:accountId/transactions**
-    - Creates and inserts a transaction into the history
+    - Creates and inserts a transaction into the history. Only card transactions (`CardPurchases`, `CardWithdrawals`) can be created with `status: "PENDING"`; other types get a `400` unless you add `?allowNonCardPending=true` for the rare non-card pending case. Card transactions can also be inserted already posted: omit `status` or send `"POSTED"`. A pending transaction with no `transactionType` defaults to `CardPurchases`
 - **DELETE /za/pb/v1/accounts/:accountId/transactions/2023-01-22**
     - Deletes transactions from account for a particular postingDate
 - **POST /za/pb/v1/accounts**
-    - Create a new account
+    - Create a new account. Pass `overdraftLimit` to let it go below zero (default `0`)
+- **POST /za/pb/v1/accounts/:accountId/pending-transactions/:transactionId/settle**
+    - Settle a pending card hold so it posts to the current balance
+- **POST /za/pb/v1/accounts/:accountId/transactions/settle**
+    - Settle all of an account's pending transactions at once
+- **DELETE /za/pb/v1/accounts/:accountId/pending-transactions/:transactionId**
+    - Reverse a pending card hold, releasing the funds
 - **DELETE /za/pb/v1/accounts/:accountId**
     - Deletes the account and its transactions
 - **POST /za/pb/v1/accounts/beneficiaries**
@@ -112,7 +122,7 @@ There are helpful links to the Investec docs, Community wiki, GitHub repo and th
 - **DELETE /za/pb/v1/accounts/beneficiaries/:beneficiaryId**
     - Delete a beneficiary
 - **POST /za/v1/cards/:cardKey/code/execute-live**
-    - Used for the POS to execute the code on the card
+    - Used for the POS to execute the code on the card. If the card's `accountId` is a real account, the swipe is declined (`reason: "insufficient_funds"`) when the available balance can't cover it, and an approved swipe places a pending `CardPurchases` hold on the account (returned as `transaction`). Send `"settle": true` to post the purchase immediately instead of holding it
 
 Programmable documentation can be found here: https://developer.investec.com/programmable-banking/
 

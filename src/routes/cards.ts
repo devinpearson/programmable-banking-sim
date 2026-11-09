@@ -2,7 +2,14 @@ import express, { type Request, type Response } from 'express'
 const router = express.Router()
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
-import { formatResponse, formatErrorResponse } from '../app.js'
+import dayjs from 'dayjs'
+import {
+  formatResponse,
+  formatErrorResponse,
+  emitDatabaseSummary,
+} from '../app.js'
+import { getAccountBalance } from '../balance.js'
+import { TransactionStatus, TransactionType } from '../types.js'
 import { v4 as uuidv4 } from 'uuid'
 import emu from 'programmable-card-code-emulator'
 import type { ExecutionItem } from '../types.js'
@@ -421,6 +428,22 @@ router.post(
       })
       const simulationPayload = req.body
       const code = cardCode?.code ?? ''
+      const amount = Number(simulationPayload.centsAmount) / 100
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return formatErrorResponse(req, res, 400) // invalid amount
+      }
+      // A card linked to a real account swipes against that account: the bank
+      // declines it up front when the available balance can't cover it, and
+      // an approved swipe places a pending hold on the account. Cards that
+      // point at no account (e.g. created with the defaults) just run code.
+      const balance = await getAccountBalance(card.accountId)
+      if (balance && amount > balance.availableBalance) {
+        return formatResponse(
+          { result: false, reason: 'insufficient_funds', transaction: null },
+          req,
+          res,
+        )
+      }
       const transaction = emu.createTransaction(
         simulationPayload.currencyCode,
         simulationPayload.centsAmount, // Amount in cents
@@ -429,13 +452,13 @@ router.post(
         simulationPayload.merchantCity, // City
         simulationPayload.countryCode, // Country code
       )
-      let transactionResult = false
       const result = await emu.run(transaction, code, card.envs)
+      // The emulator only runs afterTransaction when beforeTransaction approved.
+      const transactionResult = result.some(
+        element => element.type === 'after_transaction',
+      )
 
       for (const element of result) {
-        if (element.type === 'after_transaction') {
-          transactionResult = true
-        }
         await prisma.cardExecution.create({
           data: {
             executionId: element.executionId,
@@ -443,7 +466,10 @@ router.post(
             rootCodeFunctionId: element.rootCodeFunctionId,
             sandbox: false,
             type: element.type,
-            authorizationApproved: element.authorizationApproved,
+            authorizationApproved:
+              element.type === 'before_transaction'
+                ? transactionResult
+                : element.authorizationApproved,
             smsCount: element.smsCount,
             emailCount: element.emailCount,
             pushNotificationCount: element.pushNotificationCount,
@@ -466,7 +492,34 @@ router.post(
         }
       }
 
-      const data = { result: transactionResult }
+      let posted = null
+      if (transactionResult && balance) {
+        const now = dayjs().format('YYYY-MM-DD')
+        // By default an approved swipe is a pending hold. Pass settle: true to
+        // post it straight away (an already-settled card purchase).
+        const settleNow = simulationPayload.settle === true
+        posted = await prisma.transaction.create({
+          data: {
+            accountId: card.accountId,
+            type: TransactionType.DEBIT,
+            transactionType: 'CardPurchases',
+            status: settleNow ? TransactionStatus.POSTED : TransactionStatus.PENDING,
+            description: simulationPayload.merchantName ?? 'Card purchase',
+            cardNumber: card.cardNumber,
+            postedOrder: 0,
+            // A hold has no posting/value/action dates until it settles.
+            postingDate: settleNow ? now : '',
+            valueDate: settleNow ? now : '',
+            actionDate: settleNow ? now : '',
+            transactionDate: now,
+            amount: amount,
+            runningBalance: 0,
+          },
+        })
+        await emitDatabaseSummary()
+      }
+
+      const data = { result: transactionResult, transaction: posted }
       return formatResponse(data, req, res)
     } catch (error) {
       console.log(error)

@@ -13,6 +13,8 @@ interface ScenarioAccount {
   accountName: string
   productName: string
   openingBalance: number
+  // How far the account may go below zero. Defaults to 0 (no overdraft).
+  overdraftLimit?: number
 }
 
 interface ScenarioBeneficiary {
@@ -69,6 +71,7 @@ const scenarios: Scenario[] = [
         accountName: 'Current Account',
         productName: 'Private Bank Account',
         openingBalance: -2500,
+        overdraftLimit: 5000,
       },
       {
         accountId: '30000000000000000000012',
@@ -105,6 +108,7 @@ const scenarios: Scenario[] = [
         accountName: 'Credit Card',
         productName: 'Credit Card Account',
         openingBalance: -1200,
+        overdraftLimit: 20000,
       },
     ],
     beneficiaries: [
@@ -178,6 +182,7 @@ export async function applyScenario(id: string) {
         referenceName: account.accountName,
         productName: account.productName,
         kycCompliant: true,
+        overdraftLimit: account.overdraftLimit ?? 0,
         profileId: scenario.profile.profileId,
         profileName: scenario.profile.profileName,
       },
