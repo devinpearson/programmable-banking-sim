@@ -252,6 +252,34 @@ export const deliveriesQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 })
 
+// --- Fault injection --------------------------------------------------------
+
+const percent = z.number().min(0, 'must be 0–100').max(100, 'must be 0–100')
+
+export const faultConfigBody = z
+  .object({
+    errorRate: percent.default(0).openapi({ description: 'Percent of requests answered with errorStatus.', example: 20 }),
+    errorStatus: z
+      .union([z.literal(429), z.literal(500), z.literal(502), z.literal(503), z.literal(504)])
+      .default(503)
+      .openapi({ type: 'integer', enum: [429, 500, 502, 503, 504] }),
+    timeoutRate: percent.default(0).openapi({ description: 'Percent of requests held, then dropped.' }),
+    latencyMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(60_000, 'must be at most 60000')
+      .default(0)
+      .openapi({ description: 'Added to every matching request.', example: 500 }),
+    pathPrefix: z
+      .string()
+      .refine(value => value === '' || value.startsWith('/'), "must be '' or start with /")
+      .default('')
+      .openapi({ description: "Only requests under this path, e.g. /za/v1/cards. '' for all.", example: '' }),
+  })
+  .strict()
+  .openapi({ description: 'Fields left out are off (0, or 503 and all paths).' })
+
 // --- Sandbox and identity ---------------------------------------------------
 
 export const settingsBody = z.object({

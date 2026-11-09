@@ -12,6 +12,7 @@ import accounts from './routes/accounts.js'
 import cards from './routes/cards.js'
 import exchangeRates from './routes/exchangeRates.js'
 import webhooks from './routes/webhooks.js'
+import faults from './routes/faults.js'
 import type {
   AccessToken,
   AuthorizationCode,
@@ -31,6 +32,7 @@ import { errorHandler } from './middleware/errorHandler.js'
 import { setupOpenApi } from './config/openapi.js'
 import { validateRequest, validatedBody } from './middleware/validation.js'
 import { authRateLimit } from './middleware/rateLimit.js'
+import { injectFaults, loadFaultConfig } from './faults.js'
 import { loginBody, settingsBody } from './schema/requestSchemas.js'
 import type { z } from 'zod'
 
@@ -48,6 +50,7 @@ export const server = createServer(app)
 const io = new Server(server, { cors: { origin: '*' } })
 export let settings = {} as Settings
 await fetchSettings()
+await loadFaultConfig()
 
 app.use(cors())
 // Configuring body parser middleware
@@ -188,9 +191,13 @@ export const routerMounts = {
   '/za/v1/cards': cards,
   '/exchange-rates': exchangeRates,
   '/webhooks': webhooks,
+  '/faults': faults,
 } as const
 
 // Token requests check client secrets and the OAuth pages sign users in.
+// Fault injection on the token endpoint and the emulated Investec API.
+app.use('/identity/v2/oauth2/token', injectFaults)
+app.use('/za', injectFaults)
 app.use('/identity', authRateLimit, routerMounts['/identity'])
 // Check the bearer token when auth is on, and enforce what it was granted:
 // its scopes here, its consented accounts in the routers (via res.locals).
@@ -215,6 +222,7 @@ app.use('/za/v1/cards', routerMounts['/za/v1/cards'])
 // Sandbox control, outside /za so it needs no token.
 app.use('/exchange-rates', routerMounts['/exchange-rates'])
 app.use('/webhooks', routerMounts['/webhooks'])
+app.use('/faults', routerMounts['/faults'])
 
 // Shared database lifecycle helpers, used by the control socket and the
 // /clear and /restore routes so every entry point behaves identically.
@@ -387,6 +395,15 @@ export function formatResponse (data: unknown, req: Request, res: Response) {
     },
   })
 }
+// One line in the dashboard's live server log for a request and its outcome
+// (a status code, or e.g. "connection dropped (fault: timeout)").
+export function logRequest(req: Request, outcome: number | string) {
+  io.sockets.emit(
+    messageQueue,
+    `${new Date().toUTCString()} ${req.method} ${req.originalUrl} HTTP/${req.httpVersion} ${outcome}`,
+  )
+}
+
 export function formatErrorResponse(
   req: Request,
   res: Response,
@@ -394,19 +411,7 @@ export function formatErrorResponse(
   errorMessage?: string,
   extra?: Record<string, unknown>,
 ) {
-  const date = new Date()
-  io.sockets.emit(
-    messageQueue,
-    date.toUTCString() +
-      ' ' +
-      req.method +
-      ' ' +
-      req.originalUrl +
-      ' HTTP/' +
-      req.httpVersion +
-      ' ' +
-      code,
-  )
+  logRequest(req, code)
   // Most errors keep an empty body; pass a message when the caller needs to
   // know *why* (e.g. insufficient funds).
   return res

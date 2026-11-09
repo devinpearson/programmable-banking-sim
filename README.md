@@ -162,6 +162,22 @@ The seed has illustrative (not live) rates for the 22 seeded currencies. Manage 
 - **PUT /exchange-rates/:currencyCode** `{ "zarPerUnit": 17.6 }`: add a currency or change its rate
 - **DELETE /exchange-rates/:currencyCode**: remove one
 
+### Fault injection
+Make the bank misbehave on purpose to test your app's error handling, retries and timeouts. Faults apply to the emulated Investec API (`/za/...`) and the token endpoint, never to the sandbox's own controls.
+
+**Per request** (deterministic, good for tests): send a header with any `/za` or token request.
+
+| Header | Effect |
+| --- | --- |
+| `X-Sandbox-Fault: 429` / `500` / `502` / `503` / `504` | That error, with `{ "errorMessage": "Simulated fault: …" }` (429 adds `Retry-After: 1`) |
+| `X-Sandbox-Fault: timeout` (or `timeout:2000`) | No response; the connection drops after 30 s (or the given ms) |
+| `X-Sandbox-Fault: reset` | The connection drops immediately |
+| `X-Sandbox-Latency: 1500` | The response is delayed by that many ms |
+
+**At random** (good for exploring): set rates from the dashboard's Fault injection panel or `PUT /faults` with `{ "errorRate": 20, "errorStatus": 503, "timeoutRate": 5, "latencyMs": 500, "pathPrefix": "/za/v1/cards" }`. Fields left out are off; `DELETE /faults` turns everything off. Settings survive a restart, and the dashboard shows a banner while they're on.
+
+Faulted responses carry `X-Sandbox-Fault-Injected` and appear in the live server log. The dashboard's own requests (`X-Sandbox-Client: dashboard`) are exempt from random faults, so it keeps working while your app sees errors.
+
 ### Webhooks
 Register a URL and the sandbox POSTs events to it as they happen, so you can build and test an integration that reacts to the bank (the dashboard has a Webhooks panel too):
 

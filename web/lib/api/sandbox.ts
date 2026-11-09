@@ -18,6 +18,7 @@ import type {
   SwipeResult,
   Webhook,
   WebhookDelivery,
+  FaultConfig,
 } from './types';
 import { buildSwipeRequest, newestFirst, type SwipeInput } from '../banking';
 
@@ -136,6 +137,20 @@ export function testWebhook(webhookId: string) {
 
 export async function getWebhookDeliveries(webhookId: string): Promise<WebhookDelivery[]> {
   return (await fetchData<{ deliveries: WebhookDelivery[] }>(`/webhooks/${webhookId}/deliveries?limit=20`)).deliveries;
+}
+
+export function getFaults() {
+  return fetchData<FaultConfig>('/faults');
+}
+
+export type FaultSettings = Omit<FaultConfig, 'active'>;
+
+export function saveFaults(settings: FaultSettings) {
+  return fetchData<FaultConfig>('/faults', { method: 'PUT', body: JSON.stringify(settings) });
+}
+
+export function turnOffFaults() {
+  return fetchData<FaultConfig>('/faults', { method: 'DELETE' });
 }
 
 export function settleHold(hold: PendingTransaction) {

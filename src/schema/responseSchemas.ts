@@ -280,6 +280,17 @@ export const CardAuthorizationEvent = z
   })
   .openapi('CardAuthorizationEvent')
 
+export const FaultConfig = z
+  .object({
+    errorRate: z.number(),
+    errorStatus: z.number().int().openapi({ enum: [429, 500, 502, 503, 504] }),
+    timeoutRate: z.number(),
+    latencyMs: z.number().int(),
+    pathPrefix: z.string(),
+    active: z.boolean().openapi({ description: 'Whether any fault is on.' }),
+  })
+  .openapi('FaultConfig')
+
 export const ExchangeRate = z
   .object({
     currencyCode: z.string().openapi({ example: 'USD' }),

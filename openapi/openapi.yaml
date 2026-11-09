@@ -3,7 +3,10 @@ info:
   title: Programmable Banking Sandbox API
   version: 1.2.0
   description: A local sandbox emulating the Investec Programmable Banking APIs.
-    Operations marked x-sandbox-only have no Investec equivalent.
+    Operations marked x-sandbox-only have no Investec equivalent. To test error
+    handling, send X-Sandbox-Fault (429, 500, 502, 503, 504, timeout,
+    timeout:<ms>, reset) or X-Sandbox-Latency (<ms>) with any /za request, or
+    set random faults with PUT /faults.
 servers:
   - url: http://localhost:3000
 components:
@@ -682,6 +685,35 @@ components:
         - currencyCode
         - zarPerUnit
         - updatedAt
+    FaultConfig:
+      type: object
+      properties:
+        errorRate:
+          type: number
+        errorStatus:
+          type: integer
+          enum:
+            - 429
+            - 500
+            - 502
+            - 503
+            - 504
+        timeoutRate:
+          type: number
+        latencyMs:
+          type: integer
+        pathPrefix:
+          type: string
+        active:
+          type: boolean
+          description: Whether any fault is on.
+      required:
+        - errorRate
+        - errorStatus
+        - timeoutRate
+        - latencyMs
+        - pathPrefix
+        - active
     Webhook:
       type: object
       properties:
@@ -3777,6 +3809,169 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /faults:
+    get:
+      tags:
+        - Fault injection
+      summary: Get the random fault settings
+      description: "Per request, on /za and the token endpoint: X-Sandbox-Fault: 429 |
+        500 | 502 | 503 | 504 | timeout | timeout:<ms> | reset, and
+        X-Sandbox-Latency: <ms>."
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FaultConfig"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+    put:
+      tags:
+        - Fault injection
+      summary: Set random faults for /za and the token endpoint
+      description: "Saved across restarts. Requests with X-Sandbox-Client: dashboard
+        are exempt. Per request, on /za and the token endpoint: X-Sandbox-Fault:
+        429 | 500 | 502 | 503 | 504 | timeout | timeout:<ms> | reset, and
+        X-Sandbox-Latency: <ms>."
+      security: []
+      x-sandbox-only: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                errorRate:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  default: 0
+                  description: Percent of requests answered with errorStatus.
+                  example: 20
+                errorStatus:
+                  type: integer
+                  enum:
+                    - 429
+                    - 500
+                    - 502
+                    - 503
+                    - 504
+                timeoutRate:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  default: 0
+                  description: Percent of requests held, then dropped.
+                latencyMs:
+                  type: integer
+                  minimum: 0
+                  maximum: 60000
+                  default: 0
+                  description: Added to every matching request.
+                  example: 500
+                pathPrefix:
+                  type: string
+                  default: ""
+                  description: Only requests under this path, e.g. /za/v1/cards. '' for all.
+                  example: ""
+              additionalProperties: false
+              description: Fields left out are off (0, or 503 and all paths).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FaultConfig"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Fault injection
+      summary: Turn every fault off
+      security: []
+      x-sandbox-only: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FaultConfig"
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        example: http://localhost:3000/za/pb/v1/accounts
+                    required:
+                      - self
+                  meta:
+                    type: object
+                    properties:
+                      totalPages:
+                        type: integer
+                        example: 1
+                    required:
+                      - totalPages
+                required:
+                  - data
+                  - links
+                  - meta
   /webhooks:
     get:
       tags:

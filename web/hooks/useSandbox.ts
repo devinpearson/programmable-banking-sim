@@ -15,6 +15,7 @@ import {
   getWebhooks,
   type TransactionFilters,
   getExchangeRates,
+  getFaults,
   getScenarios,
   getSettings,
   getSummary,
@@ -44,6 +45,7 @@ export const KEYS = {
   webhookEvents: 'webhook-events',
   // Per webhook: ['webhook-deliveries', webhookId].
   webhookDeliveries: 'webhook-deliveries',
+  faults: 'faults',
 } as const;
 
 export function useAccountsOverview() {
@@ -98,6 +100,10 @@ export function useWebhookDeliveries(webhookId: string | null) {
   );
 }
 
+export function useFaults() {
+  return useSWR(KEYS.faults, getFaults, SWR_CONFIG);
+}
+
 export function useSettings() {
   return useSWR(KEYS.settings, getSettings, { ...SWR_CONFIG, revalidateOnFocus: false });
 }
@@ -131,6 +137,10 @@ export function useLiveUpdates() {
     socket.on('logs', (line: string) => setLogs(lines => appendLog(lines, line)));
     socket.on('database-summary', () => {
       void refresh();
+    });
+    // Fault settings changed (here, or e.g. from Postman).
+    socket.on('faults', () => {
+      void mutate(KEYS.faults);
     });
     // A webhook delivery finished: refresh the delivery logs.
     socket.on('webhook-delivery', () => {

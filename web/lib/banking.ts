@@ -174,3 +174,25 @@ export function paymentError(input: PaymentInput): string | null {
   if (parseAmount(input.amount) === null) return 'Enter an amount greater than zero';
   return null;
 }
+
+// --- Fault injection --------------------------------------------------------
+
+export interface FaultSummaryInput {
+  errorRate: number;
+  errorStatus: number;
+  timeoutRate: number;
+  latencyMs: number;
+  pathPrefix: string;
+}
+
+// One line saying what the sandbox is doing to requests, e.g.
+// "20% of requests get 503 · 500 ms extra latency · on /za/v1/cards".
+export function describeFaults(config: FaultSummaryInput): string {
+  const parts: string[] = [];
+  if (config.errorRate > 0) parts.push(`${config.errorRate}% of requests get ${config.errorStatus}`);
+  if (config.timeoutRate > 0) parts.push(`${config.timeoutRate}% time out`);
+  if (config.latencyMs > 0) parts.push(`${config.latencyMs} ms extra latency`);
+  if (parts.length === 0) return 'No faults';
+  parts.push(config.pathPrefix ? `on ${config.pathPrefix}` : 'on all /za requests and tokens');
+  return parts.join(' · ');
+}
