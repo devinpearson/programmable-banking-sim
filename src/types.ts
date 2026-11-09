@@ -28,7 +28,11 @@ export const CARD_TRANSACTION_TYPES: string[] = [
 
 export interface AccessToken {
   expires_at: string
+  // Space-separated scopes. Only enforced for authorization_code tokens.
   scope: string
+  grant: 'client_credentials' | 'authorization_code'
+  // Account ids the user consented to; null means every account.
+  accounts: string[] | null
 }
 
 export interface AuthorizationCode {
@@ -36,6 +40,17 @@ export interface AuthorizationCode {
   expires_at: string
   scope: string
   redirect_uri: string
+  // Opaque client value echoed back on the redirect (CSRF protection).
+  state?: string
+  // Set on approval from the accounts the user selected.
+  accounts: string[] | null
+}
+
+// What a refresh token re-issues: the same scope and accounts as the
+// original grant.
+export interface RefreshGrant {
+  scope: string
+  accounts: string[] | null
 }
 
 export type BalanceResponse = {

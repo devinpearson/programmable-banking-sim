@@ -6,10 +6,15 @@ import {
   refreshTokens,
   settings,
   formatErrorResponse,
+  formatResponse,
 } from '../app.js'
 import dayjs from 'dayjs'
+import { PrismaClient } from '@prisma/client'
 import type { AuthorizationCode } from '../types.js'
 import { createHmac, randomBytes } from 'node:crypto'
+import { SCOPE_DESCRIPTIONS, SCOPES, parseScopes } from '../consent.js'
+
+const prisma = new PrismaClient()
 
 // Pending 3-legged OAuth flows, keyed by the opaque qsp handed to the browser.
 // A flow only becomes `authenticated` once the user signs in at /login, and its
@@ -76,7 +81,12 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       // Generate a token string
       const token = generateToken()
       const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
-      accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
+      accessTokens[token] = {
+        expires_at: expiryDate,
+        scope: 'accounts',
+        grant: 'client_credentials',
+        accounts: null,
+      }
       return res.json({
         access_token: token,
         token_type: 'Bearer',
@@ -106,11 +116,16 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       // Generate a token string
       const token = generateToken()
       const refreshToken = generateToken()
-      refreshTokens.push(refreshToken)
+      const grant = {
+        scope: authorizationCode.scope,
+        accounts: authorizationCode.accounts,
+      }
+      refreshTokens.set(refreshToken, grant)
       const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
       accessTokens[token] = {
         expires_at: expiryDate,
-        scope: authorizationCode.scope,
+        grant: 'authorization_code',
+        ...grant,
       }
       return res.json({
         access_token: token,
@@ -121,22 +136,28 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       })
     } else if (req.body.grant_type === 'refresh_token') {
       const incomingToken = req.body.refresh_token
-      if (!refreshTokens.includes(incomingToken)) {
+      const grant = refreshTokens.get(incomingToken)
+      if (!grant) {
         return formatErrorResponse(req, res, 401)
       }
-      refreshTokens.splice(refreshTokens.indexOf(incomingToken), 1)
+      // Refresh tokens are single-use (rotated).
+      refreshTokens.delete(incomingToken)
 
-      // Generate a token string
+      // The new tokens carry the original grant's scope and accounts.
       const token = generateToken()
       const refreshToken = generateToken()
-      refreshTokens.push(refreshToken)
+      refreshTokens.set(refreshToken, grant)
       const expiryDate = dayjs().add(settings.token_expiry, 'seconds').format()
-      accessTokens[token] = { expires_at: expiryDate, scope: 'accounts' }
+      accessTokens[token] = {
+        expires_at: expiryDate,
+        grant: 'authorization_code',
+        ...grant,
+      }
       return res.json({
         access_token: token,
         token_type: 'Bearer',
         expires_in: +settings.token_expiry,
-        scope: 'accounts',
+        scope: grant.scope,
         refresh_token: refreshToken,
       })
     }
@@ -152,12 +173,28 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
   if (settings.client_id !== req.query.client_id) {
     return formatErrorResponse(req, res, 401)
   }
+  const redirectUri = req.query.redirect_uri
+  if (typeof redirectUri !== 'string' || !isValidRedirectUri(redirectUri)) {
+    return formatErrorResponse(req, res, 400, 'redirect_uri must be a valid URL')
+  }
+  // No scope requests every scope; an unknown one is rejected.
+  const scope = parseScopes(req.query.scope)
+  if (!scope) {
+    return formatErrorResponse(
+      req,
+      res,
+      400,
+      `Unknown scope. Valid scopes: ${SCOPES.join(', ')}`,
+    )
+  }
   const token = generateToken()
   const authorizationCode: AuthorizationCode = {
     code: token,
     expires_at: dayjs().add(settings.token_expiry, 'seconds').format(),
-    scope: req.query.scope as string,
-    redirect_uri: req.query.redirect_uri as string,
+    scope,
+    redirect_uri: redirectUri,
+    state: typeof req.query.state === 'string' ? req.query.state : undefined,
+    accounts: null,
   }
 
   // Opaque handle for the browser leg of the flow.
@@ -175,33 +212,113 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
   return res.redirect(302, `/login?qsp=${hash}`)
 })
 
-router.get('/approve', (req: Request, res: Response) => {
-  const qsp = req.query.qsp as string
-  const session = sessionTokens.get(qsp)
-  if (!qsp || !session) {
-    return formatErrorResponse(req, res, 400)
+// What the consent page shows for a signed-in flow: the requested scopes and
+// the accounts the user can choose from. Served here (not from /za) because
+// the browser has no access token yet.
+router.get('/consent', async (req: Request, res: Response) => {
+  try {
+    const session = sessionTokens.get(req.query.qsp as string)
+    if (!session) {
+      return formatErrorResponse(req, res, 400)
+    }
+    if (!session.authenticated) {
+      return formatErrorResponse(req, res, 401)
+    }
+    const accounts = await prisma.account.findMany({
+      select: { accountId: true, accountNumber: true, accountName: true, productName: true },
+    })
+    const scopes = session.code.scope.split(' ').map(scope => ({
+      scope,
+      description: SCOPE_DESCRIPTIONS[scope as keyof typeof SCOPE_DESCRIPTIONS],
+    }))
+    return formatResponse({ scopes, accounts }, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
   }
-  // The flow must have been signed in at /login before it can be approved.
-  if (!session.authenticated) {
-    return formatErrorResponse(req, res, 401)
+})
+
+// Account numbers the consent page posted, as account ids. undefined when
+// nothing was selected (consent to every account); null when malformed.
+async function consentedAccountIds(selected: unknown) {
+  if (selected === undefined || selected === '') {
+    return undefined
   }
-  const authorizationCode = session.code
-  sessionTokens.delete(qsp)
+  let numbers: unknown
+  try {
+    numbers = JSON.parse(String(selected))
+  } catch {
+    return null
+  }
+  if (!Array.isArray(numbers) || !numbers.every(n => typeof n === 'string')) {
+    return null
+  }
+  if (numbers.length === 0) {
+    return undefined
+  }
+  const accounts = await prisma.account.findMany({
+    where: { accountNumber: { in: numbers } },
+    select: { accountId: true },
+  })
+  return accounts.map(account => account.accountId)
+}
 
-  // Approval is what makes the code exchangeable.
-  authorizationCodes[authorizationCode.code] = authorizationCode
+// A redirect_uri without a scheme is treated as http://, as before.
+function withScheme(redirectUri: string) {
+  return redirectUri.startsWith('http') ? redirectUri : `http://${redirectUri}`
+}
 
-  const redirectUri = authorizationCode.redirect_uri.startsWith('http')
-    ? authorizationCode.redirect_uri
-    : `http://${authorizationCode.redirect_uri}`
-  return res.redirect(
-    302,
-    redirectUri +
-      '?authorizationCode=' +
-      authorizationCode.code +
-      '&status=SUCCESS&code=' +
-      authorizationCode.code,
-  )
+function isValidRedirectUri(redirectUri: string) {
+  if (redirectUri === '') {
+    return false
+  }
+  try {
+    new URL(withScheme(redirectUri))
+    return true
+  } catch {
+    return false
+  }
+}
+
+// The client's redirect_uri with the result appended, plus state if given.
+function redirectWith(code: AuthorizationCode, status: 'SUCCESS' | 'DECLINED') {
+  const url = new URL(withScheme(code.redirect_uri))
+  url.searchParams.set('authorizationCode', code.code)
+  url.searchParams.set('status', status)
+  url.searchParams.set('code', code.code)
+  if (code.state !== undefined) {
+    url.searchParams.set('state', code.state)
+  }
+  return url.toString()
+}
+
+router.get('/approve', async (req: Request, res: Response) => {
+  try {
+    const qsp = req.query.qsp as string
+    const session = sessionTokens.get(qsp)
+    if (!qsp || !session) {
+      return formatErrorResponse(req, res, 400)
+    }
+    // The flow must have been signed in at /login before it can be approved.
+    if (!session.authenticated) {
+      return formatErrorResponse(req, res, 401)
+    }
+    const accounts = await consentedAccountIds(req.query.selectedAccounts)
+    if (accounts === null) {
+      return formatErrorResponse(req, res, 400, 'selectedAccounts must be a JSON array of account numbers')
+    }
+    const authorizationCode = session.code
+    authorizationCode.accounts = accounts ?? null
+    sessionTokens.delete(qsp)
+
+    // Approval is what makes the code exchangeable.
+    authorizationCodes[authorizationCode.code] = authorizationCode
+
+    return res.redirect(302, redirectWith(authorizationCode, 'SUCCESS'))
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
 })
 
 router.get('/decline', (req: Request, res: Response) => {
@@ -214,18 +331,7 @@ router.get('/decline', (req: Request, res: Response) => {
   sessionTokens.delete(qsp)
   // The code was never published to authorizationCodes, so declining leaves
   // nothing exchangeable. The code is echoed back only for request correlation.
-
-  const redirectUri = authorizationCode.redirect_uri.startsWith('http')
-    ? authorizationCode.redirect_uri
-    : `http://${authorizationCode.redirect_uri}`
-  return res.redirect(
-    302,
-    redirectUri +
-      '?authorizationCode=' +
-      authorizationCode.code +
-      '&status=DECLINED&code=' +
-      authorizationCode.code,
-  )
+  return res.redirect(302, redirectWith(authorizationCode, 'DECLINED'))
 })
 
 function generateToken() {

@@ -13,6 +13,7 @@ import {
   type BalanceResponse,
 } from '../types.js'
 import { getAccountBalance } from '../balance.js'
+import { accountAllowed } from '../consent.js'
 
 const INSUFFICIENT_FUNDS = 'Insufficient funds'
 
@@ -22,12 +23,22 @@ function batchTotal(items: { amount: unknown }[]) {
   return items.reduce((cents, item) => cents + Math.round(Number(item.amount) * 100), 0) / 100
 }
 
+// A 3-legged token only reaches the accounts the user consented to. Every
+// /:accountId route checks here first; other accounts get a 403.
+router.param('accountId', (req, res, next, accountId: string) => {
+  if (!accountAllowed(res, accountId)) {
+    return formatErrorResponse(req, res, 403, 'Account not consented for this token')
+  }
+  next()
+})
+
 router.get('/', async (req: Request, res: Response) => {
   try {
-    // overdraftLimit is sandbox-internal, so keep the list in the real API's shape.
-    const accounts = (await prisma.account.findMany()).map(
-      ({ overdraftLimit: _overdraftLimit, ...account }) => account,
-    )
+    // overdraftLimit is sandbox-internal, so keep the list in the real API's
+    // shape, and list only the accounts this token may see.
+    const accounts = (await prisma.account.findMany())
+      .filter(account => accountAllowed(res, account.accountId))
+      .map(({ overdraftLimit: _overdraftLimit, ...account }) => account)
     const data = { accounts }
     return formatResponse(data, req, res)
   } catch (error) {
@@ -207,6 +218,10 @@ router.post('/:accountId/transfermultiple',
         const amount = Number(transfer.amount)
         if (!Number.isFinite(amount) || amount <= 0) {
           return formatErrorResponse(req, res, 400) // invalid amount
+        }
+        // Both sides of a transfer must be accounts the token may touch.
+        if (!accountAllowed(res, transfer.beneficiaryAccountId)) {
+          return formatErrorResponse(req, res, 403, 'Account not consented for this token')
         }
         const beneficiary = await prisma.account.findFirst({
           where: {
