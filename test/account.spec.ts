@@ -245,8 +245,15 @@ describe('Test the accounts', () => {
         ],
       })
     assert.equal(response.statusCode, 200)
-    assert.isArray(response.body.data)
-    assert.equal(response.body.data.length, 1)
+    // Investec's shape: one TransferResponses entry per transfer.
+    assert.isNull(response.body.data.ErrorMessage)
+    assert.lengthOf(response.body.data.TransferResponses, 1)
+    const [result] = response.body.data.TransferResponses
+    assert.match(result.PaymentReferenceNumber, /^UBP\d{10}$/)
+    assert.match(result.PaymentDate, /^\d{2}\/\d{2}\/\d{4}$/)
+    assert.equal(result.BeneficiaryAccountId, destId)
+    assert.isFalse(result.AuthorisationRequired)
+    assert.include(result.Status, 'No authorisation necessary')
 
     const sourceBalance = await request(app).get(`/za/pb/v1/accounts/${sourceId}/balance`)
     assert.equal(sourceBalance.body.data.currentBalance, 500)
@@ -296,8 +303,13 @@ describe('Test the accounts', () => {
         ],
       })
     assert.equal(response.statusCode, 200)
-    assert.isArray(response.body.data)
-    assert.equal(response.body.data.length, 1)
+    assert.isNull(response.body.data.ErrorMessage)
+    assert.lengthOf(response.body.data.TransferResponses, 1)
+    assert.include(response.body.data.TransferResponses[0], {
+      BeneficiaryAccountId: 'MTAxOTA2OTI5Nzc0Mjz=',
+      BeneficiaryName: 'Discovery CC',
+      AuthorisationRequired: false,
+    })
 
     const balance = await request(app).get(`/za/pb/v1/accounts/${accountId}/balance`)
     assert.equal(balance.body.data.currentBalance, 800)

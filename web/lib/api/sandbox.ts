@@ -19,6 +19,7 @@ import type {
   Webhook,
   WebhookDelivery,
   FaultConfig,
+  TransferResponses,
 } from './types';
 import { buildSwipeRequest, newestFirst, type SwipeInput } from '../banking';
 
@@ -61,7 +62,7 @@ export function topUp(accountId: string, amount: number) {
 }
 
 export function transfer(from: string, to: string, amount: number, reference: string) {
-  return fetchData(
+  return fetchData<TransferResponses>(
     `${ACCOUNTS}/${from}/transfermultiple`,
     postJSON({
       transferList: [{ beneficiaryAccountId: to, amount, myReference: reference, theirReference: reference }],
@@ -102,7 +103,7 @@ export interface Payment {
 }
 
 export function payBeneficiary(fromAccountId: string, payment: Payment) {
-  return fetchData(`${ACCOUNTS}/${fromAccountId}/paymultiple`, postJSON({ paymentList: [payment] }));
+  return fetchData<TransferResponses>(`${ACCOUNTS}/${fromAccountId}/paymultiple`, postJSON({ paymentList: [payment] }));
 }
 
 export async function getWebhooks(): Promise<Webhook[]> {

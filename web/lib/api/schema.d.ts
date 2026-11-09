@@ -985,7 +985,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: components["schemas"]["TransferLeg"][];
+                            data: components["schemas"]["TransferResponses"];
                             links: {
                                 /** @example http://localhost:3000/za/pb/v1/accounts */
                                 self: string;
@@ -1095,7 +1095,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: components["schemas"]["PaymentLeg"][];
+                            data: components["schemas"]["TransferResponses"];
                             links: {
                                 /** @example http://localhost:3000/za/pb/v1/accounts */
                                 self: string;
@@ -1447,10 +1447,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List statements */
+        /**
+         * List statements
+         * @description Monthly statements dated at each month end, newest first, for completed months (at most 24).
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    fromDate?: string;
+                    toDate?: string;
+                };
                 header?: never;
                 path: {
                     accountId: string;
@@ -1478,6 +1484,15 @@ export interface paths {
                                 totalPages: number;
                             };
                         };
+                    };
+                };
+                /** @description Invalid request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
                     };
                 };
                 /** @description Missing or expired token (when auth is on) */
@@ -1546,6 +1561,153 @@ export interface paths {
                     content: {
                         "application/json": {
                             data: components["schemas"]["DocumentDetail"];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Missing or expired token (when auth is on) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Token lacks the scope or account consent */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/za/pb/v1/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List profiles
+         * @description Paths as in Investec's API collection; Investec doesn't publish these responses, so the fields are the sandbox's best match.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["Profile"][];
+                            links: {
+                                /** @example http://localhost:3000/za/pb/v1/accounts */
+                                self: string;
+                            };
+                            meta: {
+                                /** @example 1 */
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Missing or expired token (when auth is on) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Token lacks the scope or account consent */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/za/pb/v1/profiles/{profileId}/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a profile's accounts
+         * @description Same shape as GET /za/pb/v1/accounts. A 3-legged token sees only consented accounts. Paths as in Investec's API collection; Investec doesn't publish these responses, so the fields are the sandbox's best match.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    profileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                accounts: components["schemas"]["Account"][];
+                            };
                             links: {
                                 /** @example http://localhost:3000/za/pb/v1/accounts */
                                 self: string;
@@ -4786,17 +4948,20 @@ export interface components {
              */
             amount: string;
         };
-        TransferLeg: {
-            beneficiaryAccountId: string;
-            amount: number;
-            myReference: string;
-            theirReference: string;
-        };
-        PaymentLeg: {
-            beneficiaryId: string;
-            amount: number;
-            myReference: string;
-            theirReference: string;
+        TransferResponses: {
+            TransferResponses: {
+                /** @example UBP2201761367 */
+                PaymentReferenceNumber: string;
+                /** @example 09/11/2026 */
+                PaymentDate: string;
+                /** @example - No authorisation necessary <BR> - Payment/Transfer effective date 09/11/2026 */
+                Status: string;
+                BeneficiaryName: string;
+                /** @description The destination account id (transfers) or beneficiary id (payments). */
+                BeneficiaryAccountId: string;
+                AuthorisationRequired: boolean;
+            }[];
+            ErrorMessage: string | null;
         };
         Beneficiary: {
             beneficiaryId: string;
@@ -4833,6 +4998,12 @@ export interface components {
             fileName: string;
             mimeType: string;
             note: string;
+        };
+        Profile: {
+            profileId: string;
+            profileName: string;
+            /** @description The sandbox treats the first profile as the default. */
+            default: boolean;
         };
         Card: {
             /** @example 700615 */

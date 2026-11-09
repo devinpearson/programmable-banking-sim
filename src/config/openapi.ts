@@ -209,7 +209,7 @@ register('post', `${ACCOUNTS}/:accountId/transfermultiple`, {
   summary: 'Transfer between accounts (up to 50)',
   description: 'The whole batch must fit the available balance (422 otherwise). Both accounts must be consented.',
   body: request.transferMultipleBody,
-  ok: response.envelope(z.array(response.TransferLeg)),
+  ok: response.envelope(response.TransferResponses),
   errors: [...accountErrors, 422],
 })
 register('post', `${ACCOUNTS}/:accountId/paymultiple`, {
@@ -217,7 +217,7 @@ register('post', `${ACCOUNTS}/:accountId/paymultiple`, {
   summary: 'Pay beneficiaries (up to 50)',
   description: 'The whole batch must fit the available balance (422 otherwise).',
   body: request.payMultipleBody,
-  ok: response.envelope(z.array(response.PaymentLeg)),
+  ok: response.envelope(response.TransferResponses),
   errors: [...accountErrors, 422],
 })
 register('get', `${ACCOUNTS}/beneficiaries`, {
@@ -250,6 +250,8 @@ register('get', `${ACCOUNTS}/beneficiarycategories`, {
 register('get', `${ACCOUNTS}/:accountId/documents`, {
   tag: 'Documents',
   summary: 'List statements',
+  description: 'Monthly statements dated at each month end, newest first, for completed months (at most 24).',
+  query: request.documentsQuery,
   ok: response.envelope(z.object({ documents: z.array(response.DocumentSummary) })),
   errors: accountErrors,
 })
@@ -257,6 +259,24 @@ register('get', `${ACCOUNTS}/:accountId/documents/:documentType/:documentDate`, 
   tag: 'Documents',
   summary: 'Get a statement (placeholder descriptor)',
   ok: response.envelope(response.DocumentDetail),
+  errors: accountErrors,
+})
+
+// --- Profiles ---------------------------------------------------------------
+const PROFILES_NOTE =
+  "Paths as in Investec's API collection; Investec doesn't publish these responses, so the fields are the sandbox's best match."
+register('get', '/za/pb/v1/profiles', {
+  tag: 'Profiles',
+  summary: 'List profiles',
+  description: PROFILES_NOTE,
+  ok: response.envelope(z.array(response.Profile)),
+  errors: accountErrors,
+})
+register('get', '/za/pb/v1/profiles/:profileId/accounts', {
+  tag: 'Profiles',
+  summary: "List a profile's accounts",
+  description: `Same shape as GET /za/pb/v1/accounts. A 3-legged token sees only consented accounts. ${PROFILES_NOTE}`,
+  ok: response.envelope(z.object({ accounts: z.array(response.Account) })),
   errors: accountErrors,
 })
 

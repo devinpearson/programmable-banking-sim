@@ -13,6 +13,7 @@ import {
   parseAmount,
   paymentError,
   periodRange,
+  referenceSuffix,
   signedAmount,
   transferError,
 } from './banking';
@@ -217,5 +218,15 @@ describe('describeFaults', () => {
       '20% of requests get 503 · 500 ms extra latency · on /za/v1/cards',
     );
     expect(describeFaults({ ...off, timeoutRate: 5 })).toBe('5% time out · on all /za requests and tokens');
+  });
+});
+
+describe('referenceSuffix', () => {
+  it('shows the first payment reference', () => {
+    expect(referenceSuffix({ TransferResponses: [{ PaymentReferenceNumber: 'UBP2201761367' }] })).toBe(' (ref UBP2201761367)');
+  });
+  it('is empty without one', () => {
+    expect(referenceSuffix({ TransferResponses: [] })).toBe('');
+    expect(referenceSuffix(undefined)).toBe('');
   });
 });

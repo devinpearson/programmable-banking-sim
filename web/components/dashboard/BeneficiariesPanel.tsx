@@ -8,7 +8,7 @@ import { useAction } from '@/components/ToastProvider';
 import { useAccountsOverview, useBeneficiaries, useBeneficiaryCategories, useRefreshSandbox } from '@/hooks/useSandbox';
 import { payBeneficiary } from '@/lib/api/sandbox';
 import type { AccountWithBalance, Beneficiary } from '@/lib/api/types';
-import { formatMoney, parseAmount, paymentError } from '@/lib/banking';
+import { formatMoney, parseAmount, paymentError, referenceSuffix } from '@/lib/banking';
 
 function PayForm({ accounts, beneficiaries }: { accounts: AccountWithBalance[]; beneficiaries: Beneficiary[] }) {
   const [form, setForm] = useState({ from: '', beneficiaryId: '', amount: '', myReference: '', theirReference: '' });
@@ -29,7 +29,7 @@ function PayForm({ accounts, beneficiaries }: { accounts: AccountWithBalance[]; 
           myReference: form.myReference || `Payment to ${beneficiary?.beneficiaryName ?? 'beneficiary'}`,
           theirReference: form.theirReference || 'Payment',
         }),
-      `Paid ${formatMoney(amount)} to ${beneficiary?.beneficiaryName ?? 'beneficiary'}`,
+      result => `Paid ${formatMoney(amount)} to ${beneficiary?.beneficiaryName ?? 'beneficiary'}${referenceSuffix(result)}`,
     );
     if (done !== undefined) setForm(f => ({ ...f, amount: '', myReference: '', theirReference: '' }));
     await refresh();

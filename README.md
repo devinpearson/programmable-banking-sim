@@ -102,12 +102,12 @@ When auth is turned on, a token from the 3-legged (`authorization_code`) flow on
 
 | Scope | Unlocks |
 | --- | --- |
-| `accounts` | `GET /za/pb/v1/accounts` |
+| `accounts` | `GET /za/pb/v1/accounts`, `GET /za/pb/v1/profiles…` |
 | `balances` | `GET …/accounts/:accountId/balance` |
 | `transactions` | `GET …/transactions`, `GET …/pending-transactions` |
 | `transfers` | `POST …/transfermultiple` |
 | `beneficiarypayments` | `POST …/paymultiple`, `GET …/beneficiaries`, `GET …/beneficiarycategories` |
-| `statements` | `GET …/documents` |
+| `statements` | `GET …/documents` (filter with `fromDate` / `toDate`) |
 | `cards` | everything under `/za/v1/cards` |
 
 Refreshed tokens keep the original scope and accounts. `client_credentials` tokens are not limited. These scope names are the sandbox's own; Investec's exact scope strings may differ.
@@ -115,6 +115,8 @@ Refreshed tokens keep the original scope and accounts. `client_credentials` toke
 ### Accounts
 - **GET /za/pb/v1/accounts**
     - Get all accounts
+- **GET /za/pb/v1/profiles** and **GET /za/pb/v1/profiles/:profileId/accounts**
+    - List profiles (the first is the default) and a profile's accounts. Investec doesn't publish these responses, so the fields are the sandbox's best match
 - **GET /za/pb/v1/accounts/:accountId/balance**
     - Get the balance of an account. `currentBalance` counts posted transactions; `availableBalance` adds the account's overdraft limit and subtracts pending card holds
 - **GET /za/pb/v1/accounts/:accountId/transactions**
@@ -122,7 +124,7 @@ Refreshed tokens keep the original scope and accounts. `client_credentials` toke
 - **GET /za/pb/v1/accounts/:accountId/pending-transactions**
     - Get the pending (unsettled) transactions of an account
 - **POST /za/pb/v1/accounts/:accountId/transfermultiple** / **paymultiple**
-    - Transfer or pay. A batch that exceeds the available balance is rejected with `422` and `{ "errorMessage": "Insufficient funds" }`. Transfers are labelled `OnlineBankingTransfers` and payments `OnlineBankingPayments`; a payment updates the beneficiary's `lastPaymentAmount` and `lastPaymentDate`
+    - Transfer or pay. Responds like Investec: `{ "data": { "TransferResponses": [{ "PaymentReferenceNumber", "PaymentDate", "Status", "BeneficiaryName", "BeneficiaryAccountId", "AuthorisationRequired" }], "ErrorMessage": null } }`, one entry per transfer or payment. A batch that exceeds the available balance is rejected with `422` and `{ "errorMessage": "Insufficient funds" }`. Transfers are labelled `OnlineBankingTransfers` and payments `OnlineBankingPayments`; a payment updates the beneficiary's `lastPaymentAmount` and `lastPaymentDate`
 - **GET /za/pb/v1/accounts/beneficiaries**
     - Get all beneficiaries
 

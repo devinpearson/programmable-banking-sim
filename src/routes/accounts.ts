@@ -15,12 +15,14 @@ import {
 import { getAccountBalance } from '../balance.js'
 import { accountAllowed } from '../consent.js'
 import { publish } from '../webhooks.js'
+import { type TransferResult, transferResult, transferResponses } from '../transferResponse.js'
 import { validateRequest, validatedBody, validatedQuery } from '../middleware/validation.js'
 import {
   allowNonCardPendingQuery,
   createAccountBody,
   createBeneficiaryBody,
   createTransactionBody,
+  documentsQuery,
   payMultipleBody,
   topUpBody,
   transactionsQuery,
@@ -225,6 +227,7 @@ router.post('/:accountId/transfermultiple',
       // Confirm each beneficiary account exists before writing anything, so a
       // bad entry can't leave a half-finished transfer.
       const writes: Prisma.PrismaPromise<unknown>[] = []
+      const results: TransferResult[] = []
       for (const transfer of transfers) {
         // Both sides of a transfer must be accounts the token may touch.
         if (!accountAllowed(res, transfer.beneficiaryAccountId)) {
@@ -239,6 +242,7 @@ router.post('/:accountId/transfermultiple',
           console.log('no beneficiary account found')
           return formatErrorResponse(req, res, 404) // no account was found
         }
+        results.push(transferResult(beneficiary.accountName, beneficiary.accountId))
         const today = dayjs().format('YYYY-MM-DD')
         writes.push(
           prisma.transaction.create({
@@ -290,7 +294,7 @@ router.post('/:accountId/transfermultiple',
       await emitDatabaseSummary()
       for (const leg of created) publish('transaction.posted', leg)
 
-      return formatResponse(transfers, req, res)
+      return formatResponse(transferResponses(results), req, res)
     } catch (error) {
       console.log(error)
       return formatErrorResponse(req, res, 500)
@@ -318,6 +322,7 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
     // Confirm each beneficiary exists before writing anything, so a bad entry
     // can't leave a half-finished batch.
     const writes: Prisma.PrismaPromise<unknown>[] = []
+    const responses: TransferResult[] = []
     for (const payment of transfers) {
       const amount = payment.amount
       const beneficiary = await prisma.beneficiary.findFirst({
@@ -329,6 +334,7 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
         console.log('no beneficiary account found')
         return formatErrorResponse(req, res, 404) // no account was found
       }
+      responses.push(transferResult(beneficiary.beneficiaryName, beneficiary.beneficiaryId))
       const today = dayjs().format('YYYY-MM-DD')
       writes.push(
         prisma.transaction.create({
@@ -379,7 +385,7 @@ router.post('/:accountId/paymultiple', validateRequest({ body: payMultipleBody }
       }
     }
 
-    return formatResponse(transfers, req, res)
+    return formatResponse(transferResponses(responses), req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -831,21 +837,31 @@ router.get('/beneficiarycategories', (req, res) => {
 })
 
 // Build a list of recent monthly statement documents for an account.
-function statementDocuments() {
+// Monthly statements dated at each month end within [fromDate, toDate],
+// newest first, for completed months only (this month's isn't out yet).
+// At most 24, as a statement list has to stop somewhere.
+const MAX_STATEMENTS = 24
+
+function statementDocuments(fromDate: string, toDate: string) {
   const documents = []
-  for (let i = 1; i <= 3; i++) {
-    const month = dayjs().subtract(i, 'month')
-    documents.push({
-      documentType: 'Statement',
-      documentDate: month.endOf('month').format('YYYY-MM-DD'),
-      description: `Monthly statement — ${month.format('MMMM YYYY')}`,
-    })
+  let month = dayjs().subtract(1, 'month').endOf('month')
+  while (documents.length < MAX_STATEMENTS) {
+    const documentDate = month.format('YYYY-MM-DD')
+    if (documentDate < fromDate) break
+    if (documentDate <= toDate) {
+      documents.push({
+        documentType: 'Statement',
+        documentDate,
+        description: `Monthly statement — ${month.format('MMMM YYYY')}`,
+      })
+    }
+    month = month.subtract(1, 'month').endOf('month')
   }
   return documents
 }
 
 // List the documents (statements) available for an account.
-router.get('/:accountId/documents', async (req, res) => {
+router.get('/:accountId/documents', validateRequest({ query: documentsQuery }), async (req, res) => {
   try {
     const accountId = req.params.accountId
     const account = await prisma.account.findFirst({
@@ -854,7 +870,10 @@ router.get('/:accountId/documents', async (req, res) => {
     if (!account) {
       return formatErrorResponse(req, res, 404)
     }
-    return formatResponse({ documents: statementDocuments() }, req, res)
+    const query = validatedQuery(res, documentsQuery)
+    const fromDate = query.fromDate ?? dayjs().subtract(3, 'month').startOf('month').format('YYYY-MM-DD')
+    const toDate = query.toDate ?? dayjs().format('YYYY-MM-DD')
+    return formatResponse({ documents: statementDocuments(fromDate, toDate) }, req, res)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)

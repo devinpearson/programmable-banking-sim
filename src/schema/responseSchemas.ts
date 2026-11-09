@@ -133,13 +133,30 @@ export const DocumentDetail = z
   })
   .openapi('DocumentDetail')
 
-export const TransferLeg = z
-  .object({ beneficiaryAccountId: z.string(), amount: z.number(), myReference: z.string(), theirReference: z.string() })
-  .openapi('TransferLeg')
+// Investec's transfermultiple/paymultiple response (PascalCase, as theirs).
+export const TransferResponses = z
+  .object({
+    TransferResponses: z.array(
+      z.object({
+        PaymentReferenceNumber: z.string().openapi({ example: 'UBP2201761367' }),
+        PaymentDate: z.string().openapi({ example: '09/11/2026' }),
+        Status: z.string().openapi({ example: '- No authorisation necessary <BR> - Payment/Transfer effective date 09/11/2026' }),
+        BeneficiaryName: z.string(),
+        BeneficiaryAccountId: z.string().openapi({ description: 'The destination account id (transfers) or beneficiary id (payments).' }),
+        AuthorisationRequired: z.boolean(),
+      }),
+    ),
+    ErrorMessage: z.string().nullable(),
+  })
+  .openapi('TransferResponses')
 
-export const PaymentLeg = z
-  .object({ beneficiaryId: z.string(), amount: z.number(), myReference: z.string(), theirReference: z.string() })
-  .openapi('PaymentLeg')
+export const Profile = z
+  .object({
+    profileId: z.string(),
+    profileName: z.string(),
+    default: z.boolean().openapi({ description: 'The sandbox treats the first profile as the default.' }),
+  })
+  .openapi('Profile')
 
 // --- Cards ------------------------------------------------------------------
 
