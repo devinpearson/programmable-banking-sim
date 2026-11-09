@@ -336,6 +336,52 @@ router.post('/:accountId/transactions', async (req: Request, res: Response) => {
   }
 })
 
+// Sandbox convenience: top up an account's balance with a single CREDIT.
+// Not a real Investec endpoint — it makes "add money to this account" a
+// one-call action instead of hand-crafting a transaction.
+router.post('/:accountId/topup', async (req: Request, res: Response) => {
+  try {
+    const accountId = req.params.accountId
+    const amount = Number(req.body.amount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return formatErrorResponse(req, res, 400) // invalid amount
+    }
+    // check that the account exists
+    const account = await prisma.account.findFirst({
+      where: {
+        accountId: accountId,
+      },
+    })
+    if (!account) {
+      console.log('no account found')
+      return formatErrorResponse(req, res, 404) // no account was found
+    }
+    const today = dayjs().format('YYYY-MM-DD')
+    const transaction = await prisma.transaction.create({
+      data: {
+        accountId: accountId,
+        type: TransactionType.CREDIT,
+        transactionType: 'Deposit',
+        status: 'POSTED',
+        description: req.body.description ?? 'Sandbox top up',
+        cardNumber: '',
+        postedOrder: 0,
+        postingDate: today,
+        valueDate: today,
+        actionDate: today,
+        transactionDate: today,
+        amount: amount,
+        runningBalance: 0,
+      },
+    })
+    await emitDatabaseSummary()
+    return formatResponse(transaction, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
 // Sandbox convenience: settle an account's pending transactions (flip them to
 // POSTED), simulating the pending → posted lifecycle for scenario testing.
 router.post('/:accountId/transactions/settle', async (req: Request, res: Response) => {
@@ -549,5 +595,77 @@ router.delete('/beneficiaries/:beneficiaryId', async (req: Request, res: Respons
     return formatErrorResponse(req, res, 500)
   }
 })
+
+// Fixed reference data: the categories a beneficiary can be filed under.
+const beneficiaryCategories = [
+  { categoryId: '10189603223001', isDefault: true, name: 'Default' },
+  { categoryId: '10189603223002', isDefault: false, name: 'Family' },
+  { categoryId: '10189603223003', isDefault: false, name: 'Friends' },
+  { categoryId: '10189603223004', isDefault: false, name: 'Businesses' },
+]
+
+router.get('/beneficiarycategories', (req: Request, res: Response) => {
+  return formatResponse(beneficiaryCategories, req, res)
+})
+
+// Build a list of recent monthly statement documents for an account.
+function statementDocuments() {
+  const documents = []
+  for (let i = 1; i <= 3; i++) {
+    const month = dayjs().subtract(i, 'month')
+    documents.push({
+      documentType: 'Statement',
+      documentDate: month.endOf('month').format('YYYY-MM-DD'),
+      description: `Monthly statement — ${month.format('MMMM YYYY')}`,
+    })
+  }
+  return documents
+}
+
+// List the documents (statements) available for an account.
+router.get('/:accountId/documents', async (req: Request, res: Response) => {
+  try {
+    const accountId = req.params.accountId
+    const account = await prisma.account.findFirst({
+      where: { accountId: accountId },
+    })
+    if (!account) {
+      return formatErrorResponse(req, res, 404)
+    }
+    return formatResponse({ documents: statementDocuments() }, req, res)
+  } catch (error) {
+    console.log(error)
+    return formatErrorResponse(req, res, 500)
+  }
+})
+
+// Fetch a specific document. The sandbox returns a placeholder descriptor
+// rather than a real statement file.
+router.get(
+  '/:accountId/documents/:documentType/:documentDate',
+  async (req: Request, res: Response) => {
+    try {
+      const { accountId, documentType, documentDate } = req.params
+      const account = await prisma.account.findFirst({
+        where: { accountId: accountId },
+      })
+      if (!account) {
+        return formatErrorResponse(req, res, 404)
+      }
+      const document = {
+        accountId: accountId,
+        documentType: documentType,
+        documentDate: documentDate,
+        fileName: `${documentType}-${documentDate}.pdf`,
+        mimeType: 'application/pdf',
+        note: 'Sandbox placeholder document — no real statement is generated.',
+      }
+      return formatResponse(document, req, res)
+    } catch (error) {
+      console.log(error)
+      return formatErrorResponse(req, res, 500)
+    }
+  },
+)
 
 export default router

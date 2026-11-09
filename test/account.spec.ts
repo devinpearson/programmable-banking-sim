@@ -388,6 +388,44 @@ describe('Test the accounts', () => {
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
   })
 
+  it('should top up an account balance', async () => {
+    const accountId = 'test-topup-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '66666666601' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/topup`)
+      .send({ amount: 250 })
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.type, 'CREDIT')
+    assert.equal(response.body.data.transactionType, 'Deposit')
+
+    const balance = await request(app).get(`/za/pb/v1/accounts/${accountId}/balance`)
+    assert.equal(balance.body.data.currentBalance, 250)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should respond with 400 when topup amount is invalid', async () => {
+    const accountId = 'test-topup-bad-001'
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+    await request(app).post('/za/pb/v1/accounts').send({ accountId, accountNumber: '66666666602' })
+
+    const response = await request(app)
+      .post(`/za/pb/v1/accounts/${accountId}/topup`)
+      .send({ amount: 0 })
+    assert.equal(response.statusCode, 400)
+
+    await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should respond with 404 when topping up a non-existent account', async () => {
+    const response = await request(app)
+      .post('/za/pb/v1/accounts/does-not-exist/topup')
+      .send({ amount: 100 })
+    assert.equal(response.statusCode, 404)
+  })
+
   it('should cascade-delete an account\'s transactions, cards and card codes', async () => {
     const accountId = 'test-cascade-account-001'
     const cardKey = 'test-cascade-card-001'
@@ -425,6 +463,48 @@ describe('Test the accounts', () => {
     assert.equal(txns.body.data.transactions.length, 0)
 
     await request(app).delete(`/za/pb/v1/accounts/${accountId}`)
+  })
+
+  it('should list the beneficiary categories', async () => {
+    const response = await request(app).get('/za/pb/v1/accounts/beneficiarycategories')
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data)
+    assert.isAbove(response.body.data.length, 0)
+    const def = response.body.data.find((c: { isDefault: boolean }) => c.isDefault)
+    assert.exists(def)
+    assert.exists(def.categoryId)
+    assert.exists(def.name)
+  })
+
+  it('should list an account\'s documents', async () => {
+    const response = await request(app).get('/za/pb/v1/accounts/4675778129910189600000003/documents')
+    assert.equal(response.statusCode, 200)
+    assert.isArray(response.body.data.documents)
+    assert.isAbove(response.body.data.documents.length, 0)
+    assert.equal(response.body.data.documents[0].documentType, 'Statement')
+    assert.exists(response.body.data.documents[0].documentDate)
+  })
+
+  it('should respond with 404 listing documents for an unknown account', async () => {
+    const response = await request(app).get('/za/pb/v1/accounts/does-not-exist/documents')
+    assert.equal(response.statusCode, 404)
+  })
+
+  it('should fetch a specific document for an account', async () => {
+    const response = await request(app).get(
+      '/za/pb/v1/accounts/4675778129910189600000003/documents/Statement/2024-01-31',
+    )
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.body.data.documentType, 'Statement')
+    assert.equal(response.body.data.documentDate, '2024-01-31')
+    assert.exists(response.body.data.fileName)
+  })
+
+  it('should respond with 404 fetching a document for an unknown account', async () => {
+    const response = await request(app).get(
+      '/za/pb/v1/accounts/does-not-exist/documents/Statement/2024-01-31',
+    )
+    assert.equal(response.statusCode, 404)
   })
 
   it('should reflect a pending debit in available but not current balance, then settle it', async () => {

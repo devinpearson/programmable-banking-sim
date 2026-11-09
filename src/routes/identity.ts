@@ -9,10 +9,28 @@ import {
 } from '../app.js'
 import dayjs from 'dayjs'
 import type { AuthorizationCode } from '../types.js'
-import { createHmac } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
 
-// Local session storage for OAuth flow
-const sessionTokens: { [key: string]: AuthorizationCode } = {}
+// Pending 3-legged OAuth flows, keyed by the opaque qsp handed to the browser.
+// A flow only becomes `authenticated` once the user signs in at /login, and its
+// authorization code is only published to `authorizationCodes` (and so becomes
+// exchangeable) when the user approves.
+interface OAuthSession {
+  code: AuthorizationCode
+  authenticated: boolean
+}
+const sessionTokens = new Map<string, OAuthSession>()
+
+// Marks a pending flow as signed-in. Called by the /login handler after it
+// verifies the user's credentials. Returns false for an unknown qsp.
+export function authenticateSession(qsp: string): boolean {
+  const session = sessionTokens.get(qsp)
+  if (!session) {
+    return false
+  }
+  session.authenticated = true
+  return true
+}
 
 // Redirect legacy /oauth requests to correct endpoint
 router.all('/oauth', (_req: Request, res: Response) => {
@@ -67,13 +85,23 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
       })
     } else if (req.body.grant_type === 'authorization_code') {
       const code = req.body.code
-      // const _redirectUri = req.body.redirect_uri
-      // need to check the code to see if it is in the authorizationCodes
       const authorizationCode = authorizationCodes[code]
       if (!authorizationCode) {
         return formatErrorResponse(req, res, 401)
       }
+      // Authorization codes are single-use.
       delete authorizationCodes[code]
+      // Reject an expired code.
+      if (dayjs().isAfter(authorizationCode.expires_at)) {
+        return formatErrorResponse(req, res, 401)
+      }
+      // If a redirect_uri is supplied it must match the one from /authorize.
+      if (
+        req.body.redirect_uri &&
+        req.body.redirect_uri !== authorizationCode.redirect_uri
+      ) {
+        return formatErrorResponse(req, res, 401)
+      }
 
       // Generate a token string
       const token = generateToken()
@@ -112,6 +140,8 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
         refresh_token: refreshToken,
       })
     }
+    // Unknown or missing grant_type: respond instead of hanging the request.
+    return formatErrorResponse(req, res, 400)
   } catch (error) {
     console.log(error)
     return formatErrorResponse(req, res, 500)
@@ -119,6 +149,9 @@ router.post('/v2/oauth2/token', (req: Request, res: Response) => {
 })
 
 router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
+  if (settings.client_id !== req.query.client_id) {
+    return formatErrorResponse(req, res, 401)
+  }
   const token = generateToken()
   const authorizationCode: AuthorizationCode = {
     code: token,
@@ -126,45 +159,38 @@ router.get('/v2/oauth2/authorize', (req: Request, res: Response) => {
     scope: req.query.scope as string,
     redirect_uri: req.query.redirect_uri as string,
   }
-  if (settings.client_id !== req.query.client_id) {
-    return formatErrorResponse(req, res, 401)
-  }
-  
-  // Create a secure hash using the authorization code and timestamp
-  const secret = process.env.OAUTH_SECRET || 'default-oauth-secret-change-in-production';
-  const dataToHash = `${authorizationCode.code}:${authorizationCode.expires_at}:` + 
-                     `${authorizationCode.scope}:${Date.now()}`;
+
+  // Opaque handle for the browser leg of the flow.
+  const secret = process.env.OAUTH_SECRET || 'default-oauth-secret-change-in-production'
+  const dataToHash = `${authorizationCode.code}:${authorizationCode.expires_at}:` +
+                     `${authorizationCode.scope}:${Date.now()}`
   const hash = createHmac('sha256', secret)
                .update(dataToHash)
-               .digest('hex');
-  
-  //const responseType = req.query.response_type
-  // if (settings.auth === false) {
-  //   return res.redirect(
-  //   302,
-  //   authorizationCode.redirect_uri +
-  //     '?authorizationCode=' +
-  //     authorizationCode.code +
-  //     '&status=SUCCESS&code=' +
-  //     authorizationCode.code,
-  // )
-  // }
-  authorizationCodes[authorizationCode.code] = authorizationCode
-  sessionTokens[hash] = authorizationCode
-  
+               .digest('hex')
+
+  // The code is NOT published to authorizationCodes here: it only becomes
+  // exchangeable once the user signs in and approves (see /approve).
+  sessionTokens[hash] = { code: authorizationCode, authenticated: false }
+
   return res.redirect(302, `/login?qsp=${hash}`)
 })
 
 router.get('/approve', (req: Request, res: Response) => {
   const qsp = req.query.qsp as string
-  if (!qsp || !sessionTokens[qsp]) {
+  const session = sessionTokens[qsp]
+  if (!qsp || !session) {
     return formatErrorResponse(req, res, 400)
   }
-  const authorizationCode: AuthorizationCode = sessionTokens[qsp]
+  // The flow must have been signed in at /login before it can be approved.
+  if (!session.authenticated) {
+    return formatErrorResponse(req, res, 401)
+  }
+  const authorizationCode = session.code
   delete sessionTokens[qsp]
 
-  // Here you would typically render a consent page where the user can approve or decline the request
-  // For this example, we will just redirect to the redirect_uri with the authorization code
+  // Approval is what makes the code exchangeable.
+  authorizationCodes[authorizationCode.code] = authorizationCode
+
   const redirectUri = authorizationCode.redirect_uri.startsWith('http')
     ? authorizationCode.redirect_uri
     : `http://${authorizationCode.redirect_uri}`
@@ -180,14 +206,15 @@ router.get('/approve', (req: Request, res: Response) => {
 
 router.get('/decline', (req: Request, res: Response) => {
   const qsp = req.query.qsp as string
-  if (!qsp || !sessionTokens[qsp]) {
+  const session = sessionTokens[qsp]
+  if (!qsp || !session) {
     return formatErrorResponse(req, res, 400)
   }
-  const authorizationCode: AuthorizationCode = sessionTokens[qsp]
+  const authorizationCode = session.code
   delete sessionTokens[qsp]
+  // The code was never published to authorizationCodes, so declining leaves
+  // nothing exchangeable. The code is echoed back only for request correlation.
 
-  // Here you would typically render a consent page where the user can approve or decline the request
-  // For this example, we will just redirect to the redirect_uri with the authorization code
   const redirectUri = authorizationCode.redirect_uri.startsWith('http')
     ? authorizationCode.redirect_uri
     : `http://${authorizationCode.redirect_uri}`
@@ -202,10 +229,8 @@ router.get('/decline', (req: Request, res: Response) => {
 })
 
 function generateToken() {
-  return (
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
-  )
+  // Cryptographically random, unguessable token (48 hex chars).
+  return randomBytes(24).toString('hex')
 }
 
 export default router

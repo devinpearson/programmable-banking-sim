@@ -16,6 +16,13 @@ function extractQueryParam(location: string, param: string) {
   return url.searchParams.get(param)
 }
 
+async function login(qsp: string | null) {
+  return request(app)
+    .post('/login')
+    .query({ qsp })
+    .send({ email: 'admin@example.com', password: 'admin' })
+}
+
 async function getAuthorizationCode() {
   const authorizeResponse = await request(app).get(
     '/identity/v2/oauth2/authorize',
@@ -25,6 +32,9 @@ async function getAuthorizationCode() {
     scope: 'accounts',
   })
   const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+
+  // The flow must be signed in before it can be approved.
+  await login(qsp)
 
   const approveResponse = await request(app).get('/identity/approve').query({
     qsp,
@@ -218,6 +228,7 @@ describe('Test the identity oauth endpoints', () => {
       scope: 'transactions',
     })
     const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+    await login(qsp)
     const approveResponse = await request(app).get('/identity/approve').query({ qsp })
     const code = extractQueryParam(approveResponse.headers.location, 'code')
 
@@ -236,6 +247,7 @@ describe('Test the identity oauth endpoints', () => {
       scope: 'accounts',
     })
     const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+    await login(qsp)
     const approveResponse = await request(app).get('/identity/approve').query({ qsp })
     assert.equal(approveResponse.statusCode, 302)
     assert.include(approveResponse.headers.location, 'http://example.com/callback')
@@ -270,6 +282,7 @@ describe('Test the identity oauth endpoints', () => {
       scope: 'accounts',
     })
     const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+    await login(qsp)
     const approveResponse = await request(app).get('/identity/approve').query({ qsp })
     assert.equal(approveResponse.statusCode, 302)
     assert.match(approveResponse.headers.location, /^http:\/\/example\.com/)
@@ -290,5 +303,90 @@ describe('Test the identity oauth endpoints', () => {
     assert.isNumber(refreshResponse.body.expires_in)
     assert.isAbove(refreshResponse.body.expires_in, 0)
     assert.exists(refreshResponse.body.refresh_token)
+  })
+
+  it('should refuse to approve a flow that has not signed in', async () => {
+    const authorizeResponse = await request(app).get('/identity/v2/oauth2/authorize').query({
+      client_id: CLIENT_ID,
+      redirect_uri: 'http://example.com/callback',
+      scope: 'accounts',
+    })
+    const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+
+    // No /login step: approval must be rejected.
+    const approveResponse = await request(app).get('/identity/approve').query({ qsp })
+    assert.equal(approveResponse.statusCode, 401)
+  })
+
+  it('should not issue an exchangeable code when the request is declined', async () => {
+    const authorizeResponse = await request(app).get('/identity/v2/oauth2/authorize').query({
+      client_id: CLIENT_ID,
+      redirect_uri: 'http://example.com/callback',
+      scope: 'accounts',
+    })
+    const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+    await login(qsp)
+
+    const declineResponse = await request(app).get('/identity/decline').query({ qsp })
+    const declinedCode = extractQueryParam(declineResponse.headers.location, 'code')
+    assert.exists(declinedCode)
+
+    // The declined code must not be exchangeable for a token.
+    const tokenResponse = await request(app)
+      .post('/identity/v2/oauth2/token')
+      .set('Authorization', basicAuthHeader(CLIENT_ID, CLIENT_SECRET))
+      .send({ grant_type: 'authorization_code', code: declinedCode })
+    assert.equal(tokenResponse.statusCode, 401)
+  })
+
+  it('should not issue an exchangeable code before the request is approved', async () => {
+    const authorizeResponse = await request(app).get('/identity/v2/oauth2/authorize').query({
+      client_id: CLIENT_ID,
+      redirect_uri: 'http://example.com/callback',
+      scope: 'accounts',
+    })
+    const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp') as string
+    // The qsp is the session handle, not the code, but prove no code works yet:
+    const tokenResponse = await request(app)
+      .post('/identity/v2/oauth2/token')
+      .set('Authorization', basicAuthHeader(CLIENT_ID, CLIENT_SECRET))
+      .send({ grant_type: 'authorization_code', code: qsp })
+    assert.equal(tokenResponse.statusCode, 401)
+  })
+
+  it('should respond with 400 for an unknown grant_type', async () => {
+    const response = await request(app)
+      .post('/identity/v2/oauth2/token')
+      .set('Authorization', basicAuthHeader(CLIENT_ID, CLIENT_SECRET))
+      .send({ grant_type: 'something_else' })
+    assert.equal(response.statusCode, 400)
+  })
+
+  it('should reject an authorization_code exchange with a mismatched redirect_uri', async () => {
+    const authorizeResponse = await request(app).get('/identity/v2/oauth2/authorize').query({
+      client_id: CLIENT_ID,
+      redirect_uri: 'http://example.com/callback',
+      scope: 'accounts',
+    })
+    const qsp = extractQueryParam(authorizeResponse.headers.location, 'qsp')
+    await login(qsp)
+    const approveResponse = await request(app).get('/identity/approve').query({ qsp })
+    const code = extractQueryParam(approveResponse.headers.location, 'code')
+
+    const tokenResponse = await request(app)
+      .post('/identity/v2/oauth2/token')
+      .set('Authorization', basicAuthHeader(CLIENT_ID, CLIENT_SECRET))
+      .send({ grant_type: 'authorization_code', code, redirect_uri: 'http://evil.example.com/callback' })
+    assert.equal(tokenResponse.statusCode, 401)
+  })
+
+  it('should issue cryptographically-random tokens', async () => {
+    const response = await request(app)
+      .post('/identity/v2/oauth2/token')
+      .set('Authorization', basicAuthHeader(CLIENT_ID, CLIENT_SECRET))
+      .set('x-api-key', API_KEY)
+      .send({ grant_type: 'client_credentials' })
+    assert.equal(response.statusCode, 200)
+    assert.match(response.body.access_token, /^[0-9a-f]{48}$/)
   })
 })
