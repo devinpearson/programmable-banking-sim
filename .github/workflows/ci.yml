@@ -59,6 +59,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: API types match the OpenAPI document
+        run: |
+          npm run api:types
+          git diff --exit-code lib/api/schema.d.ts
+
       - name: Typecheck
         run: npm run typecheck
 

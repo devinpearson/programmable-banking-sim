@@ -58,6 +58,8 @@ The web app reads the API's address from `NEXT_PUBLIC_API_BASE_URL` (default `ht
 ### Web app development
 In `web/`: `npm run lint`, `npm run typecheck`, `npm run test:unit` (Vitest), `npm run test:e2e` (Playwright, which starts its own API and web app on spare ports with a throwaway database) and `npm run build`.
 
+The web app's API types (`web/lib/api/schema.d.ts`) are generated from the OpenAPI document: after changing the API, run `npm run openapi:generate` in the root, then `npm run api:types` in `web/`. CI fails if either is stale.
+
 There are helpful links to the Investec docs, Community wiki, GitHub repo and the Postman collection.
 
 ## API docs

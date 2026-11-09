@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Programmable Banking Sandbox API
   version: 1.2.0
@@ -264,11 +264,13 @@ components:
           type: string
           example: 25/04/2023
         cellNo:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
         emailAddress:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
         name:
           type: string
         referenceAccountNumber:
@@ -421,8 +423,9 @@ components:
               type: string
               example: 2026-11-09T10:00:00.000Z
             publishedAt:
-              type: string
-              nullable: true
+              type:
+                - string
+                - "null"
               example: 2026-11-09T10:00:00.000Z
           required:
             - codeId
@@ -440,8 +443,7 @@ components:
           properties:
             variables:
               type: object
-              additionalProperties:
-                nullable: true
+              additionalProperties: {}
             createdAt:
               type: string
               example: 2026-11-09T10:00:00.000Z
@@ -449,7 +451,7 @@ components:
               type: string
               example: 2026-11-09T10:00:00.000Z
             error:
-              nullable: true
+              type: "null"
           required:
             - variables
             - createdAt
@@ -470,22 +472,15 @@ components:
             - card_not_active
           description: Why the bank declined it, before any card code ran.
         transaction:
-          allOf:
+          anyOf:
             - $ref: "#/components/schemas/StoredTransaction"
-            - allOf:
-                - $ref: "#/components/schemas/Transaction"
-                - type: object
-                  nullable: true
-                  properties:
-                    transactionId:
-                      type: integer
-                  required:
-                    - transactionId
-              description: The pending hold (or posted purchase) on the card's account; null
-                when declined or the card has no account.
+            - type: "null"
+            - type: "null"
       required:
         - result
         - transaction
+      description: transaction is the pending hold (or posted purchase) on the card's
+        account; null when declined or the card has no account.
     Execution:
       type: object
       properties:
@@ -504,8 +499,9 @@ components:
             - after_transaction
             - after_decline
         authorizationApproved:
-          type: boolean
-          nullable: true
+          type:
+            - boolean
+            - "null"
         smsCount:
           type: integer
         emailCount:
@@ -522,8 +518,9 @@ components:
           type: string
           example: 2026-11-09T10:00:00.000Z
         updatedAt:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: 2026-11-09T10:00:00.000Z
         logs:
           type: array
@@ -1878,11 +1875,13 @@ paths:
                 lastPaymentDate:
                   type: string
                 cellNo:
-                  type: string
-                  nullable: true
+                  type:
+                    - string
+                    - "null"
                 emailAddress:
-                  type: string
-                  nullable: true
+                  type:
+                    - string
+                    - "null"
                 name:
                   type: string
                 referenceAccountNumber:
@@ -2860,8 +2859,7 @@ paths:
               properties:
                 variables:
                   type: object
-                  additionalProperties:
-                    nullable: true
+                  additionalProperties: {}
                   default: {}
       responses:
         "200":
@@ -2942,8 +2940,7 @@ paths:
                   example: ZAR
                 centsAmount:
                   type: integer
-                  minimum: 0
-                  exclusiveMinimum: true
+                  exclusiveMinimum: 0
                   example: 1000
                 merchantCode:
                   type: string
@@ -2998,8 +2995,9 @@ paths:
                               type: string
                               enum: *a2
                             authorizationApproved:
-                              type: boolean
-                              nullable: true
+                              type:
+                                - boolean
+                                - "null"
                             smsCount:
                               type: integer
                             emailCount:
@@ -3016,8 +3014,9 @@ paths:
                               type: string
                               example: 2026-11-09T10:00:00.000Z
                             updatedAt:
-                              type: string
-                              nullable: true
+                              type:
+                                - string
+                                - "null"
                               example: 2026-11-09T10:00:00.000Z
                             logs:
                               type: array
@@ -3128,8 +3127,7 @@ paths:
                   example: ZAR
                 centsAmount:
                   type: integer
-                  minimum: 0
-                  exclusiveMinimum: true
+                  exclusiveMinimum: 0
                   example: 1000
                 merchantCode:
                   type: string
@@ -3733,8 +3731,7 @@ paths:
                   type: string
                 token_expiry:
                   type: integer
-                  minimum: 0
-                  exclusiveMinimum: true
+                  exclusiveMinimum: 0
                 auth:
                   anyOf:
                     - type: boolean
@@ -3905,3 +3902,4 @@ paths:
       responses:
         "200":
           description: OK (empty body)
+webhooks: {}

@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.1.0",
   "info": {
     "title": "Programmable Banking Sandbox API",
     "version": "1.2.0",
@@ -371,12 +371,16 @@
             "example": "25/04/2023"
           },
           "cellNo": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "emailAddress": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "type": "string"
@@ -586,8 +590,10 @@
                 "example": "2026-11-09T10:00:00.000Z"
               },
               "publishedAt": {
-                "type": "string",
-                "nullable": true,
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "example": "2026-11-09T10:00:00.000Z"
               }
             },
@@ -612,9 +618,7 @@
             "properties": {
               "variables": {
                 "type": "object",
-                "additionalProperties": {
-                  "nullable": true
-                }
+                "additionalProperties": {}
               },
               "createdAt": {
                 "type": "string",
@@ -625,7 +629,7 @@
                 "example": "2026-11-09T10:00:00.000Z"
               },
               "error": {
-                "nullable": true
+                "type": "null"
               }
             },
             "required": [
@@ -656,29 +660,15 @@
             "description": "Why the bank declined it, before any card code ran."
           },
           "transaction": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/StoredTransaction"
               },
               {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Transaction"
-                  },
-                  {
-                    "type": "object",
-                    "nullable": true,
-                    "properties": {
-                      "transactionId": {
-                        "type": "integer"
-                      }
-                    },
-                    "required": [
-                      "transactionId"
-                    ]
-                  }
-                ],
-                "description": "The pending hold (or posted purchase) on the card's account; null when declined or the card has no account."
+                "type": "null"
+              },
+              {
+                "type": "null"
               }
             ]
           }
@@ -686,7 +676,8 @@
         "required": [
           "result",
           "transaction"
-        ]
+        ],
+        "description": "transaction is the pending hold (or posted purchase) on the card's account; null when declined or the card has no account."
       },
       "Execution": {
         "type": "object",
@@ -712,8 +703,10 @@
             ]
           },
           "authorizationApproved": {
-            "type": "boolean",
-            "nullable": true
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "smsCount": {
             "type": "integer"
@@ -737,8 +730,10 @@
             "example": "2026-11-09T10:00:00.000Z"
           },
           "updatedAt": {
-            "type": "string",
-            "nullable": true,
+            "type": [
+              "string",
+              "null"
+            ],
             "example": "2026-11-09T10:00:00.000Z"
           },
           "logs": {
@@ -2849,12 +2844,16 @@
                     "type": "string"
                   },
                   "cellNo": {
-                    "type": "string",
-                    "nullable": true
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "emailAddress": {
-                    "type": "string",
-                    "nullable": true
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "name": {
                     "type": "string"
@@ -4438,9 +4437,7 @@
                 "properties": {
                   "variables": {
                     "type": "object",
-                    "additionalProperties": {
-                      "nullable": true
-                    },
+                    "additionalProperties": {},
                     "default": {}
                   }
                 }
@@ -4570,8 +4567,7 @@
                   },
                   "centsAmount": {
                     "type": "integer",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
+                    "exclusiveMinimum": 0,
                     "example": 1000
                   },
                   "merchantCode": {
@@ -4646,8 +4642,10 @@
                                 ]
                               },
                               "authorizationApproved": {
-                                "type": "boolean",
-                                "nullable": true
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
                               },
                               "smsCount": {
                                 "type": "integer"
@@ -4671,8 +4669,10 @@
                                 "example": "2026-11-09T10:00:00.000Z"
                               },
                               "updatedAt": {
-                                "type": "string",
-                                "nullable": true,
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
                                 "example": "2026-11-09T10:00:00.000Z"
                               },
                               "logs": {
@@ -4840,8 +4840,7 @@
                   },
                   "centsAmount": {
                     "type": "integer",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
+                    "exclusiveMinimum": 0,
                     "example": 1000
                   },
                   "merchantCode": {
@@ -5788,8 +5787,7 @@
                   },
                   "token_expiry": {
                     "type": "integer",
-                    "minimum": 0,
-                    "exclusiveMinimum": true
+                    "exclusiveMinimum": 0
                   },
                   "auth": {
                     "anyOf": [
@@ -6062,5 +6060,6 @@
         }
       }
     }
-  }
+  },
+  "webhooks": {}
 }

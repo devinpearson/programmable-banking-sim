@@ -226,11 +226,14 @@ export const SwipeResult = z
     reason: z.enum(['insufficient_funds', 'card_not_active']).optional().openapi({
       description: 'Why the bank declined it, before any card code ran.',
     }),
-    transaction: StoredTransaction.nullable().openapi({
-      description: "The pending hold (or posted purchase) on the card's account; null when declined or the card has no account.",
-    }),
+    // A plain union with null: .nullable() (or describing the field) on this
+    // extended, registered schema makes the generator re-expand it in allOf.
+    transaction: z.union([StoredTransaction, z.null()]),
   })
-  .openapi('SwipeResult')
+  .openapi('SwipeResult', {
+    description:
+      "transaction is the pending hold (or posted purchase) on the card's account; null when declined or the card has no account.",
+  })
 
 const ReferenceItem = z.object({ code: z.string(), name: z.string() })
 export const ReferenceList = z.object({ result: z.array(ReferenceItem) }).openapi('ReferenceList')

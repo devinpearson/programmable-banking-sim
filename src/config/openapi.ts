@@ -1,6 +1,6 @@
 import {
   OpenAPIRegistry,
-  OpenApiGeneratorV3,
+  OpenApiGeneratorV31,
   type RouteConfig,
 } from '@asteasolutions/zod-to-openapi'
 import type { Application } from 'express'
@@ -453,8 +453,10 @@ register('post', '/scenarios/:id', {
 register('get', '/restore', { tag: 'Sandbox', summary: 'Reset to the seed data', sandbox: true, security: 'none', ok: null })
 register('delete', '/clear', { tag: 'Sandbox', summary: 'Remove all data', sandbox: true, security: 'none', ok: null })
 
-export const openApiDocument = new OpenApiGeneratorV3(registry.definitions).generateDocument({
-  openapi: '3.0.3',
+// OpenAPI 3.1, so a nullable reference is a plain anyOf [ref, null] that
+// openapi-typescript understands (3.0 can't express it cleanly).
+export const openApiDocument = new OpenApiGeneratorV31(registry.definitions).generateDocument({
+  openapi: '3.1.0',
   info: {
     title: 'Programmable Banking Sandbox API',
     version: '1.2.0',

@@ -11,12 +11,12 @@ describe('OpenAPI docs', () => {
   it('serves the document as JSON and YAML', async () => {
     const json = await request(app).get('/api-docs.json')
     assert.equal(json.statusCode, 200)
-    assert.equal(json.body.openapi, '3.0.3')
+    assert.equal(json.body.openapi, '3.1.0')
     assert.exists(json.body.paths['/za/pb/v1/accounts/{accountId}/balance'].get)
 
     const yaml = await request(app).get('/api-docs.yaml')
     assert.equal(yaml.statusCode, 200)
-    assert.match(yaml.text, /^openapi: 3\.0\.3/m)
+    assert.match(yaml.text, /^openapi: 3\.1\.0/m)
   })
 
   it('marks sandbox-only operations', async () => {
