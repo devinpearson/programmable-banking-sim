@@ -192,6 +192,11 @@ function CallbackPanel({
         <Row label="State">
           {callback.stateMatches ? (
             <span className="text-emerald-700 dark:text-emerald-400">Matches the request ({callback.state})</span>
+          ) : callback.state === null ? (
+            <span className="text-amber-700 dark:text-amber-400">
+              None sent, so the flow was started elsewhere (Postman, say). You can still exchange the code; a real app
+              should send a state and check it.
+            </span>
           ) : (
             <span className="text-red-700 dark:text-red-400">
               Doesn&apos;t match the request this page started ({callback.state ?? 'none'}). A real app should stop here.
@@ -343,7 +348,10 @@ export default function OAuthTester() {
     const result = parseCallback(new URLSearchParams(params.toString()), pending);
     if (result) {
       setCallback(result);
-      setRedirectUri(pending?.redirectUri ?? `${window.location.origin}/oauth`);
+      // The code came back to this page, so this page is the redirect URI,
+      // unless it's the flow this page started (keep that exact value).
+      const here = `${window.location.origin}${window.location.pathname}`;
+      setRedirectUri(result.stateMatches && pending ? pending.redirectUri : here);
     }
     // Only on arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps

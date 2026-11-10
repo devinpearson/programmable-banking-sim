@@ -5463,6 +5463,14 @@ paths:
           required: false
           name: state
           in: query
+        - schema:
+            type: string
+            enum:
+              - code
+            description: Only code is supported; anything else is a 400.
+          required: false
+          name: response_type
+          in: query
       responses:
         "302":
           description: To the web app's login page

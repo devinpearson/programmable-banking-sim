@@ -4324,6 +4324,7 @@ export interface paths {
                     redirect_uri: string;
                     scope?: string;
                     state?: string;
+                    response_type?: "code";
                 };
                 header?: never;
                 path?: never;
