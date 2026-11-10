@@ -106,6 +106,15 @@ describe('Test the identity oauth endpoints', () => {
     assert.match(response.headers.location, /^http:\/\/localhost:3001\/login\?qsp=/)
   })
 
+  it('should accept response_type=code, as the Postman collection sends it, and reject other types', async () => {
+    const query = { client_id: CLIENT_ID, redirect_uri: 'http://example.com/callback', scope: 'accounts transactions' }
+    const code = await request(app).get('/identity/v2/oauth2/authorize').query({ ...query, response_type: 'code' })
+    assert.equal(code.statusCode, 302)
+    const token = await request(app).get('/identity/v2/oauth2/authorize').query({ ...query, response_type: 'token' })
+    assert.equal(token.statusCode, 400)
+    assert.equal(token.body.errorMessage, 'Unsupported response_type: only code is supported')
+  })
+
   it('should respond with 401 when authorizing with the wrong client_id', async () => {
     const response = await request(app).get('/identity/v2/oauth2/authorize').query({
       client_id: 'wrong-client-id',

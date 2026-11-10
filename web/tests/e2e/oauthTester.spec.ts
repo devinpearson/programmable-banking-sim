@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API_URL } from './servers';
+import { API_URL, CLIENT_ID, WEB_URL } from './servers';
 
 // The OAuth tester page (/oauth): start the 3-legged flow, come back, exchange
 // the code, refresh, and call the API with the token.
@@ -67,4 +67,23 @@ test('a declined sign-in has nothing to exchange', async ({ page }) => {
   await expect(back.getByText('DECLINED', { exact: true })).toBeVisible();
   await expect(back.getByText(/can.t be exchanged/)).toBeVisible();
   await expect(back.getByRole('button', { name: 'Exchange code for tokens' })).toHaveCount(0);
+});
+
+test('finishes a flow started from Postman (no state) with the tester as the redirect', async ({ page }) => {
+  // The request Investec's 3-legged Postman collection sends.
+  const params = new URLSearchParams({
+    scope: 'accounts transactions',
+    client_id: CLIENT_ID,
+    redirect_uri: `${WEB_URL}/oauth`,
+    response_type: 'code',
+  });
+  await page.goto(`${API_URL}/identity/v2/oauth2/authorize?${params}`);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: 'Authorize' }).click();
+
+  const back = page.getByRole('region', { name: '2. Back from the bank' });
+  await expect(back.getByText('SUCCESS', { exact: true })).toBeVisible();
+  await expect(back.getByText(/None sent, so the flow was started elsewhere/)).toBeVisible();
+  await back.getByRole('button', { name: 'Exchange code for tokens' }).click();
+  await expect(page.getByRole('region', { name: '3. Tokens' }).getByText('accounts transactions', { exact: true })).toBeVisible();
 });

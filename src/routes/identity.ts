@@ -176,6 +176,12 @@ router.get('/v2/oauth2/authorize', (req, res) => {
   if (settings.client_id !== req.query.client_id) {
     return formatErrorResponse(req, res, 401)
   }
+  // Only the authorization code flow exists. response_type is optional, but
+  // clients such as Investec's Postman collection send response_type=code.
+  const responseType = req.query.response_type
+  if (responseType !== undefined && responseType !== 'code') {
+    return formatErrorResponse(req, res, 400, 'Unsupported response_type: only code is supported')
+  }
   const redirectUri = req.query.redirect_uri
   if (typeof redirectUri !== 'string' || !isValidRedirectUri(redirectUri)) {
     return formatErrorResponse(req, res, 400, 'redirect_uri must be a valid URL')

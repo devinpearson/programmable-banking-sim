@@ -615,6 +615,7 @@ register('get', '/identity/v2/oauth2/authorize', {
       description: 'Space-separated: accounts balances transactions transfers beneficiarypayments statements cards. Omit for all.',
     }),
     state: z.string().optional().openapi({ description: 'Echoed back on the redirect.' }),
+    response_type: z.enum(['code']).optional().openapi({ description: 'Only code is supported; anything else is a 400.' }),
   }),
   redirect: "To the web app's login page",
   errors: [400, 401],

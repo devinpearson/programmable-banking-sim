@@ -8,6 +8,7 @@ describe('authorizeUrl', () => {
     );
     expect(url.pathname).toBe('/identity/v2/oauth2/authorize');
     expect(url.searchParams.get('client_id')).toBe('abc');
+    expect(url.searchParams.get('response_type')).toBe('code');
     expect(url.searchParams.get('redirect_uri')).toBe('http://localhost:3001/oauth');
     expect(url.searchParams.get('scope')).toBe('accounts cards');
     expect(url.searchParams.get('state')).toBe('s1');

@@ -29,6 +29,7 @@ export function authorizeUrl(request: AuthorizeRequest): string {
   const params = new URLSearchParams({
     client_id: request.clientId,
     redirect_uri: request.redirectUri,
+    response_type: 'code',
     state: request.state,
   });
   // No scope at all would request every scope; send what was ticked.

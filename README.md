@@ -93,8 +93,8 @@ Investec endpoints ignore unknown fields; the sandbox-only endpoints that create
 ### Auth
 - **POST /identity/v2/oauth2/token**
     - Get an access token (only required if auth is turned on)
-- **GET /identity/v2/oauth2/authorize?client_id=…&redirect_uri=…&scope=…&state=…**
-    - Start the 3-legged flow. `redirect_uri` is required. `scope` is space-separated; leave it out to request every scope. `state` is echoed back on the redirect
+- **GET /identity/v2/oauth2/authorize?client_id=…&redirect_uri=…&scope=…&state=…&response_type=code**
+    - Start the 3-legged flow. `redirect_uri` is required. `response_type` is optional, and only `code` is accepted. `scope` is space-separated; leave it out to request every scope. `state` is echoed back on the redirect
 
 Sign-in (`POST /login`) and everything under `/identity` are rate limited to `AUTH_RATE_LIMIT` requests per minute per IP (default 300). Over the limit they answer `429` with a `Retry-After` header. The banking endpoints are not limited.
 
