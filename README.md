@@ -14,6 +14,7 @@ There is a number of control functions, such as creating an account or adding tr
 - [Docker](#docker)
 - [Usage](#usage)
 - [Endpoints](#endpoints)
+- [Changelog](CHANGELOG.md)
 - [Contributing](#contributing)
 - [License](#license)
 
