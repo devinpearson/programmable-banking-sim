@@ -312,9 +312,12 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description Earliest posting date. Defaults to 180 days ago. */
                     fromDate?: string;
+                    /** @description Latest posting date. Defaults to today. */
                     toDate?: string;
                     transactionType?: string;
+                    /** @description Include pending card holds (listed first). */
                     includePending?: "true" | "false";
                 };
                 header?: never;
@@ -392,6 +395,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: {
+                    /** @description Allow a non-card transaction to be created as PENDING. */
                     allowNonCardPending?: "true" | "false";
                 };
                 header?: never;
@@ -1454,7 +1458,9 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description Earliest statement date. Defaults to three months ago. */
                     fromDate?: string;
+                    /** @description Latest statement date. Defaults to today. */
                     toDate?: string;
                 };
                 header?: never;
@@ -4322,8 +4328,11 @@ export interface paths {
                 query: {
                     client_id: string;
                     redirect_uri: string;
+                    /** @description Space-separated: accounts balances transactions transfers beneficiarypayments statements cards. Omit for all. */
                     scope?: string;
+                    /** @description Echoed back on the redirect. */
                     state?: string;
+                    /** @description Only code is supported; anything else is a 400. */
                     response_type?: "code";
                 };
                 header?: never;
@@ -4387,6 +4396,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
+                    /** @description The sign-in request handle */
                     qsp: string;
                 };
                 header?: never;
@@ -4462,7 +4472,9 @@ export interface paths {
         get: {
             parameters: {
                 query: {
+                    /** @description The sign-in request handle */
                     qsp: string;
+                    /** @description JSON array of consented account numbers; omit for all. */
                     selectedAccounts?: string;
                 };
                 header?: never;
@@ -4526,6 +4538,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
+                    /** @description The sign-in request handle */
                     qsp: string;
                 };
                 header?: never;
@@ -5098,8 +5111,11 @@ export interface webhooks {
                 query?: never;
                 header: {
                     "X-Sandbox-Event": string;
+                    /** @description The event id; the same on every retry. */
                     "X-Sandbox-Delivery": string;
+                    /** @description 1, then 2, 3, 4 for retries. */
                     "X-Sandbox-Attempt": string;
+                    /** @description sha256=<hex HMAC of the body>, when the webhook has a secret */
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -5149,8 +5165,11 @@ export interface webhooks {
                 query?: never;
                 header: {
                     "X-Sandbox-Event": string;
+                    /** @description The event id; the same on every retry. */
                     "X-Sandbox-Delivery": string;
+                    /** @description 1, then 2, 3, 4 for retries. */
                     "X-Sandbox-Attempt": string;
+                    /** @description sha256=<hex HMAC of the body>, when the webhook has a secret */
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -5200,8 +5219,11 @@ export interface webhooks {
                 query?: never;
                 header: {
                     "X-Sandbox-Event": string;
+                    /** @description The event id; the same on every retry. */
                     "X-Sandbox-Delivery": string;
+                    /** @description 1, then 2, 3, 4 for retries. */
                     "X-Sandbox-Attempt": string;
+                    /** @description sha256=<hex HMAC of the body>, when the webhook has a secret */
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -5251,8 +5273,11 @@ export interface webhooks {
                 query?: never;
                 header: {
                     "X-Sandbox-Event": string;
+                    /** @description The event id; the same on every retry. */
                     "X-Sandbox-Delivery": string;
+                    /** @description 1, then 2, 3, 4 for retries. */
                     "X-Sandbox-Attempt": string;
+                    /** @description sha256=<hex HMAC of the body>, when the webhook has a secret */
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -5302,8 +5327,11 @@ export interface webhooks {
                 query?: never;
                 header: {
                     "X-Sandbox-Event": string;
+                    /** @description The event id; the same on every retry. */
                     "X-Sandbox-Delivery": string;
+                    /** @description 1, then 2, 3, 4 for retries. */
                     "X-Sandbox-Attempt": string;
+                    /** @description sha256=<hex HMAC of the body>, when the webhook has a secret */
                     "X-Sandbox-Signature"?: string;
                 };
                 path?: never;
@@ -5343,22 +5371,6 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
-        Exchange: {
-            /** @example USD */
-            currencyCode: string;
-            /**
-             * @description In the purchase currency.
-             * @example 12.5
-             */
-            amount: number;
-            /** @example 17.6 */
-            zarPerUnit: number;
-            /**
-             * @description What the account is charged, in rand.
-             * @example 220
-             */
-            zarAmount: number;
-        };
         CardAuthorizationEvent: {
             cardKey: string;
             cardNumber: string;
@@ -5380,6 +5392,22 @@ export interface components {
             exchange: components["schemas"]["Exchange"] | null;
             /** @description The hold or posted purchase, when approved. */
             transactionId: number | null;
+        };
+        Exchange: {
+            /** @example USD */
+            currencyCode: string;
+            /**
+             * @description In the purchase currency.
+             * @example 12.5
+             */
+            amount: number;
+            /** @example 17.6 */
+            zarPerUnit: number;
+            /**
+             * @description What the account is charged, in rand.
+             * @example 220
+             */
+            zarAmount: number;
         };
         Account: {
             /** @example 4675778129910189600000003 */

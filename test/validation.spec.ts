@@ -12,7 +12,7 @@ describe('Request validation', () => {
   it('rejects an unknown field when creating an account, naming it', async () => {
     const response = await request(app).post(ACCOUNTS).send({ accountId: 'v-acct', accountNumbr: '1' })
     assert.equal(response.statusCode, 400)
-    assert.match(response.body.errorMessage, /Unrecognized key\(s\) in object: 'accountNumbr'/)
+    assert.match(response.body.errorMessage, /Unrecognized key: "accountNumbr"/)
     assert.equal(response.body.details[0].location, 'body')
   })
 

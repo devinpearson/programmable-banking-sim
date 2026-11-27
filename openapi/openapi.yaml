@@ -21,28 +21,6 @@ components:
       scheme: basic
       description: client_id:client_secret
   schemas:
-    Exchange:
-      type: object
-      properties:
-        currencyCode:
-          type: string
-          example: USD
-        amount:
-          type: number
-          description: In the purchase currency.
-          example: 12.5
-        zarPerUnit:
-          type: number
-          example: 17.6
-        zarAmount:
-          type: number
-          description: What the account is charged, in rand.
-          example: 220
-      required:
-        - currencyCode
-        - amount
-        - zarPerUnit
-        - zarAmount
     CardAuthorizationEvent:
       type: object
       properties:
@@ -62,6 +40,7 @@ components:
             - insufficient_funds
             - card_not_active
             - declined_by_card_code
+            - null
         merchant:
           type: object
           properties:
@@ -90,7 +69,6 @@ components:
           anyOf:
             - $ref: "#/components/schemas/Exchange"
             - type: "null"
-            - type: "null"
         transactionId:
           type:
             - integer
@@ -108,6 +86,28 @@ components:
         - zarAmount
         - exchange
         - transactionId
+    Exchange:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: USD
+        amount:
+          type: number
+          description: In the purchase currency.
+          example: 12.5
+        zarPerUnit:
+          type: number
+          example: 17.6
+        zarAmount:
+          type: number
+          description: What the account is charged, in rand.
+          example: 220
+      required:
+        - currencyCode
+        - amount
+        - zarPerUnit
+        - zarAmount
     Account:
       type: object
       properties:
@@ -216,8 +216,8 @@ components:
         postedOrder:
           anyOf:
             - type: string
-              description: Decimal amount
               example: "125.50"
+              description: Decimal amount
             - type: number
           description: 0 for pending transactions.
         postingDate:
@@ -231,13 +231,13 @@ components:
           type: string
         amount:
           type: string
-          description: Decimal amount
           example: "125.50"
+          description: Decimal amount
         runningBalance:
           anyOf:
             - type: string
-              description: Decimal amount
               example: "125.50"
+              description: Decimal amount
             - type: number
           description: 0 for pending transactions.
       required:
@@ -290,8 +290,8 @@ components:
           type: string
         amount:
           type: string
-          description: Decimal amount
           example: "125.50"
+          description: Decimal amount
       required:
         - transactionId
         - accountId
@@ -587,11 +587,9 @@ components:
           anyOf:
             - $ref: "#/components/schemas/StoredTransaction"
             - type: "null"
-            - type: "null"
         exchange:
           anyOf:
             - $ref: "#/components/schemas/Exchange"
-            - type: "null"
             - type: "null"
       required:
         - result
@@ -612,7 +610,7 @@ components:
           type: boolean
         type:
           type: string
-          enum: &a2
+          enum:
             - before_transaction
             - after_transaction
             - after_decline
@@ -1700,17 +1698,19 @@ paths:
         - schema:
             type: string
             pattern: ^\d{4}-\d{2}-\d{2}$
-            description: Earliest posting date. Defaults to 180 days ago.
             example: 2026-01-31
+            description: Earliest posting date. Defaults to 180 days ago.
           required: false
+          description: Earliest posting date. Defaults to 180 days ago.
           name: fromDate
           in: query
         - schema:
             type: string
             pattern: ^\d{4}-\d{2}-\d{2}$
-            description: Latest posting date. Defaults to today.
             example: 2026-01-31
+            description: Latest posting date. Defaults to today.
           required: false
+          description: Latest posting date. Defaults to today.
           name: toDate
           in: query
         - schema:
@@ -1722,11 +1722,12 @@ paths:
           in: query
         - schema:
             type: string
-            enum: &a1
+            enum:
               - "true"
               - "false"
             description: Include pending card holds (listed first).
           required: false
+          description: Include pending card holds (listed first).
           name: includePending
           in: query
       responses:
@@ -1807,9 +1808,12 @@ paths:
           in: path
         - schema:
             type: string
-            enum: *a1
+            enum:
+              - "true"
+              - "false"
             description: Allow a non-card transaction to be created as PENDING.
           required: false
+          description: Allow a non-card transaction to be created as PENDING.
           name: allowNonCardPending
           in: query
       requestBody:
@@ -2758,17 +2762,19 @@ paths:
         - schema:
             type: string
             pattern: ^\d{4}-\d{2}-\d{2}$
-            description: Earliest statement date. Defaults to three months ago.
             example: 2026-01-31
+            description: Earliest statement date. Defaults to three months ago.
           required: false
+          description: Earliest statement date. Defaults to three months ago.
           name: fromDate
           in: query
         - schema:
             type: string
             pattern: ^\d{4}-\d{2}-\d{2}$
-            description: Latest statement date. Defaults to today.
             example: 2026-01-31
+            description: Latest statement date. Defaults to today.
           required: false
+          description: Latest statement date. Defaults to today.
           name: toDate
           in: query
       responses:
@@ -3852,7 +3858,10 @@ paths:
                               type: boolean
                             type:
                               type: string
-                              enum: *a2
+                              enum:
+                                - before_transaction
+                                - after_transaction
+                                - after_decline
                             authorizationApproved:
                               type:
                                 - boolean
@@ -4654,8 +4663,8 @@ paths:
                     FeesAndInterest (interest).
                 amount:
                   type: number
-                  description: Required for fixed amounts.
                   example: 125.5
+                  description: Required for fixed amounts.
                 annualRatePercent:
                   type: number
                   exclusiveMinimum: 0
@@ -4680,8 +4689,8 @@ paths:
                 startDate:
                   type: string
                   pattern: ^\d{4}-\d{2}-\d{2}$
-                  description: First run on or after this date. Defaults to the sandbox date.
                   example: 2026-01-31
+                  description: First run on or after this date. Defaults to the sandbox date.
               required:
                 - accountId
                 - description
@@ -5066,7 +5075,7 @@ paths:
                   type: array
                   items:
                     type: string
-                    enum: &a3
+                    enum:
                       - transaction.posted
                       - transaction.pending
                       - transaction.reversed
@@ -5189,7 +5198,11 @@ paths:
                   type: array
                   items:
                     type: string
-                    enum: *a3
+                    enum:
+                      - transaction.posted
+                      - transaction.pending
+                      - transaction.reversed
+                      - card.authorization
                   minItems: 1
                   description: Events to receive. Omit for every event.
                 active:
@@ -5455,12 +5468,15 @@ paths:
             description: "Space-separated: accounts balances transactions transfers
               beneficiarypayments statements cards. Omit for all."
           required: false
+          description: "Space-separated: accounts balances transactions transfers
+            beneficiarypayments statements cards. Omit for all."
           name: scope
           in: query
         - schema:
             type: string
             description: Echoed back on the redirect.
           required: false
+          description: Echoed back on the redirect.
           name: state
           in: query
         - schema:
@@ -5469,6 +5485,7 @@ paths:
               - code
             description: Only code is supported; anything else is a 400.
           required: false
+          description: Only code is supported; anything else is a 400.
           name: response_type
           in: query
       responses:
@@ -5505,6 +5522,7 @@ paths:
             type: string
             description: The sign-in request handle
           required: true
+          description: The sign-in request handle
           name: qsp
           in: query
       responses:
@@ -5567,12 +5585,14 @@ paths:
             type: string
             description: The sign-in request handle
           required: true
+          description: The sign-in request handle
           name: qsp
           in: query
         - schema:
             type: string
             description: JSON array of consented account numbers; omit for all.
           required: false
+          description: JSON array of consented account numbers; omit for all.
           name: selectedAccounts
           in: query
       responses:
@@ -5608,6 +5628,7 @@ paths:
             type: string
             description: The sign-in request handle
           required: true
+          description: The sign-in request handle
           name: qsp
           in: query
       responses:
@@ -5747,7 +5768,9 @@ paths:
                   anyOf:
                     - type: boolean
                     - type: string
-                      enum: *a1
+                      enum:
+                        - "true"
+                        - "false"
               required:
                 - client_id
                 - client_secret
@@ -6020,18 +6043,21 @@ webhooks:
             type: string
             description: The event id; the same on every retry.
           required: true
+          description: The event id; the same on every retry.
           name: X-Sandbox-Delivery
           in: header
         - schema:
             type: string
             description: 1, then 2, 3, 4 for retries.
           required: true
+          description: 1, then 2, 3, 4 for retries.
           name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
             description: sha256=<hex HMAC of the body>, when the webhook has a secret
           required: false
+          description: sha256=<hex HMAC of the body>, when the webhook has a secret
           name: X-Sandbox-Signature
           in: header
       requestBody:
@@ -6077,18 +6103,21 @@ webhooks:
             type: string
             description: The event id; the same on every retry.
           required: true
+          description: The event id; the same on every retry.
           name: X-Sandbox-Delivery
           in: header
         - schema:
             type: string
             description: 1, then 2, 3, 4 for retries.
           required: true
+          description: 1, then 2, 3, 4 for retries.
           name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
             description: sha256=<hex HMAC of the body>, when the webhook has a secret
           required: false
+          description: sha256=<hex HMAC of the body>, when the webhook has a secret
           name: X-Sandbox-Signature
           in: header
       requestBody:
@@ -6134,18 +6163,21 @@ webhooks:
             type: string
             description: The event id; the same on every retry.
           required: true
+          description: The event id; the same on every retry.
           name: X-Sandbox-Delivery
           in: header
         - schema:
             type: string
             description: 1, then 2, 3, 4 for retries.
           required: true
+          description: 1, then 2, 3, 4 for retries.
           name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
             description: sha256=<hex HMAC of the body>, when the webhook has a secret
           required: false
+          description: sha256=<hex HMAC of the body>, when the webhook has a secret
           name: X-Sandbox-Signature
           in: header
       requestBody:
@@ -6191,18 +6223,21 @@ webhooks:
             type: string
             description: The event id; the same on every retry.
           required: true
+          description: The event id; the same on every retry.
           name: X-Sandbox-Delivery
           in: header
         - schema:
             type: string
             description: 1, then 2, 3, 4 for retries.
           required: true
+          description: 1, then 2, 3, 4 for retries.
           name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
             description: sha256=<hex HMAC of the body>, when the webhook has a secret
           required: false
+          description: sha256=<hex HMAC of the body>, when the webhook has a secret
           name: X-Sandbox-Signature
           in: header
       requestBody:
@@ -6248,18 +6283,21 @@ webhooks:
             type: string
             description: The event id; the same on every retry.
           required: true
+          description: The event id; the same on every retry.
           name: X-Sandbox-Delivery
           in: header
         - schema:
             type: string
             description: 1, then 2, 3, 4 for retries.
           required: true
+          description: 1, then 2, 3, 4 for retries.
           name: X-Sandbox-Attempt
           in: header
         - schema:
             type: string
             description: sha256=<hex HMAC of the body>, when the webhook has a secret
           required: false
+          description: sha256=<hex HMAC of the body>, when the webhook has a secret
           name: X-Sandbox-Signature
           in: header
       requestBody:
