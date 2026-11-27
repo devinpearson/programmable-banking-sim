@@ -202,7 +202,7 @@ export const CardCode = z
 export const EnvironmentVariables = z
   .object({
     result: z.object({
-      variables: z.record(z.unknown()),
+      variables: z.record(z.string(), z.unknown()),
       createdAt: isoDateTime,
       updatedAt: isoDateTime,
       error: z.null(),

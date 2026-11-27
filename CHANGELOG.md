@@ -52,6 +52,7 @@ Everything since v1.3. Most of it landed between 3 and 9 November 2026.
 - OAuth: the switch to a Map for pending sign-ins was finished (#39)
 - Flaky tests: each test file gets its own loopback server, and tests use a separate database (#31, #43, #44)
 - Seed files can be run again without duplicating data; lint, knip and CI pass (#31, #38)
+- Dependency security updates for the open Dependabot alerts, including zod 4 and vitest 4
 
 ### Removed
 - Database switching (`DB_FILE`) (#24)

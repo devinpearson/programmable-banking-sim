@@ -16,7 +16,7 @@ const dateTime = z.string().datetime({ offset: true, message: 'must be an ISO da
 
 export const sandboxStateSchema = z
   .object({
-    version: z.literal(STATE_VERSION, { errorMap: () => ({ message: `must be ${STATE_VERSION}` }) }),
+    version: z.literal(STATE_VERSION, { error: `must be ${STATE_VERSION}` }),
     exportedAt: dateTime.optional(),
     profiles: z.array(z.object({ profileId: z.string().min(1), profileName: z.string() })),
     accounts: z.array(

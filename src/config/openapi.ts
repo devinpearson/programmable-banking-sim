@@ -36,8 +36,8 @@ interface Operation {
   description?: string
   // Sandbox-only endpoints have no Investec equivalent.
   sandbox?: boolean
-  params?: z.AnyZodObject
-  query?: z.AnyZodObject | z.ZodEffects<z.AnyZodObject>
+  params?: z.ZodObject
+  query?: z.ZodObject
   body?: z.ZodTypeAny
   bodyType?: 'application/json' | 'application/x-www-form-urlencoded'
   // The 200 body; null for an empty one. Redirects set `redirect` instead.
@@ -62,7 +62,7 @@ export function toOpenApiPath(path: string) {
   return path.replace(/:([A-Za-z0-9_]+)/g, '{$1}')
 }
 
-function pathParams(path: string): z.AnyZodObject | undefined {
+function pathParams(path: string): z.ZodObject | undefined {
   const names = [...path.matchAll(/:([A-Za-z0-9_]+)/g)].map(match => match[1])
   if (names.length === 0) return undefined
   return z.object(Object.fromEntries(names.map(name => [name, z.string()])))
@@ -103,7 +103,7 @@ function register(method: Method, path: string, op: Operation) {
     security,
     request: {
       params: op.params ?? pathParams(path),
-      query: op.query as z.AnyZodObject | undefined,
+      query: op.query,
       body: op.body
         ? { content: { [op.bodyType ?? 'application/json']: { schema: op.body } } }
         : undefined,

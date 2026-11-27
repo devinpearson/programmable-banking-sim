@@ -60,7 +60,7 @@ export function validateRequest(schemas: RequestSchemas): RequestHandler<any> {
   }
 }
 
-// One readable line, e.g. "transferList.0.amount: Expected number".
+// One readable line, e.g. "transferList.0.amount: Invalid input: expected number, received string".
 function describeIssues(issues: ValidationIssue[]) {
   const [first, ...rest] = issues
   const more = rest.length > 0 ? ` (and ${rest.length} more)` : ''

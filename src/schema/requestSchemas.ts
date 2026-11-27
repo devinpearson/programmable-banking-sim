@@ -175,7 +175,7 @@ export const toggleProgrammableBody = z.object({
 })
 
 export const environmentVariablesBody = z.object({
-  variables: z.record(z.unknown()).default({}),
+  variables: z.record(z.string(), z.unknown()).default({}),
 })
 
 const pointOfSale = {
